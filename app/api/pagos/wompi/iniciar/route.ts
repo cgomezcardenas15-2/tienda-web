@@ -44,7 +44,7 @@ export async function POST(request: Request) {
 
     const pedido = data as PedidoPago;
 
-    if (pedido.estado_pago === "pagado") {
+    if (pedido.estado_pago === "aprobado") {
       return NextResponse.json({ ok: false, error: "Este pedido ya está pagado." }, { status: 409 });
     }
 
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
         estado_pago: "pendiente",
       })
       .eq("id", pedido.id)
-      .neq("estado_pago", "pagado");
+      .neq("estado_pago", "aprobado");
 
     if (errorActualizacion) {
       throw errorActualizacion;

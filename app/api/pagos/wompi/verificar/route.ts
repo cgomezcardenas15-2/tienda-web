@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     }
 
     const estados = {
-      APPROVED: { estado_pago: "pagado", estado_pedido: "confirmado" },
+      APPROVED: { estado_pago: "aprobado", estado_pedido: "confirmado" },
       PENDING: { estado_pago: "procesando", estado_pedido: "pendiente_pago" },
       DECLINED: { estado_pago: "rechazado", estado_pedido: "pendiente_pago" },
       VOIDED: { estado_pago: "cancelado", estado_pedido: "cancelado" },
