@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     return responderError("El evento no pertenece al ambiente Sandbox.", 400);
   }
 
-  const secreto = process.env.WOMPI_EVENTS_SECRET;
+  const secreto = process.env.WOMPI_EVENTS_SECRET?.trim();
   const propiedades = evento.signature?.properties;
   const checksum = evento.signature?.checksum;
 
@@ -97,10 +97,20 @@ export async function POST(request: Request) {
     .digest("hex");
   const checksumCabecera = request.headers.get("x-event-checksum");
 
-  if (
-    !coincidenFirmas(firmaCalculada, checksum) ||
-    (checksumCabecera && !coincidenFirmas(firmaCalculada, checksumCabecera))
-  ) {
+  const firmaDelCuerpoValida = coincidenFirmas(firmaCalculada, checksum);
+  const firmaDeCabeceraValida = checksumCabecera
+    ? coincidenFirmas(firmaCalculada, checksumCabecera)
+    : false;
+
+  if (!firmaDelCuerpoValida && !firmaDeCabeceraValida) {
+    console.warn("Firma de evento Wompi rechazada", {
+      properties: propiedades,
+      bodyChecksumFormatValid: /^[a-f0-9]{64}$/i.test(checksum),
+      headerChecksumPresent: Boolean(checksumCabecera),
+      headerChecksumFormatValid: checksumCabecera
+        ? /^[a-f0-9]{64}$/i.test(checksumCabecera)
+        : false,
+    });
     return responderError("La firma del evento es inválida.", 401);
   }
 
