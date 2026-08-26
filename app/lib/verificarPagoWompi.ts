@@ -55,14 +55,31 @@ export async function verificarYActualizarPagoWompi(idTransaccion: string) {
     throw new ErrorVerificacionPago("Wompi devolvió un estado desconocido.", 502);
   }
 
-  const { error: errorActualizacion } = await supabaseAdmin
-    .from("pedidos")
-    .update(nuevoEstado)
-    .eq("id", data.id)
-    .eq("referencia_pago", transaccion.reference);
+  if (transaccion.status === "APPROVED") {
+    const { error: errorConfirmacion } = await supabaseAdmin.rpc(
+      "confirmar_pago_wompi",
+      {
+        p_pedido_id: data.id,
+        p_transaccion_id: transaccion.id,
+        p_referencia_pedido: transaccion.reference,
+        p_monto_centavos: transaccion.amount_in_cents,
+        p_moneda: transaccion.currency,
+      }
+    );
 
-  if (errorActualizacion) {
-    throw errorActualizacion;
+    if (errorConfirmacion) {
+      throw errorConfirmacion;
+    }
+  } else {
+    const { error: errorActualizacion } = await supabaseAdmin
+      .from("pedidos")
+      .update(nuevoEstado)
+      .eq("id", data.id)
+      .eq("referencia_pago", transaccion.reference);
+
+    if (errorActualizacion) {
+      throw errorActualizacion;
+    }
   }
 
   return {
