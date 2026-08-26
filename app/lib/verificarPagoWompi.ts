@@ -68,7 +68,16 @@ export async function verificarYActualizarPagoWompi(idTransaccion: string) {
     );
 
     if (errorConfirmacion) {
-      throw errorConfirmacion;
+      const codigo =
+        typeof errorConfirmacion.code === "string"
+          ? errorConfirmacion.code
+          : "SUPABASE";
+      const mensaje =
+        typeof errorConfirmacion.message === "string"
+          ? errorConfirmacion.message
+          : "No fue posible confirmar el pago en Supabase.";
+
+      throw new Error(`[${codigo}] ${mensaje}`);
     }
   } else {
     const { error: errorActualizacion } = await supabaseAdmin
