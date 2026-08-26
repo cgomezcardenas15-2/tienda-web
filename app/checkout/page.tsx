@@ -230,6 +230,9 @@ export default function CheckoutPage() {
   const [validandoServidor, setValidandoServidor] =
     useState(false);
 
+  const [iniciandoPago, setIniciandoPago] =
+    useState(false);
+
   const [errorServidor, setErrorServidor] =
     useState("");
 
@@ -1111,6 +1114,83 @@ export default function CheckoutPage() {
       setValidandoServidor(
         false
       );
+    }
+  }
+
+  async function continuarAlPago() {
+    if (!pedidoPreparado || !datosConfirmados || iniciandoPago) {
+      return;
+    }
+
+    setErrorServidor("");
+    setIniciandoPago(true);
+
+    try {
+      const respuestaPedido = await fetch("/api/pedidos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productos: pedidoPreparado.productos.map((producto) => ({
+            id: producto.productoId,
+            cantidad: producto.cantidad,
+          })),
+          comprador_nombre: pedidoPreparado.comprador.nombre,
+          comprador_tipo_documento: pedidoPreparado.comprador.tipoDocumento,
+          comprador_numero_documento: pedidoPreparado.comprador.numeroDocumento,
+          comprador_razon_social: pedidoPreparado.comprador.razonSocial,
+          comprador_dv: pedidoPreparado.comprador.digitoVerificacion,
+          comprador_telefono: pedidoPreparado.comprador.telefono,
+          comprador_correo: pedidoPreparado.comprador.correo,
+          entrega_departamento: pedidoPreparado.entrega.departamento,
+          entrega_ciudad: pedidoPreparado.entrega.ciudad,
+          entrega_direccion: pedidoPreparado.entrega.direccion,
+          entrega_complemento: pedidoPreparado.entrega.complemento,
+          entrega_instrucciones: pedidoPreparado.entrega.instrucciones,
+          facturacion_nombre: pedidoPreparado.facturacion.nombre,
+          facturacion_tipo_documento: pedidoPreparado.facturacion.tipoDocumento,
+          facturacion_numero_documento: pedidoPreparado.facturacion.numeroDocumento,
+          facturacion_razon_social: pedidoPreparado.facturacion.razonSocial,
+          facturacion_dv: pedidoPreparado.facturacion.digitoVerificacion,
+          facturacion_correo: pedidoPreparado.facturacion.correo,
+          facturacion_departamento: pedidoPreparado.facturacion.departamento,
+          facturacion_ciudad: pedidoPreparado.facturacion.ciudad,
+          facturacion_direccion: pedidoPreparado.facturacion.direccion,
+        }),
+      });
+
+      const pedido = (await respuestaPedido.json()) as {
+        ok: boolean;
+        error?: string;
+        pedido?: { id: string };
+      };
+
+      if (!respuestaPedido.ok || !pedido.ok || !pedido.pedido?.id) {
+        throw new Error(pedido.error || "No fue posible crear el pedido pendiente.");
+      }
+
+      const respuestaPago = await fetch("/api/pagos/wompi/iniciar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pedidoId: pedido.pedido.id }),
+      });
+
+      const pago = (await respuestaPago.json()) as {
+        ok: boolean;
+        error?: string;
+        checkoutUrl?: string;
+      };
+
+      if (!respuestaPago.ok || !pago.ok || !pago.checkoutUrl) {
+        throw new Error(pago.error || "No fue posible iniciar el pago.");
+      }
+
+      window.location.assign(pago.checkoutUrl);
+    } catch (error) {
+      console.error("Error continuando al pago:", error);
+      setErrorServidor(
+        error instanceof Error ? error.message : "No fue posible continuar al pago."
+      );
+      setIniciandoPago(false);
     }
   }
 
@@ -2298,10 +2378,11 @@ export default function CheckoutPage() {
 
                       <button
                         type="button"
-                        disabled
-                        className="mt-5 w-full cursor-not-allowed rounded-xl bg-[#82f000] px-5 py-3.5 font-bold text-black opacity-40"
+                        onClick={continuarAlPago}
+                        disabled={iniciandoPago || !pedidoPreparado}
+                        className="mt-5 w-full cursor-pointer rounded-xl bg-[#82f000] px-5 py-3.5 font-bold text-black transition hover:bg-[#9cff35] disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        Continuar al pago
+                        {iniciandoPago ? "Preparando pago seguro..." : "Continuar al pago"}
                       </button>
 
                       <button
