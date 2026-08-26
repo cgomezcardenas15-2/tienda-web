@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -236,6 +236,9 @@ export default function CheckoutPage() {
   const [errorServidor, setErrorServidor] =
     useState("");
 
+  const iniciandoPagoRef = useRef(false);
+  const pedidoPendienteRef = useRef<string | null>(null);
+
   /*
   |--------------------------------------------------------------------------
   | PEDIDO PREPARADO
@@ -272,6 +275,7 @@ export default function CheckoutPage() {
   */
 
   function invalidarRevision() {
+    pedidoPendienteRef.current = null;
     setDatosConfirmados(false);
     setPedidoPreparado(null);
     setValidacionServidor(null);
@@ -1118,60 +1122,73 @@ export default function CheckoutPage() {
   }
 
   async function continuarAlPago() {
-    if (!pedidoPreparado || !datosConfirmados || iniciandoPago) {
+    if (
+      !pedidoPreparado ||
+      !datosConfirmados ||
+      iniciandoPago ||
+      iniciandoPagoRef.current
+    ) {
       return;
     }
 
+    iniciandoPagoRef.current = true;
     setErrorServidor("");
     setIniciandoPago(true);
 
     try {
-      const respuestaPedido = await fetch("/api/pedidos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productos: pedidoPreparado.productos.map((producto) => ({
-            id: producto.productoId,
-            cantidad: producto.cantidad,
-          })),
-          comprador_nombre: pedidoPreparado.comprador.nombre,
-          comprador_tipo_documento: pedidoPreparado.comprador.tipoDocumento,
-          comprador_numero_documento: pedidoPreparado.comprador.numeroDocumento,
-          comprador_razon_social: pedidoPreparado.comprador.razonSocial,
-          comprador_dv: pedidoPreparado.comprador.digitoVerificacion,
-          comprador_telefono: pedidoPreparado.comprador.telefono,
-          comprador_correo: pedidoPreparado.comprador.correo,
-          entrega_departamento: pedidoPreparado.entrega.departamento,
-          entrega_ciudad: pedidoPreparado.entrega.ciudad,
-          entrega_direccion: pedidoPreparado.entrega.direccion,
-          entrega_complemento: pedidoPreparado.entrega.complemento,
-          entrega_instrucciones: pedidoPreparado.entrega.instrucciones,
-          facturacion_nombre: pedidoPreparado.facturacion.nombre,
-          facturacion_tipo_documento: pedidoPreparado.facturacion.tipoDocumento,
-          facturacion_numero_documento: pedidoPreparado.facturacion.numeroDocumento,
-          facturacion_razon_social: pedidoPreparado.facturacion.razonSocial,
-          facturacion_dv: pedidoPreparado.facturacion.digitoVerificacion,
-          facturacion_correo: pedidoPreparado.facturacion.correo,
-          facturacion_departamento: pedidoPreparado.facturacion.departamento,
-          facturacion_ciudad: pedidoPreparado.facturacion.ciudad,
-          facturacion_direccion: pedidoPreparado.facturacion.direccion,
-        }),
-      });
+      let pedidoId = pedidoPendienteRef.current;
 
-      const pedido = (await respuestaPedido.json()) as {
-        ok: boolean;
-        error?: string;
-        pedido?: { id: string };
-      };
+      if (!pedidoId) {
+        const respuestaPedido = await fetch("/api/pedidos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productos: pedidoPreparado.productos.map((producto) => ({
+              id: producto.productoId,
+              cantidad: producto.cantidad,
+            })),
+            comprador_nombre: pedidoPreparado.comprador.nombre,
+            comprador_tipo_documento: pedidoPreparado.comprador.tipoDocumento,
+            comprador_numero_documento: pedidoPreparado.comprador.numeroDocumento,
+            comprador_razon_social: pedidoPreparado.comprador.razonSocial,
+            comprador_dv: pedidoPreparado.comprador.digitoVerificacion,
+            comprador_telefono: pedidoPreparado.comprador.telefono,
+            comprador_correo: pedidoPreparado.comprador.correo,
+            entrega_departamento: pedidoPreparado.entrega.departamento,
+            entrega_ciudad: pedidoPreparado.entrega.ciudad,
+            entrega_direccion: pedidoPreparado.entrega.direccion,
+            entrega_complemento: pedidoPreparado.entrega.complemento,
+            entrega_instrucciones: pedidoPreparado.entrega.instrucciones,
+            facturacion_nombre: pedidoPreparado.facturacion.nombre,
+            facturacion_tipo_documento: pedidoPreparado.facturacion.tipoDocumento,
+            facturacion_numero_documento: pedidoPreparado.facturacion.numeroDocumento,
+            facturacion_razon_social: pedidoPreparado.facturacion.razonSocial,
+            facturacion_dv: pedidoPreparado.facturacion.digitoVerificacion,
+            facturacion_correo: pedidoPreparado.facturacion.correo,
+            facturacion_departamento: pedidoPreparado.facturacion.departamento,
+            facturacion_ciudad: pedidoPreparado.facturacion.ciudad,
+            facturacion_direccion: pedidoPreparado.facturacion.direccion,
+          }),
+        });
 
-      if (!respuestaPedido.ok || !pedido.ok || !pedido.pedido?.id) {
-        throw new Error(pedido.error || "No fue posible crear el pedido pendiente.");
+        const pedido = (await respuestaPedido.json()) as {
+          ok: boolean;
+          error?: string;
+          pedido?: { id: string };
+        };
+
+        if (!respuestaPedido.ok || !pedido.ok || !pedido.pedido?.id) {
+          throw new Error(pedido.error || "No fue posible crear el pedido pendiente.");
+        }
+
+        pedidoId = pedido.pedido.id;
+        pedidoPendienteRef.current = pedidoId;
       }
 
       const respuestaPago = await fetch("/api/pagos/wompi/iniciar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pedidoId: pedido.pedido.id }),
+        body: JSON.stringify({ pedidoId }),
       });
 
       const pago = (await respuestaPago.json()) as {
@@ -1186,6 +1203,7 @@ export default function CheckoutPage() {
 
       window.location.assign(pago.checkoutUrl);
     } catch (error) {
+      iniciandoPagoRef.current = false;
       console.error("Error continuando al pago:", error);
       setErrorServidor(
         error instanceof Error ? error.message : "No fue posible continuar al pago."
