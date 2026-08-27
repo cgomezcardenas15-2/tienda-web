@@ -57,7 +57,7 @@ export type EstadoPago =
 
 export type EstadoPedido =
   | "pendiente_pago"
-  | "confirmado"
+  | "pagado"
   | "preparando"
   | "enviado"
   | "entregado"

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/app/lib/adminAuth";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
+import EstadoPedidoControl from "./EstadoPedidoControl";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,12 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
       </section>
 
       <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6"><div className="flex flex-wrap justify-between gap-4"><div><p className="text-sm text-zinc-500">Estado del pago</p><p className="mt-1 font-black text-lime-400">{pedido.estado_pago}</p></div><div><p className="text-sm text-zinc-500">Estado del pedido</p><p className="mt-1 font-black">{pedido.estado_pedido}</p></div><div><p className="text-sm text-zinc-500">Proveedor</p><p className="mt-1 font-black">{pedido.proveedor_pago || "—"}</p></div></div></section>
+
+      <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-lime-400">Gestión del pedido</p>
+        <h2 className="mt-2 text-xl font-black">Siguiente paso</h2>
+        <div className="mt-4"><EstadoPedidoControl pedidoId={pedido.id} estadoActual={pedido.estado_pedido} pagoAprobado={pedido.estado_pago === "aprobado"} /></div>
+      </section>
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-zinc-800">
         <div className="bg-zinc-900 px-6 py-4"><h2 className="font-black">Productos</h2></div>
