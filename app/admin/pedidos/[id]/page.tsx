@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/app/lib/adminAuth";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 import EstadoPedidoControl from "./EstadoPedidoControl";
+import EnvioPedidoForm from "./EnvioPedidoForm";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,13 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
         <p className="text-xs font-black uppercase tracking-[0.2em] text-lime-400">Gestión del pedido</p>
         <h2 className="mt-2 text-xl font-black">Siguiente paso</h2>
         <div className="mt-4"><EstadoPedidoControl pedidoId={pedido.id} estadoActual={pedido.estado_pedido} pagoAprobado={pedido.estado_pago === "aprobado"} /></div>
+      </section>
+
+      <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-lime-400">Logística</p>
+        <h2 className="mt-2 text-xl font-black">Información de envío</h2>
+        <p className="mt-2 text-sm text-zinc-400">Guarda la guía antes de marcar el pedido como enviado.</p>
+        <EnvioPedidoForm pedidoId={pedido.id} estadoPedido={pedido.estado_pedido} inicial={{ transportadora: pedido.envio_transportadora || "", servicio: pedido.envio_servicio || "", numeroGuia: pedido.envio_numero_guia || "", urlSeguimiento: pedido.envio_url_seguimiento || "" }} />
       </section>
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-zinc-800">

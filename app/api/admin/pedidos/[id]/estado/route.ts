@@ -24,7 +24,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const { data: pedido, error: consultaError } = await supabaseAdmin
     .from("pedidos")
-    .select("id,estado_pedido,estado_pago")
+    .select("id,estado_pedido,estado_pago,envio_transportadora,envio_numero_guia")
     .eq("id", id)
     .maybeSingle();
 
@@ -40,6 +40,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const siguientePermitido = TRANSICIONES[pedido.estado_pedido];
   if (!siguientePermitido || estadoSolicitado !== siguientePermitido) {
     return NextResponse.json({ error: "Ese cambio de estado no está permitido." }, { status: 409 });
+  }
+  if (estadoSolicitado === "enviado" && (!pedido.envio_transportadora || !pedido.envio_numero_guia)) {
+    return NextResponse.json({ error: "Guarda primero la transportadora y el número de guía." }, { status: 409 });
   }
 
   const { data: actualizado, error: actualizacionError } = await supabaseAdmin
