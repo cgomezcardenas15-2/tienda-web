@@ -67,9 +67,7 @@ export default async function PedidosAdminPage() {
           <h1 className="mt-2 text-3xl font-black">Pedidos</h1>
           <p className="mt-2 text-sm text-zinc-400">Los 100 pedidos más recientes de NOVA.</p>
         </div>
-        <Link href="/admin/pedidos" className="rounded-xl bg-zinc-800 px-4 py-2 text-sm font-semibold hover:bg-zinc-700">
-          Actualizar
-        </Link>
+        <div className="flex flex-wrap gap-3"><a href="/api/admin/exportar/pedidos" download className="rounded-xl border border-lime-400/40 px-4 py-2 text-sm font-bold text-lime-300 hover:bg-lime-400/10">Descargar pedidos CSV</a><Link href="/admin/pedidos" className="rounded-xl bg-zinc-800 px-4 py-2 text-sm font-semibold hover:bg-zinc-700">Actualizar</Link></div>
       </div>
 
       <section className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

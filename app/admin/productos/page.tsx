@@ -30,7 +30,7 @@ export default async function ProductosAdminPage() {
   return <main className="mx-auto max-w-7xl px-5 py-8">
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div><p className="text-xs font-black uppercase tracking-[0.24em] text-lime-400">CATÁLOGO</p><h1 className="mt-2 text-3xl font-black">Productos y variantes</h1><p className="mt-2 text-sm text-zinc-400">Elige cuáles productos tendrán colores, tallas u otras opciones.</p></div>
-      <div className="flex gap-3"><Link href="/admin/pedidos" className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-bold hover:border-lime-400">Ver pedidos</Link><Link href="/admin/productos/nuevo" className="rounded-xl bg-lime-400 px-4 py-2 text-sm font-black text-black hover:bg-lime-300">+ Nuevo producto</Link></div>
+      <div className="flex flex-wrap gap-3"><a href="/api/admin/exportar/inventario" download className="rounded-xl border border-lime-400/40 px-4 py-2 text-sm font-bold text-lime-300 hover:bg-lime-400/10">Descargar inventario CSV</a><Link href="/admin/pedidos" className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-bold hover:border-lime-400">Ver pedidos</Link><Link href="/admin/productos/nuevo" className="rounded-xl bg-lime-400 px-4 py-2 text-sm font-black text-black hover:bg-lime-300">+ Nuevo producto</Link></div>
     </div>
     {!error && <div className="mt-7 grid gap-4 sm:grid-cols-3">
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"><p className="text-xs font-bold uppercase tracking-wider text-zinc-500">Productos visibles</p><p className="mt-2 text-3xl font-black text-lime-400">{(productos ?? []).filter((producto) => producto.activo).length}</p></div>
