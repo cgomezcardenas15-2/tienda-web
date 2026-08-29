@@ -22,6 +22,8 @@ function imagenValida(valor: unknown) {
 
 export default async function PedidoDetallePage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
+  const { error: errorLimpieza } = await supabaseAdmin.rpc("liberar_reservas_vencidas");
+  if (errorLimpieza) console.error("Error limpiando reservas vencidas:", errorLimpieza.message);
   const { id } = await params;
 
   const [{ data: pedido, error }, { data: productos, error: productosError }] = await Promise.all([
@@ -65,7 +67,7 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
         <article className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6"><h2 className="font-black">Entrega</h2><dl className="mt-4 space-y-3 text-sm"><div><dt className="text-zinc-500">Destino</dt><dd className="mt-1">{pedido.entrega_ciudad}, {pedido.entrega_departamento}</dd></div><div><dt className="text-zinc-500">Dirección</dt><dd className="mt-1">{pedido.entrega_direccion}{pedido.entrega_complemento ? `, ${pedido.entrega_complemento}` : ""}</dd></div><div><dt className="text-zinc-500">Instrucciones</dt><dd className="mt-1">{pedido.entrega_instrucciones || "Sin instrucciones"}</dd></div></dl></article>
       </section>
 
-      <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6"><div className="flex flex-wrap justify-between gap-4"><div><p className="text-sm text-zinc-500">Estado del pago</p><p className="mt-1 font-black text-lime-400">{pedido.estado_pago}</p></div><div><p className="text-sm text-zinc-500">Estado del pedido</p><p className="mt-1 font-black">{pedido.estado_pedido}</p></div><div><p className="text-sm text-zinc-500">Proveedor</p><p className="mt-1 font-black">{pedido.proveedor_pago || "—"}</p></div></div></section>
+      <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6"><div className="flex flex-wrap justify-between gap-4"><div><p className="text-sm text-zinc-500">Estado del pago</p><p className={`mt-1 font-black ${pedido.estado_pago === "vencido" ? "text-orange-300" : "text-lime-400"}`}>{pedido.estado_pago === "vencido" ? "Pago vencido" : pedido.estado_pago}</p></div><div><p className="text-sm text-zinc-500">Estado del pedido</p><p className="mt-1 font-black">{pedido.estado_pedido}</p></div><div><p className="text-sm text-zinc-500">Proveedor</p><p className="mt-1 font-black">{pedido.proveedor_pago || "—"}</p></div></div></section>
 
       <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-lime-400">Gestión del pedido</p>

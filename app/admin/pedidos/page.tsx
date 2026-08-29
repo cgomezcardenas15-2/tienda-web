@@ -22,11 +22,25 @@ const dinero = new Intl.NumberFormat("es-CO", { style: "currency", currency: "CO
 function estadoClase(estado: string) {
   if (["pagado", "aprobado", "entregado"].includes(estado)) return "bg-lime-400/15 text-lime-300";
   if (["rechazado", "cancelado"].includes(estado)) return "bg-red-500/15 text-red-300";
+  if (estado === "vencido") return "bg-orange-500/15 text-orange-300";
   return "bg-amber-400/15 text-amber-300";
+}
+
+function estadoTexto(estado: string) {
+  const textos: Record<string, string> = {
+    pendiente: "Pendiente", procesando: "Procesando", aprobado: "Aprobado",
+    rechazado: "Rechazado", cancelado: "Cancelado", vencido: "Pago vencido",
+    pendiente_pago: "Pendiente de pago", pagado: "Pagado", preparando: "Preparando",
+    enviado: "Enviado", entregado: "Entregado",
+  };
+  return textos[estado] || estado.replaceAll("_", " ");
 }
 
 export default async function PedidosAdminPage() {
   await requireAdmin();
+
+  const { error: errorLimpieza } = await supabaseAdmin.rpc("liberar_reservas_vencidas");
+  if (errorLimpieza) console.error("Error limpiando reservas vencidas:", errorLimpieza.message);
 
   const { data, error } = await supabaseAdmin
     .from("pedidos")
@@ -43,6 +57,7 @@ export default async function PedidosAdminPage() {
   }
   const pagados = pedidos.filter((pedido) => pedido.estado_pago === "aprobado").length;
   const pendientes = pedidos.filter((pedido) => ["pendiente", "procesando"].includes(pedido.estado_pago)).length;
+  const vencidos = pedidos.filter((pedido) => pedido.estado_pago === "vencido").length;
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-8">
@@ -57,10 +72,11 @@ export default async function PedidosAdminPage() {
         </Link>
       </div>
 
-      <section className="mt-7 grid gap-4 sm:grid-cols-3">
+      <section className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"><p className="text-sm text-zinc-400">Pedidos visibles</p><p className="mt-2 text-3xl font-black">{pedidos.length}</p></div>
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"><p className="text-sm text-zinc-400">Pagos aprobados</p><p className="mt-2 text-3xl font-black text-lime-400">{pagados}</p></div>
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"><p className="text-sm text-zinc-400">Pendientes</p><p className="mt-2 text-3xl font-black text-amber-300">{pendientes}</p></div>
+        <div className="rounded-2xl border border-orange-500/20 bg-orange-500/[0.05] p-5"><p className="text-sm text-orange-200/70">Pagos vencidos</p><p className="mt-2 text-3xl font-black text-orange-300">{vencidos}</p></div>
       </section>
 
       {error ? (
@@ -77,8 +93,8 @@ export default async function PedidosAdminPage() {
                   <td className="px-5 py-4 text-zinc-400">{pedido.creado_en ? new Date(pedido.creado_en).toLocaleString("es-CO") : "—"}</td>
                   <td className="px-5 py-4"><p className="font-bold text-white">{pedido.comprador_nombre}</p><p className="mt-1 text-xs font-bold text-lime-400">{pedido.numero_pedido}</p><p className="mt-1 text-xs text-zinc-500">{pedido.comprador_correo}</p></td>
                   <td className="px-5 py-4 text-zinc-300">{pedido.entrega_ciudad}</td>
-                  <td className="px-5 py-4"><span className={`rounded-full px-3 py-1 text-xs font-bold ${estadoClase(pedido.estado_pago)}`}>{pedido.estado_pago}</span></td>
-                  <td className="px-5 py-4"><span className={`rounded-full px-3 py-1 text-xs font-bold ${estadoClase(pedido.estado_pedido)}`}>{pedido.estado_pedido}</span></td>
+                  <td className="px-5 py-4"><span className={`rounded-full px-3 py-1 text-xs font-bold ${estadoClase(pedido.estado_pago)}`}>{estadoTexto(pedido.estado_pago)}</span></td>
+                  <td className="px-5 py-4"><span className={`rounded-full px-3 py-1 text-xs font-bold ${estadoClase(pedido.estado_pedido)}`}>{estadoTexto(pedido.estado_pedido)}</span></td>
                   <td className="px-5 py-4 text-right font-black text-white">{dinero.format(Number(pedido.total))}</td>
                   <td className="px-5 py-4 text-right">
                     <Link href={`/admin/pedidos/${pedido.id}`} aria-label={`Ver pedido de ${pedido.comprador_nombre}`} className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs font-bold text-white transition hover:border-lime-400 hover:text-lime-300">

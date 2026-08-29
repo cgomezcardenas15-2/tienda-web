@@ -52,7 +52,11 @@ export default function ConsultaPedido() {
     window.location.assign(data.checkoutUrl);
   }
 
-  const estado = pedido ? (ESTADOS[pedido.estadoPedido] || { titulo: "Pedido en proceso", descripcion: "Estamos actualizando la información de tu pedido.", paso: 0 }) : null;
+  const estado = pedido
+    ? pedido.estadoPago === "vencido"
+      ? { titulo: "El tiempo de pago venció", descripcion: "La reserva finalizó. Puedes intentar el pago nuevamente si todavía hay unidades disponibles.", paso: 0 }
+      : (ESTADOS[pedido.estadoPedido] || { titulo: "Pedido en proceso", descripcion: "Estamos actualizando la información de tu pedido.", paso: 0 })
+    : null;
   const seguimiento = pedido ? urlSegura(pedido.envio.urlSeguimiento) : null;
   return <>
     <form onSubmit={consultar} className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 sm:p-8">

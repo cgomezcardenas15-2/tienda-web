@@ -38,6 +38,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Revisa el número del pedido y el correo." }, { status: 400 });
   }
 
+  const { error: errorLimpieza } = await supabaseAdmin.rpc("liberar_reservas_vencidas");
+  if (errorLimpieza) console.error("Error limpiando reservas vencidas:", errorLimpieza.message);
+
   const { data: pedido, error } = await supabaseAdmin
     .from("pedidos")
     .select("id,numero_pedido,creado_en,total,moneda,estado_pago,estado_pedido,envio_transportadora,envio_servicio,envio_numero_guia,envio_url_seguimiento")
