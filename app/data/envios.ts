@@ -28,11 +28,21 @@ export type ResultadoEnvio = {
 |
 */
 
-const TARIFAS_ENVIO = {
-  CALI: 8000,
-  VALLE: 12000,
-  NACIONAL: 16000,
-} as const;
+export type ConfiguracionEnvios = {
+  tarifaCali: number;
+  tarifaValle: number;
+  tarifaNacional: number;
+  envioGratisActivo: boolean;
+  envioGratisDesde: number;
+};
+
+export const CONFIGURACION_ENVIOS_PREDETERMINADA: ConfiguracionEnvios = {
+  tarifaCali: 8000,
+  tarifaValle: 12000,
+  tarifaNacional: 16000,
+  envioGratisActivo: false,
+  envioGratisDesde: 0,
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -73,7 +83,9 @@ function normalizarTexto(texto: string) {
 
 export function calcularEnvio(
   departamento: string,
-  ciudad: string
+  ciudad: string,
+  configuracion = CONFIGURACION_ENVIOS_PREDETERMINADA,
+  subtotal = 0,
 ): ResultadoEnvio {
   if (
     departamento.trim() === "" ||
@@ -95,6 +107,11 @@ export function calcularEnvio(
   const ciudadNormalizada =
     normalizarTexto(ciudad);
 
+  const esEnvioGratis =
+    configuracion.envioGratisActivo &&
+    configuracion.envioGratisDesde > 0 &&
+    subtotal >= configuracion.envioGratisDesde;
+
   /*
   |--------------------------------------------------------------------------
   | CALI
@@ -108,10 +125,10 @@ export function calcularEnvio(
   ) {
     return {
       disponible: true,
-      valor: TARIFAS_ENVIO.CALI,
+      valor: esEnvioGratis ? 0 : configuracion.tarifaCali,
       zona: "CALI",
       nombreZona: "Cali",
-      mensaje: "Envío local en Cali.",
+      mensaje: esEnvioGratis ? "Envío gratis por el valor de tu compra." : "Envío local en Cali.",
     };
   }
 
@@ -127,11 +144,10 @@ export function calcularEnvio(
   ) {
     return {
       disponible: true,
-      valor: TARIFAS_ENVIO.VALLE,
+      valor: esEnvioGratis ? 0 : configuracion.tarifaValle,
       zona: "VALLE",
       nombreZona: "Valle del Cauca",
-      mensaje:
-        "Envío departamental en Valle del Cauca.",
+      mensaje: esEnvioGratis ? "Envío gratis por el valor de tu compra." : "Envío departamental en Valle del Cauca.",
     };
   }
 
@@ -143,9 +159,9 @@ export function calcularEnvio(
 
   return {
     disponible: true,
-    valor: TARIFAS_ENVIO.NACIONAL,
+    valor: esEnvioGratis ? 0 : configuracion.tarifaNacional,
     zona: "NACIONAL",
     nombreZona: "Nacional",
-    mensaje: "Envío nacional.",
+    mensaje: esEnvioGratis ? "Envío gratis por el valor de tu compra." : "Envío nacional.",
   };
 }

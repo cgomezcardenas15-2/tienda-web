@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 import { calcularEnvio } from "@/app/data/envios";
+import { obtenerConfiguracionEnvios } from "@/app/lib/configuracionEnvios";
 import { ErrorValidacionProductos, validarLineasProducto } from "@/app/lib/validarLineasProducto";
 
 /*
@@ -478,10 +479,13 @@ export async function POST(request: Request) {
     |
     */
 
+    const configuracionEnvios = await obtenerConfiguracionEnvios();
     const resultadoEnvio =
       calcularEnvio(
         entregaDepartamento,
-        entregaCiudad
+        entregaCiudad,
+        configuracionEnvios,
+        subtotalCalculado,
       );
 
     if (!resultadoEnvio.disponible) {

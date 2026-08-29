@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -12,7 +12,11 @@ import {
   obtenerMunicipios,
 } from "../data/colombia";
 
-import { calcularEnvio } from "../data/envios";
+import {
+  calcularEnvio,
+  CONFIGURACION_ENVIOS_PREDETERMINADA,
+  type ConfiguracionEnvios,
+} from "../data/envios";
 
 import {
   convertirTipoDocumento,
@@ -149,6 +153,16 @@ function calcularDigitoVerificacion(nit: string) {
 
 export default function CheckoutPage() {
   const { items, subtotal } = useCart();
+  const [configuracionEnvios, setConfiguracionEnvios] = useState<ConfiguracionEnvios>(CONFIGURACION_ENVIOS_PREDETERMINADA);
+
+  useEffect(() => {
+    let activo = true;
+    fetch("/api/envios", { cache: "no-store" })
+      .then((respuesta) => respuesta.ok ? respuesta.json() : Promise.reject())
+      .then((data: ConfiguracionEnvios) => { if (activo) setConfiguracionEnvios(data); })
+      .catch(() => undefined);
+    return () => { activo = false; };
+  }, []);
 
   /*
   |--------------------------------------------------------------------------
@@ -354,9 +368,11 @@ export default function CheckoutPage() {
   const resultadoEnvio = useMemo(() => {
     return calcularEnvio(
       departamento,
-      ciudad
+      ciudad,
+      configuracionEnvios,
+      subtotal,
     );
-  }, [departamento, ciudad]);
+  }, [departamento, ciudad, configuracionEnvios, subtotal]);
 
   const valorEnvio =
     resultadoEnvio.disponible
@@ -1643,7 +1659,7 @@ export default function CheckoutPage() {
 
                           <div className="shrink-0 sm:text-right">
                             <p className="text-xs text-white/35">
-                              Tarifa provisional
+                              Tarifa de envío
                             </p>
 
                             <p className="mt-1 text-2xl font-bold text-[#82f000]">
