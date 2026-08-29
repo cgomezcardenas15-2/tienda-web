@@ -10,6 +10,10 @@ export default function AdminHeader() {
           </Link>
           <p className="mt-1 text-xs text-zinc-500">Gestión privada de la tienda</p>
         </div>
+        <nav className="ml-auto flex items-center gap-2">
+          <Link href="/admin/pedidos" className="rounded-lg px-3 py-2 text-sm font-bold text-zinc-300 hover:text-lime-300">Pedidos</Link>
+          <Link href="/admin/productos" className="rounded-lg px-3 py-2 text-sm font-bold text-zinc-300 hover:text-lime-300">Productos</Link>
+        </nav>
         <form action="/api/admin/logout" method="post">
           <button className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 hover:border-lime-400 hover:text-white">
             Cerrar sesión
@@ -19,4 +23,3 @@ export default function AdminHeader() {
     </header>
   );
 }
-

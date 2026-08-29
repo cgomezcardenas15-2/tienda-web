@@ -9,6 +9,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 import {
+  obtenerClaveCarrito,
   useCart,
 } from "../context/CartContext";
 
@@ -117,7 +118,7 @@ export default function CarritoPage() {
     const producto =
       items.find(
         (item) =>
-          item.id === id
+          obtenerClaveCarrito(item) === id
       );
 
     if (!producto) {
@@ -274,12 +275,12 @@ export default function CarritoPage() {
 
                     const mostrarAviso =
                       productoConAvisoStock ===
-                      item.id;
+                      obtenerClaveCarrito(item);
 
                     return (
                       <article
                         key={
-                          item.id
+                          obtenerClaveCarrito(item)
                         }
                         className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"
                       >
@@ -312,6 +313,12 @@ export default function CarritoPage() {
                                 item.nombre
                               }
                             </h2>
+
+                            {item.varianteNombre && (
+                              <p className="mt-1 text-sm font-medium text-[#9cff35]">
+                                {item.varianteNombre}
+                              </p>
+                            )}
 
                             <p className="mt-2 text-xl font-bold text-[#82f000]">
                               {formatoPesos(
@@ -356,7 +363,7 @@ export default function CarritoPage() {
                                   );
 
                                   disminuirCantidad(
-                                    item.id
+                                    obtenerClaveCarrito(item)
                                   );
                                 }}
                                 className="h-10 w-10 cursor-pointer text-lg text-white/70 transition hover:bg-white/[0.06] hover:text-white"
@@ -378,7 +385,7 @@ export default function CarritoPage() {
                                 type="button"
                                 onClick={() =>
                                   manejarAumento(
-                                    item.id
+                                    obtenerClaveCarrito(item)
                                   )
                                 }
                                 className={
@@ -404,7 +411,7 @@ export default function CarritoPage() {
                                 );
 
                                 quitarProducto(
-                                  item.id
+                                  obtenerClaveCarrito(item)
                                 );
                               }}
                               className="cursor-pointer rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-2.5 text-sm font-semibold text-red-400 transition hover:bg-red-500/10"

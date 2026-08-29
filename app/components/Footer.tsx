@@ -2,9 +2,10 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-white/[0.08] bg-[#050705] text-white">
-      <div className="mx-auto max-w-7xl px-6 py-14 lg:px-10">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+    <footer className="relative overflow-hidden border-t border-white/[0.08] bg-[#050705] text-white">
+      <div className="pointer-events-none absolute -bottom-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-[#82f000]/[0.06] blur-[110px]" />
+      <div className="relative mx-auto max-w-7xl px-6 py-14 lg:px-10">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr]">
           {/* Marca */}
           <div>
             <div className="flex items-center gap-3">
@@ -31,98 +32,43 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Categorías */}
+          {/* Explorar */}
           <div>
-            <h3 className="text-sm font-semibold text-white">
-              Categorías
-            </h3>
+            <h3 className="text-sm font-semibold text-white">Explorar</h3>
 
             <div className="mt-5 flex flex-col gap-3 text-sm text-white/45">
-              <a href="#tecnologia" className="transition hover:text-[#82f000]">
-                Tecnología y accesorios
+              <a href="/#productos" className="transition hover:text-[#82f000]">
+                Todos los productos
               </a>
-
-              <a href="#hogar" className="transition hover:text-[#82f000]">
-                Hogar
+              <a href="/#categorias" className="transition hover:text-[#82f000]">
+                Categorías
               </a>
-
-              <a href="#pinateria" className="transition hover:text-[#82f000]">
-                Piñatería
+              <a href="/categoria/tecnologia" className="transition hover:text-[#82f000]">
+                Tecnología
               </a>
-
-              <a href="#mascotas" className="transition hover:text-[#82f000]">
-                Mascotas
-              </a>
-
-              <a href="#ferreteria" className="transition hover:text-[#82f000]">
-                Ferretería
+              <a href="/carrito" className="transition hover:text-[#82f000]">
+                Mi carrito
               </a>
             </div>
           </div>
 
-          {/* Ayuda */}
+          {/* Legal */}
           <div>
-            <h3 className="text-sm font-semibold text-white">
-              Ayuda
-            </h3>
+            <h3 className="text-sm font-semibold text-white">Información legal</h3>
 
             <div className="mt-5 flex flex-col gap-3 text-sm text-white/45">
-              <a href="#" className="transition hover:text-[#82f000]">
-                Guía NOVA
+              <a href="/terminos" className="transition hover:text-[#82f000]">
+                Términos y condiciones
               </a>
-
-              <a href="#" className="transition hover:text-[#82f000]">
-                Preguntas frecuentes
+              <a href="/privacidad" className="transition hover:text-[#82f000]">
+                Privacidad y datos personales
               </a>
-
-              <a href="#" className="transition hover:text-[#82f000]">
-                Envíos
+              <a href="/cookies" className="transition hover:text-[#82f000]">
+                Política de cookies
               </a>
-
-              <a href="#" className="transition hover:text-[#82f000]">
-                Cambios y devoluciones
+              <a href="https://www.sic.gov.co/" target="_blank" rel="noreferrer" className="transition hover:text-[#82f000]">
+                Protección al consumidor ↗
               </a>
-
-              <a href="#" className="transition hover:text-[#82f000]">
-                Contacto
-              </a>
-            </div>
-          </div>
-
-          {/* Información */}
-          <div>
-            <h3 className="text-sm font-semibold text-white">
-              Compra con confianza
-            </h3>
-
-            <div className="mt-5 space-y-4">
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 text-[#82f000]">✓</span>
-
-                <div>
-                  <p className="text-sm font-medium text-white/80">
-                    Compra segura
-                  </p>
-
-                  <p className="mt-1 text-xs leading-5 text-white/35">
-                    Procesos claros y acompañamiento durante tu compra.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 text-[#82f000]">✓</span>
-
-                <div>
-                  <p className="text-sm font-medium text-white/80">
-                    Guía NOVA
-                  </p>
-
-                  <p className="mt-1 text-xs leading-5 text-white/35">
-                    Si necesitas ayuda, podrás recibir orientación paso a paso.
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -134,15 +80,15 @@ export default function Footer() {
           </p>
 
           <div className="flex flex-wrap gap-5">
-            <a href="#" className="transition hover:text-white/60">
+            <a href="/terminos" className="transition hover:text-white/60">
               Términos
             </a>
 
-            <a href="#" className="transition hover:text-white/60">
+            <a href="/privacidad" className="transition hover:text-white/60">
               Privacidad
             </a>
 
-            <a href="#" className="transition hover:text-white/60">
+            <a href="/cookies" className="transition hover:text-white/60">
               Cookies
             </a>
           </div>

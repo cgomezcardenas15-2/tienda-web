@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/app/lib/adminAuth";
+import { notificarEnvioPorCorreo } from "@/app/lib/notificacionesPedido";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 const TRANSICIONES: Record<string, string> = {
@@ -24,7 +25,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const { data: pedido, error: consultaError } = await supabaseAdmin
     .from("pedidos")
-    .select("id,estado_pedido,estado_pago,envio_transportadora,envio_numero_guia")
+    .select("id,comprador_nombre,comprador_correo,estado_pedido,estado_pago,envio_transportadora,envio_servicio,envio_numero_guia,envio_url_seguimiento,envio_notificado_email_en")
     .eq("id", id)
     .maybeSingle();
 
@@ -61,5 +62,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "El pedido cambió mientras lo estabas revisando. Actualiza la página." }, { status: 409 });
   }
 
-  return NextResponse.json({ ok: true, estado: actualizado.estado_pedido });
+  const notificacion = estadoSolicitado === "enviado"
+    ? await notificarEnvioPorCorreo(pedido)
+    : null;
+
+  return NextResponse.json({ ok: true, estado: actualizado.estado_pedido, notificacion });
 }

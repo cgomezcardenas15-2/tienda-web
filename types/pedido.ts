@@ -82,6 +82,11 @@ export type EstadoPedido =
 export type ProductoPedido = {
   productoId: string;
 
+  varianteId?: string;
+  varianteNombre?: string;
+  varianteColor?: string;
+  varianteTalla?: string;
+
   nombre: string;
 
   precioUnitario: number;

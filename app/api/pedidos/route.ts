@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 import { calcularEnvio } from "@/app/data/envios";
+import { ErrorValidacionProductos, validarLineasProducto } from "@/app/lib/validarLineasProducto";
 
 /*
 |--------------------------------------------------------------------------
@@ -34,6 +35,7 @@ import { calcularEnvio } from "@/app/data/envios";
 
 type ProductoRecibido = {
   id: string | number;
+  varianteId?: string;
   nombre?: string;
   precio?: number;
   cantidad: number;
@@ -50,6 +52,12 @@ type ProductoBaseDatos = {
 
 type ProductoValidado = {
   id: string;
+  varianteId?: string;
+  varianteNombre?: string;
+  varianteColor?: string;
+  varianteTalla?: string;
+  imagen?: string;
+  sku?: string;
   nombre: string;
   precio: number;
   cantidad: number;
@@ -127,6 +135,8 @@ export async function POST(request: Request) {
 
     const productosRecibidos: ProductoRecibido[] =
       body.productos;
+
+    const lineasValidadas = await validarLineasProducto(productosRecibidos);
 
     /*
     |--------------------------------------------------------------------------
@@ -291,6 +301,7 @@ export async function POST(request: Request) {
         ) ?? 0;
 
       if (
+        false &&
         producto.controla_stock &&
         cantidadSolicitada > producto.stock
       ) {
@@ -319,22 +330,18 @@ export async function POST(request: Request) {
     */
 
     const productosValidados: ProductoValidado[] =
-      productosEncontrados.map(
-        (producto) => ({
-          id: producto.id,
-
-          nombre:
-            producto.nombre.trim(),
-
-          precio:
-            producto.precio,
-
-          cantidad:
-            cantidadesPorProducto.get(
-              producto.id
-            ) ?? 0,
-        })
-      );
+      lineasValidadas.map((linea) => ({
+        id: linea.id,
+        varianteId: linea.varianteId,
+        varianteNombre: linea.varianteNombre,
+        varianteColor: linea.varianteColor,
+        varianteTalla: linea.varianteTalla,
+        imagen: linea.imagen,
+        sku: linea.sku,
+        nombre: linea.nombre,
+        precio: linea.precio,
+        cantidad: linea.cantidad,
+      }));
 
     /*
     |--------------------------------------------------------------------------
@@ -448,6 +455,20 @@ export async function POST(request: Request) {
       );
     }
 
+    const compradorTelefonoLimpio = compradorTelefono.replace(/\D/g, "");
+
+    if (!/^\d{10}$/.test(compradorTelefonoLimpio)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "El teléfono debe tener exactamente 10 números.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
     /*
     |--------------------------------------------------------------------------
     | CALCULAR ENVÍO EN EL SERVIDOR
@@ -538,7 +559,7 @@ export async function POST(request: Request) {
           : null,
 
       comprador_telefono:
-        compradorTelefono.trim(),
+        compradorTelefonoLimpio,
 
       comprador_correo:
         compradorCorreo.trim(),
@@ -702,6 +723,13 @@ export async function POST(request: Request) {
           producto_id:
             producto.id,
 
+          variante_id: producto.varianteId ?? null,
+          variante_nombre: producto.varianteNombre ?? null,
+          variante_sku: producto.sku ?? null,
+          variante_color: producto.varianteColor ?? null,
+          variante_talla: producto.varianteTalla ?? null,
+          variante_imagen_url: producto.imagen ?? null,
+
           nombre:
             producto.nombre,
 
@@ -805,6 +833,13 @@ export async function POST(request: Request) {
       }
     );
   } catch (error) {
+    if (error instanceof ErrorValidacionProductos) {
+      return NextResponse.json(
+        { ok: false, error: error.message, codigo: error.codigo },
+        { status: error.status }
+      );
+    }
+
     console.error(
       "Error en POST /api/pedidos:",
       error

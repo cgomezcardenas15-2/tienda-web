@@ -52,13 +52,19 @@ export default function Hero() {
           </p>
 
           <div className="mt-9 flex flex-wrap gap-4">
-            <button className="rounded-lg bg-[#82f000] px-7 py-3.5 font-bold text-black shadow-[0_10px_35px_rgba(130,240,0,0.18)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#9cff35]">
+            <a
+              href="#productos"
+              className="rounded-lg bg-[#82f000] px-7 py-3.5 font-bold text-black shadow-[0_10px_35px_rgba(130,240,0,0.18)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#9cff35]"
+            >
               Comprar ahora
-            </button>
+            </a>
 
-            <button className="rounded-lg border border-white/20 bg-white/[0.02] px-7 py-3.5 font-semibold text-white transition duration-300 hover:border-[#82f000] hover:text-[#82f000]">
-              Descubrir NOVA
-            </button>
+            <a
+              href="#categorias"
+              className="rounded-lg border border-white/20 bg-white/[0.02] px-7 py-3.5 font-semibold text-white transition duration-300 hover:border-[#82f000] hover:text-[#82f000]"
+            >
+              Ver categorías
+            </a>
           </div>
         </div>
 
@@ -99,22 +105,6 @@ export default function Hero() {
           ))}
         </div>
 
-        {/* Acceso discreto a Guía NOVA */}
-        <div className="border-t border-white/[0.06]">
-          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 py-4 text-center sm:flex-row sm:text-left lg:px-10">
-            <p className="text-sm text-white/45">
-              ¿No sabes qué producto elegir?
-              <span className="ml-1 text-white/75">
-                Un Guía NOVA puede ayudarte paso a paso.
-              </span>
-            </p>
-
-            <button className="group flex items-center gap-2 text-sm font-semibold text-[#82f000] transition hover:text-[#9cff35]">
-              Hablar con un Guía
-              <span className="transition group-hover:translate-x-1">→</span>
-            </button>
-          </div>
-        </div>
       </div>
     </section>
   );

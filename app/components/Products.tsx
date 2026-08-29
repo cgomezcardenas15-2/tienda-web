@@ -41,6 +41,21 @@ type ProductoSupabase = {
   activo: boolean;
 };
 
+type VarianteProducto = {
+  id: string;
+  producto_id: string;
+  nombre: string;
+  color: string | null;
+  talla: string | null;
+  sku: string;
+  precio: number | null;
+  controla_stock: boolean;
+  stock: number;
+  imagen_url: string | null;
+  activo: boolean;
+  orden: number;
+};
+
 /*
 |--------------------------------------------------------------------------
 | FORMATO DE PRECIO
@@ -171,6 +186,12 @@ export default function Products() {
   const [productos, setProductos] =
     useState<ProductoSupabase[]>([]);
 
+  const [variantes, setVariantes] =
+    useState<Record<string, VarianteProducto[]>>({});
+
+  const [varianteSeleccionada, setVarianteSeleccionada] =
+    useState<Record<string, string>>({});
+
   const [cargando, setCargando] =
     useState(true);
 
@@ -192,8 +213,8 @@ export default function Products() {
       setCargando(true);
       setErrorProductos("");
 
-      const { data, error } =
-        await supabase
+      const [resultadoProductos, resultadoVariantes] = await Promise.all([
+        supabase
           .from("productos")
           .select(
             `
@@ -218,7 +239,15 @@ export default function Products() {
           })
           .order("creado_en", {
             ascending: false,
-          });
+          }),
+        supabase
+          .from("variantes_producto")
+          .select("id, producto_id, nombre, color, talla, sku, precio, controla_stock, stock, imagen_url, activo, orden")
+          .eq("activo", true)
+          .order("orden", { ascending: true }),
+      ]);
+
+      const { data, error } = resultadoProductos;
 
       if (!componenteActivo) {
         return;
@@ -244,6 +273,24 @@ export default function Products() {
         (data ??
           []) as ProductoSupabase[]
       );
+
+      if (resultadoVariantes.error) {
+        console.error("Error cargando variantes:", resultadoVariantes.error);
+      } else {
+        const agrupadas: Record<string, VarianteProducto[]> = {};
+        for (const variante of (resultadoVariantes.data ?? []) as VarianteProducto[]) {
+          (agrupadas[variante.producto_id] ??= []).push(variante);
+        }
+        setVariantes(agrupadas);
+        setVarianteSeleccionada(
+          Object.fromEntries(
+            Object.entries(agrupadas).map(([productoId, opciones]) => [
+              productoId,
+              opciones.find((opcion) => !opcion.controla_stock || opcion.stock > 0)?.id ?? opciones[0]?.id,
+            ])
+          )
+        );
+      }
 
       setCargando(false);
     }
@@ -280,6 +327,32 @@ export default function Products() {
   function agregarAlCarrito(
     producto: ProductoSupabase
   ) {
+    const opciones = variantes[producto.id] ?? [];
+    const variante = opciones.find(
+      (opcion) => opcion.id === varianteSeleccionada[producto.id]
+    );
+
+    if (opciones.length > 0 && !variante) return;
+
+    if (variante) {
+      if (variante.controla_stock && variante.stock <= 0) return;
+
+      agregarProducto({
+        id: producto.id,
+        varianteId: variante.id,
+        varianteNombre: variante.nombre,
+        varianteColor: variante.color ?? undefined,
+        varianteTalla: variante.talla ?? undefined,
+        sku: variante.sku,
+        nombre: producto.nombre,
+        precio: variante.precio ?? producto.precio,
+        imagen: variante.imagen_url ?? producto.imagen_url ?? undefined,
+        controlaStock: variante.controla_stock,
+        stock: variante.stock,
+      });
+      return;
+    }
+
     if (
       producto.controla_stock &&
       producto.stock <= 0
@@ -317,7 +390,7 @@ export default function Products() {
   return (
     <section
       id="productos"
-      className="relative overflow-hidden bg-[#080a08] px-6 py-20 text-white"
+      className="relative scroll-mt-40 overflow-hidden bg-[#080a08] px-6 py-20 text-white"
     >
       {/* Iluminación decorativa */}
 
@@ -328,7 +401,7 @@ export default function Products() {
       <div className="relative mx-auto max-w-7xl">
         {/* Encabezado */}
 
-        <div className="mb-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="mb-12">
           <div>
             <span className="text-sm font-bold uppercase tracking-[0.2em] text-[#82f000]">
               Lo que más se mueve
@@ -345,12 +418,6 @@ export default function Products() {
             </p>
           </div>
 
-          <button
-            type="button"
-            className="w-fit cursor-pointer text-sm font-semibold text-white/60 transition hover:text-[#82f000]"
-          >
-            Ver todos →
-          </button>
         </div>
 
         {/* Cargando */}
@@ -413,14 +480,23 @@ export default function Products() {
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {productos.map(
                 (producto) => {
+                  const opciones = variantes[producto.id] ?? [];
+                  const variante = opciones.find(
+                    (opcion) => opcion.id === varianteSeleccionada[producto.id]
+                  );
                   const etiqueta =
                     obtenerEtiqueta(
                       producto
                     );
 
-                  const sinStock =
-                    producto.controla_stock &&
-                    producto.stock <= 0;
+                  const sinStock = variante
+                    ? variante.controla_stock && variante.stock <= 0
+                    : producto.controla_stock && producto.stock <= 0;
+
+                  const precioVisible = variante?.precio ?? producto.precio;
+                  const imagenVisible = variante?.imagen_url ?? producto.imagen_url;
+                  const stockVisible = variante?.stock ?? producto.stock;
+                  const controlaStockVisible = variante?.controla_stock ?? producto.controla_stock;
 
                   return (
                     <article
@@ -451,24 +527,10 @@ export default function Products() {
                           </span>
                         )}
 
-                        {/* Favoritos */}
-
-                        <button
-                          type="button"
-                          aria-label={
-                            "Agregar " +
-                            producto.nombre +
-                            " a favoritos"
-                          }
-                          className="absolute right-4 top-4 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-black/20 text-xl text-white/50 transition hover:border-[#82f000]/40 hover:text-[#82f000]"
-                        >
-                          ♡
-                        </button>
-
-                        {producto.imagen_url ? (
+                        {imagenVisible ? (
                           <img
                             src={
-                              producto.imagen_url
+                              imagenVisible
                             }
                             alt={
                               producto.nombre
@@ -510,14 +572,14 @@ export default function Products() {
                         <div className="mt-4 flex items-end gap-3">
                           <span className="text-2xl font-bold">
                             {formatoPesos(
-                              producto.precio
+                              precioVisible
                             )}
                           </span>
 
                           {producto.precio_anterior !==
                             null &&
                             producto.precio_anterior >
-                              producto.precio && (
+                              precioVisible && (
                               <span className="pb-1 text-sm text-white/30 line-through">
                                 {formatoPesos(
                                   producto.precio_anterior
@@ -526,15 +588,47 @@ export default function Products() {
                             )}
                         </div>
 
+                        {opciones.length > 0 && (
+                          <div className="mt-4">
+                            <p className="mb-2 text-xs font-semibold text-white/55">
+                              Elige una opción
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {opciones.map((opcion) => {
+                                const agotada = opcion.controla_stock && opcion.stock <= 0;
+                                const activa = opcion.id === variante?.id;
+                                return (
+                                  <button
+                                    key={opcion.id}
+                                    type="button"
+                                    disabled={agotada}
+                                    onClick={() => setVarianteSeleccionada((actual) => ({ ...actual, [producto.id]: opcion.id }))}
+                                    className={
+                                      "rounded-lg border px-3 py-2 text-xs font-semibold transition " +
+                                      (agotada
+                                        ? "cursor-not-allowed border-white/5 text-white/20 line-through"
+                                        : activa
+                                          ? "border-[#82f000] bg-[#82f000]/10 text-[#9cff35]"
+                                          : "cursor-pointer border-white/15 text-white/65 hover:border-[#82f000]/50")
+                                    }
+                                  >
+                                    {opcion.nombre}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Stock */}
 
-                        {producto.controla_stock && (
+                        {controlaStockVisible && (
                           <p
                             className={
                               "mt-3 text-xs font-medium " +
                               (sinStock
                                 ? "text-red-300"
-                                : producto.stock <=
+                                : stockVisible <=
                                     5
                                   ? "text-orange-300"
                                   : "text-white/40")
@@ -542,10 +636,10 @@ export default function Products() {
                           >
                             {sinStock
                               ? "Producto agotado"
-                              : producto.stock <=
+                              : stockVisible <=
                                   5
-                                ? `Solo quedan ${producto.stock} unidades`
-                                : `Stock disponible: ${producto.stock} unidades`}
+                                ? `Solo quedan ${stockVisible} unidades`
+                                : `Stock disponible: ${stockVisible} unidades`}
                           </p>
                         )}
 
@@ -575,15 +669,6 @@ export default function Products() {
                             : "Agregar al carrito"}
                         </button>
 
-                        {/* Ayuda */}
-
-                        <button
-                          type="button"
-                          className="mt-3 w-full cursor-pointer text-center text-xs font-medium text-white/35 transition hover:text-[#82f000]"
-                        >
-                          ¿Necesitas ayuda
-                          para elegir?
-                        </button>
                       </div>
                     </article>
                   );
@@ -592,28 +677,6 @@ export default function Products() {
             </div>
           )}
 
-        {/* Guía NOVA */}
-
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 rounded-2xl border border-white/[0.07] bg-white/[0.025] px-6 py-5 text-center sm:flex-row sm:text-left">
-          <div>
-            <p className="text-sm font-semibold">
-              ¿No encuentras exactamente lo
-              que necesitas?
-            </p>
-
-            <p className="mt-1 text-xs text-white/40">
-              Un Guía NOVA puede ayudarte a
-              encontrar una opción adecuada.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            className="cursor-pointer text-sm font-semibold text-[#82f000] transition hover:text-[#9cff35]"
-          >
-            Hablar con un Guía NOVA →
-          </button>
-        </div>
       </div>
     </section>
   );

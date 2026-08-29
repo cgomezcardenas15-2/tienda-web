@@ -4,6 +4,7 @@ import { requireAdmin } from "@/app/lib/adminAuth";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 import EstadoPedidoControl from "./EstadoPedidoControl";
 import EnvioPedidoForm from "./EnvioPedidoForm";
+import NotificacionEnvioControl from "./NotificacionEnvioControl";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,7 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
         <h2 className="mt-2 text-xl font-black">Información de envío</h2>
         <p className="mt-2 text-sm text-zinc-400">Guarda la guía antes de marcar el pedido como enviado.</p>
         <EnvioPedidoForm pedidoId={pedido.id} estadoPedido={pedido.estado_pedido} inicial={{ transportadora: pedido.envio_transportadora || "", servicio: pedido.envio_servicio || "", numeroGuia: pedido.envio_numero_guia || "", urlSeguimiento: pedido.envio_url_seguimiento || "" }} />
+        <NotificacionEnvioControl pedidoId={pedido.id} estadoPedido={pedido.estado_pedido} notificadoEn={pedido.envio_notificado_email_en || null} />
       </section>
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-zinc-800">
@@ -84,7 +86,7 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
         <div className="divide-y divide-zinc-800">
           {productosError ? <p className="bg-red-950/30 px-6 py-5 text-sm text-red-300">No fue posible cargar los productos de este pedido.</p> : productos?.length ? productos.map((producto) => {
             const productoCatalogo = catalogoPorId.get(String(producto.producto_id));
-            const imagen = imagenValida(productoCatalogo?.imagen_url);
+            const imagen = imagenValida(producto.variante_imagen_url) || imagenValida(productoCatalogo?.imagen_url);
             const cantidad = Number(producto.cantidad);
             const precioUnitario = Number(producto.precio_unitario);
 
@@ -93,7 +95,8 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
                 {imagen ? <div role="img" aria-label={`Imagen de ${producto.nombre}`} className="h-[88px] w-[88px] rounded-xl border border-zinc-800 bg-white bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url(${JSON.stringify(imagen)})` }} /> : <div className="flex h-[88px] w-[88px] items-center justify-center rounded-xl border border-dashed border-zinc-700 bg-zinc-900 px-2 text-center text-xs font-semibold text-zinc-500">Sin imagen</div>}
                 <div>
                   <p className="font-bold text-white">{producto.nombre}</p>
-                  {productoCatalogo?.sku ? <p className="mt-1 text-xs uppercase tracking-wide text-zinc-500">SKU: {productoCatalogo.sku}</p> : null}
+                  {producto.variante_nombre ? <p className="mt-1 font-semibold text-lime-400">{producto.variante_nombre}</p> : null}
+                  {producto.variante_sku || productoCatalogo?.sku ? <p className="mt-1 text-xs uppercase tracking-wide text-zinc-500">SKU: {producto.variante_sku || productoCatalogo?.sku}</p> : null}
                   <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-zinc-400"><span>Cantidad: <strong className="text-zinc-200">{cantidad}</strong></span><span>Precio unitario: <strong className="text-zinc-200">{dinero.format(precioUnitario)}</strong></span></div>
                 </div>
                 <div className="sm:text-right"><p className="text-xs uppercase tracking-wide text-zinc-500">Total</p><p className="mt-1 text-lg font-black text-lime-400">{dinero.format(precioUnitario * cantidad)}</p></div>

@@ -25,6 +25,7 @@ export default function EstadoPedidoControl({ pedidoId, estadoActual, pagoAproba
   const router = useRouter();
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
+  const [mensaje, setMensaje] = useState("");
   const siguiente = SIGUIENTE_ESTADO[estadoActual];
 
   if (!pagoAprobado) {
@@ -44,14 +45,16 @@ export default function EstadoPedidoControl({ pedidoId, estadoActual, pagoAproba
 
     setCargando(true);
     setError("");
+    setMensaje("");
     try {
       const respuesta = await fetch(`/api/admin/pedidos/${pedidoId}/estado`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ estado: siguiente.estado }),
       });
-      const resultado = (await respuesta.json().catch(() => null)) as { error?: string } | null;
+      const resultado = (await respuesta.json().catch(() => null)) as { error?: string; notificacion?: { mensaje?: string } | null } | null;
       if (!respuesta.ok) throw new Error(resultado?.error || "No fue posible actualizar el pedido.");
+      if (resultado?.notificacion?.mensaje) setMensaje(resultado.notificacion.mensaje);
       router.refresh();
     } catch (errorActual) {
       setError(errorActual instanceof Error ? errorActual.message : "No fue posible actualizar el pedido.");
@@ -65,6 +68,7 @@ export default function EstadoPedidoControl({ pedidoId, estadoActual, pagoAproba
       <button type="button" onClick={avanzarEstado} disabled={cargando} className="rounded-xl bg-lime-400 px-5 py-3 text-sm font-black text-black transition hover:bg-lime-300 disabled:cursor-wait disabled:opacity-60">
         {cargando ? "Actualizando…" : siguiente.etiqueta}
       </button>
+      {mensaje ? <p role="status" className="mt-3 text-sm text-lime-300">{mensaje}</p> : null}
       {error ? <p role="alert" className="mt-3 text-sm text-red-300">{error}</p> : null}
     </div>
   );

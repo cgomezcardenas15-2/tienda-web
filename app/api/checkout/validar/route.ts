@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 import { calcularEnvio } from "@/app/data/envios";
+import { ErrorValidacionProductos, validarLineasProducto } from "@/app/lib/validarLineasProducto";
 
 /*
 |--------------------------------------------------------------------------
@@ -23,6 +24,7 @@ import { calcularEnvio } from "@/app/data/envios";
 
 type ProductoRecibido = {
   id: string;
+  varianteId?: string;
   cantidad: number;
 };
 
@@ -38,6 +40,11 @@ type ProductoBaseDatos = {
 
 type ProductoValidado = {
   productoId: string;
+  varianteId?: string;
+  varianteNombre?: string;
+  varianteColor?: string;
+  varianteTalla?: string;
+  imagen?: string;
   nombre: string;
   sku?: string;
   precioUnitario: number;
@@ -119,6 +126,8 @@ export async function POST(
 
     const productosRecibidos =
       body.productos as ProductoRecibido[];
+
+    const lineasValidadas = await validarLineasProducto(productosRecibidos);
 
     const productosInvalidos =
       productosRecibidos.some(
@@ -279,6 +288,7 @@ export async function POST(
         ) ?? 0;
 
       if (
+        false &&
         producto.controla_stock &&
         cantidadSolicitada >
           producto.stock
@@ -326,37 +336,19 @@ export async function POST(
 
     const productosValidados:
       ProductoValidado[] =
-      productosEncontrados.map(
-        (producto) => {
-          const cantidad =
-            cantidadesPorProducto.get(
-              producto.id
-            ) ?? 0;
-
-          const subtotal =
-            producto.precio *
-            cantidad;
-
-          return {
-            productoId:
-              producto.id,
-
-            nombre:
-              producto.nombre,
-
-            sku:
-              producto.sku ??
-              undefined,
-
-            precioUnitario:
-              producto.precio,
-
-            cantidad,
-
-            subtotal,
-          };
-        }
-      );
+      lineasValidadas.map((linea) => ({
+        productoId: linea.id,
+        varianteId: linea.varianteId,
+        varianteNombre: linea.varianteNombre,
+        varianteColor: linea.varianteColor,
+        varianteTalla: linea.varianteTalla,
+        imagen: linea.imagen,
+        nombre: linea.nombre,
+        sku: linea.sku,
+        precioUnitario: linea.precio,
+        cantidad: linea.cantidad,
+        subtotal: linea.subtotal,
+      }));
 
     /*
     |--------------------------------------------------------------------------
@@ -509,6 +501,13 @@ export async function POST(
       }
     );
   } catch (error) {
+    if (error instanceof ErrorValidacionProductos) {
+      return NextResponse.json(
+        { ok: false, error: error.message, codigo: error.codigo },
+        { status: error.status }
+      );
+    }
+
     console.error(
       "Error en POST /api/checkout/validar:",
       error

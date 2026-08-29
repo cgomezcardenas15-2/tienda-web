@@ -54,7 +54,7 @@ export default function Categories() {
   return (
     <section
       id="categorias"
-      className="relative overflow-hidden bg-[#0b0d0b] px-6 py-20 text-white"
+      className="relative scroll-mt-40 overflow-hidden bg-[#0b0d0b] px-6 py-20 text-white"
     >
       {/* Iluminación decorativa */}
       <div className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-[#82f000]/5 blur-[120px]" />

@@ -25,6 +25,11 @@ import {
 
 export type CartProduct = {
   id: string;
+  varianteId?: string;
+  varianteNombre?: string;
+  varianteColor?: string;
+  varianteTalla?: string;
+  sku?: string;
   nombre: string;
   precio: number;
   imagen?: string;
@@ -68,6 +73,12 @@ const CartContext =
   >(undefined);
 
 const STORAGE_KEY = "nova-carrito";
+
+export function obtenerClaveCarrito(
+  item: Pick<CartProduct, "id" | "varianteId">
+) {
+  return item.varianteId ?? item.id;
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -225,8 +236,8 @@ export function CartProvider({
         const productoExistente =
           carritoActual.find(
             (item) =>
-              item.id ===
-              producto.id
+              obtenerClaveCarrito(item) ===
+              obtenerClaveCarrito(producto)
           );
 
         /*
@@ -241,8 +252,8 @@ export function CartProvider({
           return carritoActual.map(
             (item) => {
               if (
-                item.id !==
-                producto.id
+                obtenerClaveCarrito(item) !==
+                obtenerClaveCarrito(producto)
               ) {
                 return item;
               }
@@ -269,6 +280,12 @@ export function CartProvider({
 
                 imagen:
                   producto.imagen,
+
+                varianteId: producto.varianteId,
+                varianteNombre: producto.varianteNombre,
+                varianteColor: producto.varianteColor,
+                varianteTalla: producto.varianteTalla,
+                sku: producto.sku,
 
                 controlaStock:
                   producto.controlaStock,
@@ -337,7 +354,7 @@ export function CartProvider({
       (carritoActual) =>
         carritoActual.filter(
           (item) =>
-            item.id !== id
+            obtenerClaveCarrito(item) !== id
         )
     );
   }
@@ -356,7 +373,7 @@ export function CartProvider({
         carritoActual.map(
           (item) => {
             if (
-              item.id !== id
+              obtenerClaveCarrito(item) !== id
             ) {
               return item;
             }
@@ -401,7 +418,7 @@ export function CartProvider({
         carritoActual
           .map(
             (item) =>
-              item.id === id
+              obtenerClaveCarrito(item) === id
                 ? {
                     ...item,
 

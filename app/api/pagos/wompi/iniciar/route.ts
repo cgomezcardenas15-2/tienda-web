@@ -71,7 +71,14 @@ export async function POST(request: Request) {
       throw errorActualizacion;
     }
 
-    const redirectUrl = new URL("/pago/resultado", request.url).toString();
+    const requestUrl = new URL(request.url);
+    const esEntornoLocal =
+      requestUrl.hostname === "localhost" ||
+      requestUrl.hostname === "127.0.0.1";
+    const origenRetorno = esEntornoLocal
+      ? "https://tienda-web-red.vercel.app"
+      : requestUrl.origin;
+    const redirectUrl = new URL("/pago/resultado", origenRetorno).toString();
     const checkout = new URL(WOMPI_CHECKOUT_URL);
     checkout.searchParams.set("public-key", publicKey);
     checkout.searchParams.set("currency", "COP");

@@ -50,6 +50,11 @@ type ErroresFormulario = {
 
 type ProductoValidadoServidor = {
   productoId: string;
+  varianteId?: string;
+  varianteNombre?: string;
+  varianteColor?: string;
+  varianteTalla?: string;
+  imagen?: string;
   nombre: string;
   sku?: string;
   precioUnitario: number;
@@ -669,9 +674,9 @@ export default function CheckoutPage() {
     const telefonoLimpio =
       telefono.replace(/\D/g, "");
 
-    if (telefonoLimpio.length < 7) {
+    if (telefonoLimpio.length !== 10) {
       nuevosErrores.telefono =
-        "Ingresa un teléfono válido.";
+        "El teléfono debe tener exactamente 10 números.";
     }
 
     const correoValido =
@@ -813,6 +818,13 @@ export default function CheckoutPage() {
         (producto) => ({
           productoId:
             producto.productoId,
+
+          varianteId: producto.varianteId,
+          varianteNombre: producto.varianteNombre,
+          varianteColor: producto.varianteColor,
+          varianteTalla: producto.varianteTalla,
+          imagen: producto.imagen,
+          sku: producto.sku,
 
           nombre:
             producto.nombre,
@@ -1041,6 +1053,7 @@ export default function CheckoutPage() {
             productos: items.map(
               (item) => ({
                 id: String(item.id),
+                varianteId: item.varianteId,
                 cantidad:
                   item.cantidad,
               })
@@ -1145,6 +1158,7 @@ export default function CheckoutPage() {
           body: JSON.stringify({
             productos: pedidoPreparado.productos.map((producto) => ({
               id: producto.productoId,
+              varianteId: producto.varianteId,
               cantidad: producto.cantidad,
             })),
             comprador_nombre: pedidoPreparado.comprador.nombre,
@@ -1399,11 +1413,15 @@ export default function CheckoutPage() {
                       obligatorio
                       value={telefono}
                       onChange={(value) => {
-                        setTelefono(value);
+                        setTelefono(
+                          value.replace(/\D/g, "").slice(0, 10)
+                        );
                         invalidarRevision();
                       }}
-                      placeholder="Ej. 300 000 0000"
+                      placeholder="Ej. 3000000000"
                       type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
                       error={errores.telefono}
                     />
 
@@ -2053,9 +2071,7 @@ export default function CheckoutPage() {
                         ? validacionServidor.productos.map(
                             (item) => (
                               <div
-                                key={
-                                  item.productoId
-                                }
+                                key={`${item.productoId}:${item.varianteId ?? "base"}`}
                                 className="flex items-start justify-between gap-4 border-b border-white/[0.07] pb-4"
                               >
                                 <div className="min-w-0">
@@ -2083,13 +2099,19 @@ export default function CheckoutPage() {
                           )
                         : items.map((item) => (
                             <div
-                              key={item.id}
+                              key={item.varianteId ?? item.id}
                               className="flex items-start justify-between gap-4 border-b border-white/[0.07] pb-4"
                             >
                               <div className="min-w-0">
                                 <p className="text-sm font-medium">
                                   {item.nombre}
                                 </p>
+
+                                {item.varianteNombre && (
+                                  <p className="mt-1 text-xs font-medium text-[#9cff35]">
+                                    {item.varianteNombre}
+                                  </p>
+                                )}
 
                                 <p className="mt-1 text-xs text-white/35">
                                   Cantidad:{" "}
@@ -2448,6 +2470,8 @@ type CampoProps = {
     | "numeric"
     | "decimal";
 
+  maxLength?: number;
+
   obligatorio?: boolean;
   error?: string;
 };
@@ -2459,6 +2483,7 @@ function Campo({
   placeholder,
   type = "text",
   inputMode,
+  maxLength,
   obligatorio = false,
   error,
 }: CampoProps) {
@@ -2477,6 +2502,7 @@ function Campo({
       <input
         type={type}
         inputMode={inputMode}
+        maxLength={maxLength}
         value={value}
         onChange={(event) =>
           onChange(

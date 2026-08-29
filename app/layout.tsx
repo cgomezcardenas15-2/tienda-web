@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "./context/CartContext";
+import CookieNotice from "./components/CookieNotice";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +33,10 @@ export default function RootLayout({
           fontFamily: geistSans.style.fontFamily,
         }}
       >
-        <CartProvider>{children}</CartProvider>
+        <CartProvider>
+          {children}
+          <CookieNotice />
+        </CartProvider>
       </body>
     </html>
   );

@@ -84,28 +84,6 @@ export default function Navbar() {
 
           {/* Acciones */}
           <nav className="ml-auto flex items-center gap-1 sm:gap-2">
-            <button
-              type="button"
-              className="hidden cursor-pointer items-center gap-2 rounded-xl px-3 py-2.5 text-zinc-300 transition hover:bg-white/[0.06] hover:text-lime-400 lg:flex"
-            >
-              <HeartIcon />
-
-              <span className="text-sm font-medium">
-                Favoritos
-              </span>
-            </button>
-
-            <button
-              type="button"
-              className="hidden cursor-pointer items-center gap-2 rounded-xl px-3 py-2.5 text-zinc-300 transition hover:bg-white/[0.06] hover:text-lime-400 lg:flex"
-            >
-              <UserIcon />
-
-              <span className="text-sm font-medium">
-                Mi cuenta
-              </span>
-            </button>
-
             {/* Carrito */}
             <a
               href="/carrito"
@@ -213,8 +191,14 @@ export default function Navbar() {
 
           <a
             href="/#productos"
-            className="ml-auto cursor-pointer whitespace-nowrap font-bold text-orange-400 transition hover:text-orange-300"
+            className="group ml-auto inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border border-orange-400/60 bg-gradient-to-r from-orange-500 to-amber-400 px-3.5 py-1.5 text-xs font-black uppercase tracking-[0.08em] text-black shadow-[0_0_18px_rgba(251,146,60,0.22)] transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-[0_0_24px_rgba(251,146,60,0.38)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
+            <span
+              aria-hidden="true"
+              className="text-sm transition-transform duration-200 group-hover:-rotate-12 group-hover:scale-110"
+            >
+              ⚡
+            </span>
             Ofertas
           </a>
         </div>
@@ -235,37 +219,6 @@ function SearchIcon() {
     >
       <circle cx="11" cy="11" r="7" />
       <path d="m20 20-3.5-3.5" />
-    </svg>
-  );
-}
-
-function HeartIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
-      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
-    </svg>
-  );
-}
-
-function UserIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
     </svg>
   );
 }
