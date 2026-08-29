@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "NOVA | Todo lo que necesitas",
   description:
-    "Encuentra tecnología, hogar, bebés, maquillaje, mascotas, ferretería, piñatería y mucho más en NOVA.",
+    "Encuentra productos para el hogar, mascotas y piñatería en NOVA.",
 };
 
 export default function RootLayout({

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { useCart } from "../context/CartContext";
 import { supabase } from "../lib/supabase";
+import { esCategoriaActiva } from "../lib/categoriasActivas";
 
 /*
 |--------------------------------------------------------------------------
@@ -271,7 +272,9 @@ export default function Products() {
 
       setProductos(
         (data ??
-          []) as ProductoSupabase[]
+          []).filter((producto) =>
+            esCategoriaActiva(producto.categoria)
+          ) as ProductoSupabase[]
       );
 
       if (resultadoVariantes.error) {

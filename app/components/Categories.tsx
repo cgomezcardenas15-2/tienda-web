@@ -1,11 +1,5 @@
 const categorias = [
   {
-    nombre: "Tecnología y Accesorios",
-    descripcion: "Cables, cargadores, audífonos y más",
-    icono: "⚡",
-    href: "/categoria/tecnologia",
-  },
-  {
     nombre: "Piñatería",
     descripcion: "Todo para celebrar momentos especiales",
     icono: "🎉",
@@ -18,28 +12,10 @@ const categorias = [
     href: "/categoria/hogar",
   },
   {
-    nombre: "Bebés",
-    descripcion: "Cuidado y accesorios para los pequeños",
-    icono: "🍼",
-    href: "/categoria/bebes",
-  },
-  {
-    nombre: "Maquillaje",
-    descripcion: "Belleza, accesorios y cuidado personal",
-    icono: "💄",
-    href: "/categoria/maquillaje",
-  },
-  {
     nombre: "Mascotas",
     descripcion: "Accesorios para consentirlos",
     icono: "🐾",
     href: "/categoria/mascotas",
-  },
-  {
-    nombre: "Ferretería",
-    descripcion: "Herramientas y soluciones para el hogar",
-    icono: "🔧",
-    href: "/categoria/ferreteria",
   },
   {
     nombre: "Ofertas",

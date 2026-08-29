@@ -141,13 +141,6 @@ export default function Navbar() {
           </a>
 
           <a
-            href="/categoria/tecnologia"
-            className="cursor-pointer whitespace-nowrap transition hover:text-white"
-          >
-            Tecnología
-          </a>
-
-          <a
             href="/categoria/pinateria"
             className="cursor-pointer whitespace-nowrap transition hover:text-white"
           >
@@ -162,31 +155,10 @@ export default function Navbar() {
           </a>
 
           <a
-            href="/categoria/bebes"
-            className="cursor-pointer whitespace-nowrap transition hover:text-white"
-          >
-            Bebés
-          </a>
-
-          <a
-            href="/categoria/maquillaje"
-            className="cursor-pointer whitespace-nowrap transition hover:text-white"
-          >
-            Maquillaje
-          </a>
-
-          <a
             href="/categoria/mascotas"
             className="cursor-pointer whitespace-nowrap transition hover:text-white"
           >
             Mascotas
-          </a>
-
-          <a
-            href="/categoria/ferreteria"
-            className="cursor-pointer whitespace-nowrap transition hover:text-white"
-          >
-            Ferretería
           </a>
 
           <a

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import { CATEGORIAS_ACTIVAS } from "../../lib/categoriasActivas";
 
 const categorias = {
   tecnologia: {
@@ -67,8 +68,11 @@ export default async function CategoriaPage({
   const { slug } = await params;
 
   const categoria = categorias[slug as CategoriaKey];
+  const categoriaEstaActiva = CATEGORIAS_ACTIVAS.includes(
+    slug as (typeof CATEGORIAS_ACTIVAS)[number]
+  );
 
-  if (!categoria) {
+  if (!categoria || !categoriaEstaActiva) {
     return (
       <>
         <Navbar />
@@ -85,7 +89,7 @@ export default async function CategoriaPage({
               </h1>
 
               <p className="mx-auto mt-4 max-w-lg text-white/60">
-                La categoría que estás buscando no está disponible.
+                Esta categoría no está disponible por el momento.
               </p>
 
               <Link
