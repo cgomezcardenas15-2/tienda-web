@@ -13,6 +13,7 @@ export default function AdminHeader() {
         <nav aria-label="Administración" className="order-3 flex w-full items-center gap-1 overflow-x-auto sm:order-none sm:ml-auto sm:w-auto sm:gap-2">
           <Link href="/admin/pedidos" className="rounded-lg px-3 py-2 text-sm font-bold text-zinc-300 hover:text-lime-300">Pedidos</Link>
           <Link href="/admin/productos" className="rounded-lg px-3 py-2 text-sm font-bold text-zinc-300 hover:text-lime-300">Productos</Link>
+          <Link href="/admin/inventario" className="rounded-lg px-3 py-2 text-sm font-bold text-zinc-300 hover:text-lime-300">Inventario</Link>
           <Link href="/admin/envios" className="rounded-lg px-3 py-2 text-sm font-bold text-zinc-300 hover:text-lime-300">Envíos</Link>
           <Link href="/consultar-pedido" className="rounded-lg px-3 py-2 text-sm font-bold text-zinc-300 hover:text-lime-300">Consulta pública</Link>
         </nav>
