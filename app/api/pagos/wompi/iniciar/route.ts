@@ -10,6 +10,7 @@ import {
 
 type PedidoPago = {
   id: string;
+  numero_pedido: string;
   total: number;
   moneda: string;
   estado_pago: string;
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabaseAdmin
       .from("pedidos")
       .select(
-        "id,total,moneda,estado_pago,referencia_pago,comprador_nombre,comprador_correo,comprador_telefono,comprador_tipo_documento,comprador_numero_documento"
+        "id,numero_pedido,total,moneda,estado_pago,referencia_pago,comprador_nombre,comprador_correo,comprador_telefono,comprador_tipo_documento,comprador_numero_documento"
       )
       .eq("id", pedidoId)
       .single();
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "La moneda del pedido no es válida." }, { status: 409 });
     }
 
-    const referencia = pedido.referencia_pago || `NOVA-${pedido.id}`;
+    const referencia = pedido.referencia_pago || pedido.numero_pedido;
     const montoEnCentavos = convertirPesosACentavos(Number(pedido.total));
     const { publicKey, integritySecret } = obtenerConfiguracionWompi();
     const firma = generarFirmaIntegridad(referencia, montoEnCentavos, "COP", integritySecret);

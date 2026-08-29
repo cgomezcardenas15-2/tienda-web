@@ -17,7 +17,7 @@ export async function verificarYActualizarPagoWompi(idTransaccion: string) {
   const transaccion = await consultarTransaccionWompi(idTransaccion);
   const { data, error } = await supabaseAdmin
     .from("pedidos")
-    .select("id,total,moneda,estado_pago,referencia_pago")
+    .select("id,numero_pedido,total,moneda,estado_pago,referencia_pago")
     .eq("referencia_pago", transaccion.reference)
     .single();
 
@@ -93,6 +93,7 @@ export async function verificarYActualizarPagoWompi(idTransaccion: string) {
 
   return {
     pedidoId: data.id,
+    numeroPedido: data.numero_pedido,
     estado: transaccion.status,
     aprobado: transaccion.status === "APPROVED",
     mensaje: transaccion.status_message || null,

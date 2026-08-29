@@ -56,7 +56,7 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
     <main className="mx-auto max-w-5xl px-5 py-8">
       <Link href="/admin/pedidos" className="text-sm font-bold text-lime-400 hover:text-lime-300">← Volver a pedidos</Link>
       <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
-        <div><p className="text-xs font-black uppercase tracking-[0.24em] text-lime-400">DETALLE DEL PEDIDO</p><h1 className="mt-2 text-3xl font-black">{pedido.comprador_nombre}</h1><p className="mt-2 break-all text-sm text-zinc-500">ID: {pedido.id}</p></div>
+        <div><p className="text-xs font-black uppercase tracking-[0.24em] text-lime-400">DETALLE DEL PEDIDO</p><h1 className="mt-2 text-3xl font-black">{pedido.comprador_nombre}</h1><p className="mt-2 text-sm font-bold text-lime-400">{pedido.numero_pedido}</p></div>
         <p className="text-3xl font-black text-lime-400">{dinero.format(Number(pedido.total))}</p>
       </div>
 

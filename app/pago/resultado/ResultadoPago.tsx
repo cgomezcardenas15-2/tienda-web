@@ -10,6 +10,8 @@ type Resultado = {
   aprobado?: boolean;
   mensaje?: string | null;
   error?: string;
+  pedidoId?: string;
+  numeroPedido?: string;
 };
 
 export default function ResultadoPago() {
@@ -70,10 +72,22 @@ export default function ResultadoPago() {
         {resultado?.estado && (
           <p className="mt-5 text-sm text-white/35">Estado Wompi: {resultado.estado}</p>
         )}
+        {resultado?.aprobado && resultado.numeroPedido && (
+          <div className="mt-6 rounded-2xl border border-[#82f000]/25 bg-[#82f000]/[0.05] p-5">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#82f000]">Número de tu pedido</p>
+            <p className="mt-2 font-mono text-lg font-bold">{resultado.numeroPedido}</p>
+            <p className="mt-2 text-xs text-white/40">Guárdalo para consultar el estado y la guía de envío.</p>
+          </div>
+        )}
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href="/" className="rounded-xl bg-[#82f000] px-6 py-3 font-bold text-black">
             Volver al inicio
           </Link>
+          {resultado?.aprobado && (
+            <Link href="/consultar-pedido" className="rounded-xl border border-white/15 px-6 py-3 font-semibold">
+              Consultar mi pedido
+            </Link>
+          )}
           {!resultado?.aprobado && (
             <Link href="/checkout" className="rounded-xl border border-white/15 px-6 py-3 font-semibold">
               Volver al checkout

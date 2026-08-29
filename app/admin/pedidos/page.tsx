@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 
 type PedidoResumen = {
   id: string;
+  numero_pedido: string;
   comprador_nombre: string;
   comprador_correo: string;
   entrega_ciudad: string;
@@ -29,7 +30,7 @@ export default async function PedidosAdminPage() {
 
   const { data, error } = await supabaseAdmin
     .from("pedidos")
-    .select("id,comprador_nombre,comprador_correo,entrega_ciudad,total,moneda,estado_pedido,estado_pago,creado_en")
+    .select("id,numero_pedido,comprador_nombre,comprador_correo,entrega_ciudad,total,moneda,estado_pedido,estado_pago,creado_en")
     .order("creado_en", { ascending: false })
     .limit(100);
 
@@ -74,7 +75,7 @@ export default async function PedidosAdminPage() {
               {pedidos.map((pedido) => (
                 <tr key={pedido.id} className="hover:bg-zinc-900/70">
                   <td className="px-5 py-4 text-zinc-400">{pedido.creado_en ? new Date(pedido.creado_en).toLocaleString("es-CO") : "—"}</td>
-                  <td className="px-5 py-4"><p className="font-bold text-white">{pedido.comprador_nombre}</p><p className="mt-1 text-xs text-zinc-500">{pedido.comprador_correo}</p></td>
+                  <td className="px-5 py-4"><p className="font-bold text-white">{pedido.comprador_nombre}</p><p className="mt-1 text-xs font-bold text-lime-400">{pedido.numero_pedido}</p><p className="mt-1 text-xs text-zinc-500">{pedido.comprador_correo}</p></td>
                   <td className="px-5 py-4 text-zinc-300">{pedido.entrega_ciudad}</td>
                   <td className="px-5 py-4"><span className={`rounded-full px-3 py-1 text-xs font-bold ${estadoClase(pedido.estado_pago)}`}>{pedido.estado_pago}</span></td>
                   <td className="px-5 py-4"><span className={`rounded-full px-3 py-1 text-xs font-bold ${estadoClase(pedido.estado_pedido)}`}>{pedido.estado_pedido}</span></td>
