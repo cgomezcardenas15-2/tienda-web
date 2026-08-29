@@ -44,6 +44,7 @@ export type CartItem = CartProduct & {
 
 type CartContextType = {
   items: CartItem[];
+  carritoCargado: boolean;
 
   cantidadTotal: number;
   subtotal: number;
@@ -484,6 +485,7 @@ export function CartProvider({
     <CartContext.Provider
       value={{
         items,
+        carritoCargado,
 
         cantidadTotal,
         subtotal,

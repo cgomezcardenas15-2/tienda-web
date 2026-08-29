@@ -152,7 +152,7 @@ function calcularDigitoVerificacion(nit: string) {
 */
 
 export default function CheckoutPage() {
-  const { items, subtotal } = useCart();
+  const { items, subtotal, carritoCargado } = useCart();
   const [configuracionEnvios, setConfiguracionEnvios] = useState<ConfiguracionEnvios>(CONFIGURACION_ENVIOS_PREDETERMINADA);
 
   useEffect(() => {
@@ -1363,7 +1363,17 @@ export default function CheckoutPage() {
             </p>
           </div>
 
-          {carritoVacio ? (
+          {!carritoCargado ? (
+            <section
+              aria-live="polite"
+              className="rounded-3xl border border-white/10 bg-white/[0.03] p-10 text-center"
+            >
+              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/15 border-t-[#82f000]" />
+              <p className="mt-5 text-sm text-white/50">
+                Preparando tu carrito...
+              </p>
+            </section>
+          ) : carritoVacio ? (
             <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-10 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-[#82f000]/30 bg-[#82f000]/10 text-3xl">
                 🛒
