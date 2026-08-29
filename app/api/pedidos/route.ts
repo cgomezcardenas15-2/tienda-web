@@ -853,6 +853,20 @@ export async function POST(request: Request) {
       );
     }
 
+    const { error: errorReserva } = await supabaseAdmin.rpc(
+      "reservar_inventario_pedido",
+      { p_pedido_id: pedidoCreado.id, p_minutos: 30 }
+    );
+
+    if (errorReserva) {
+      console.error("No fue posible reservar el inventario:", errorReserva);
+      await supabaseAdmin.from("pedidos").delete().eq("id", pedidoCreado.id);
+      return NextResponse.json(
+        { ok: false, error: "Una de las unidades acaba de agotarse. Actualiza el carrito e inténtalo nuevamente." },
+        { status: 409 }
+      );
+    }
+
     /*
     |--------------------------------------------------------------------------
     | RESPUESTA FINAL

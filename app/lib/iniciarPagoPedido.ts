@@ -16,6 +16,12 @@ export async function crearCheckoutWompi(pedido: PedidoParaPago, requestUrl: str
   if (pedido.estado_pago === "aprobado") throw new Error("PAGO_APROBADO");
   if (pedido.moneda !== "COP") throw new Error("MONEDA_INVALIDA");
 
+  const { error: errorReserva } = await supabaseAdmin.rpc("reservar_inventario_pedido", {
+    p_pedido_id: pedido.id,
+    p_minutos: 30,
+  });
+  if (errorReserva) throw new Error("STOCK_NO_DISPONIBLE");
+
   const referencia = pedido.referencia_pago || pedido.numero_pedido;
   const montoEnCentavos = convertirPesosACentavos(Number(pedido.total));
   const { publicKey, integritySecret } = obtenerConfiguracionWompi();

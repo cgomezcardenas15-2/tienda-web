@@ -37,6 +37,9 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === "PAGO_APROBADO") {
       return NextResponse.json({ error: "Este pedido ya está pagado." }, { status: 409 });
     }
+    if (error instanceof Error && error.message === "STOCK_NO_DISPONIBLE") {
+      return NextResponse.json({ error: "Las unidades ya no están disponibles. Comunícate con NOVA para revisar el pedido." }, { status: 409 });
+    }
     console.error("Error retomando pago:", error);
     return NextResponse.json({ error: "No fue posible retomar el pago." }, { status: 500 });
   }

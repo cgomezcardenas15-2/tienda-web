@@ -89,6 +89,14 @@ export async function verificarYActualizarPagoWompi(idTransaccion: string) {
     if (errorActualizacion) {
       throw errorActualizacion;
     }
+
+    if (["DECLINED", "VOIDED", "ERROR"].includes(transaccion.status)) {
+      const { error: errorLiberacion } = await supabaseAdmin.rpc("liberar_reserva_pedido", {
+        p_pedido_id: data.id,
+        p_estado_final: "liberada",
+      });
+      if (errorLiberacion) throw errorLiberacion;
+    }
   }
 
   return {

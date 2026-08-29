@@ -36,6 +36,11 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 export async function validarLineasProducto(
   recibidas: LineaRecibida[]
 ): Promise<LineaValidada[]> {
+  const { error: errorLimpieza } = await supabaseAdmin.rpc("liberar_reservas_vencidas");
+  if (errorLimpieza) {
+    console.error("No fue posible liberar reservas vencidas:", errorLimpieza.message);
+  }
+
   if (!Array.isArray(recibidas) || recibidas.length === 0) {
     throw new ErrorValidacionProductos("El carrito está vacío.");
   }

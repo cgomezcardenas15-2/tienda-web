@@ -35,6 +35,9 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === "MONEDA_INVALIDA") {
       return NextResponse.json({ ok: false, error: "La moneda del pedido no es válida." }, { status: 409 });
     }
+    if (error instanceof Error && error.message === "STOCK_NO_DISPONIBLE") {
+      return NextResponse.json({ ok: false, error: "Las unidades reservadas vencieron y ya no hay stock suficiente." }, { status: 409 });
+    }
     console.error("Error iniciando pago Wompi:", error);
     return NextResponse.json(
       { ok: false, error: "No fue posible iniciar el pago con Wompi." },
