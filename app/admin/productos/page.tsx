@@ -8,16 +8,35 @@ export default async function ProductosAdminPage() {
   await requireAdmin();
   const [{ data: productos, error }, { data: variantes }] = await Promise.all([
     supabaseAdmin.from("productos").select("id,nombre,sku,stock,activo,imagen_url,categoria,precio,en_oferta").order("nombre"),
-    supabaseAdmin.from("variantes_producto").select("producto_id,id,activo"),
+    supabaseAdmin.from("variantes_producto").select("producto_id,id,activo,stock,controla_stock"),
   ]);
   const conteo = new Map<string, number>();
   for (const variante of variantes ?? []) conteo.set(variante.producto_id, (conteo.get(variante.producto_id) ?? 0) + 1);
+  const variantesPorProducto = new Map<string, typeof variantes>();
+  for (const variante of variantes ?? []) {
+    const actuales = variantesPorProducto.get(variante.producto_id) ?? [];
+    actuales.push(variante);
+    variantesPorProducto.set(variante.producto_id, actuales);
+  }
+  const existencias = (productos ?? []).flatMap((producto) => {
+    const opciones = (variantesPorProducto.get(producto.id) ?? []).filter((variante) => variante.activo);
+    return opciones.length > 0
+      ? opciones.filter((variante) => variante.controla_stock).map((variante) => Number(variante.stock))
+      : [Number(producto.stock)];
+  });
+  const agotados = existencias.filter((stock) => stock <= 0).length;
+  const stockBajo = existencias.filter((stock) => stock > 0 && stock <= 3).length;
 
   return <main className="mx-auto max-w-7xl px-5 py-8">
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div><p className="text-xs font-black uppercase tracking-[0.24em] text-lime-400">CATÁLOGO</p><h1 className="mt-2 text-3xl font-black">Productos y variantes</h1><p className="mt-2 text-sm text-zinc-400">Elige cuáles productos tendrán colores, tallas u otras opciones.</p></div>
       <div className="flex gap-3"><Link href="/admin/pedidos" className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-bold hover:border-lime-400">Ver pedidos</Link><Link href="/admin/productos/nuevo" className="rounded-xl bg-lime-400 px-4 py-2 text-sm font-black text-black hover:bg-lime-300">+ Nuevo producto</Link></div>
     </div>
+    {!error && <div className="mt-7 grid gap-4 sm:grid-cols-3">
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"><p className="text-xs font-bold uppercase tracking-wider text-zinc-500">Productos visibles</p><p className="mt-2 text-3xl font-black text-lime-400">{(productos ?? []).filter((producto) => producto.activo).length}</p></div>
+      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] p-5"><p className="text-xs font-bold uppercase tracking-wider text-amber-300">Stock bajo · 1 a 3</p><p className="mt-2 text-3xl font-black text-amber-300">{stockBajo}</p></div>
+      <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.05] p-5"><p className="text-xs font-bold uppercase tracking-wider text-red-300">Agotados</p><p className="mt-2 text-3xl font-black text-red-300">{agotados}</p></div>
+    </div>}
     {error ? <p className="mt-7 rounded-xl bg-red-950 p-5 text-red-300">No fue posible cargar los productos.</p> :
       <div className="mt-7 grid gap-4 md:grid-cols-2">{(productos ?? []).map((producto) =>
         <article key={producto.id} className="flex items-center gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">

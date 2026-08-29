@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
       moneda: pedido.moneda,
       estadoPago: pedido.estado_pago,
       estadoPedido: pedido.estado_pedido,
+      puedeRetomarPago: pedido.estado_pago !== "aprobado" && pedido.estado_pedido !== "cancelado",
       envio: {
         transportadora: pedido.envio_transportadora || null,
         servicio: pedido.envio_servicio || null,

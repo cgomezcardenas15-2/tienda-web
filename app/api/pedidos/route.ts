@@ -470,6 +470,42 @@ export async function POST(request: Request) {
       );
     }
 
+    const claveIdempotencia =
+      typeof body.clave_idempotencia === "string"
+        ? body.clave_idempotencia.trim()
+        : "";
+
+    if (!esUuidValido(claveIdempotencia)) {
+      return NextResponse.json(
+        { ok: false, error: "No fue posible identificar este intento de compra." },
+        { status: 400 }
+      );
+    }
+
+    const { data: pedidoExistente, error: errorConsultaExistente } =
+      await supabaseAdmin
+        .from("pedidos")
+        .select("id,numero_pedido")
+        .eq("clave_idempotencia", claveIdempotencia)
+        .maybeSingle();
+
+    if (errorConsultaExistente) {
+      console.error("Error verificando pedido repetido:", errorConsultaExistente);
+      return NextResponse.json(
+        { ok: false, error: "No fue posible verificar el pedido." },
+        { status: 500 }
+      );
+    }
+
+    if (pedidoExistente) {
+      return NextResponse.json({
+        ok: true,
+        repetido: true,
+        pedido: pedidoExistente,
+        productos: [],
+      });
+    }
+
     /*
     |--------------------------------------------------------------------------
     | CALCULAR ENVÍO EN EL SERVIDOR
@@ -656,6 +692,9 @@ export async function POST(request: Request) {
 
       referencia_pago:
         null,
+
+      clave_idempotencia:
+        claveIdempotencia,
     };
 
     /*
@@ -681,10 +720,24 @@ export async function POST(request: Request) {
       .select()
       .single();
 
-    if (
-      errorPedido ||
-      !pedidoCreado
-    ) {
+    if (errorPedido?.code === "23505") {
+      const { data: pedidoConcurrente } = await supabaseAdmin
+        .from("pedidos")
+        .select("id,numero_pedido")
+        .eq("clave_idempotencia", claveIdempotencia)
+        .maybeSingle();
+
+      if (pedidoConcurrente) {
+        return NextResponse.json({
+          ok: true,
+          repetido: true,
+          pedido: pedidoConcurrente,
+          productos: [],
+        });
+      }
+    }
+
+    if (errorPedido || !pedidoCreado) {
       console.error(
         "Error al guardar el pedido:",
         errorPedido

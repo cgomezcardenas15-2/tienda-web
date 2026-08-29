@@ -257,6 +257,7 @@ export default function CheckoutPage() {
 
   const iniciandoPagoRef = useRef(false);
   const pedidoPendienteRef = useRef<string | null>(null);
+  const claveIdempotenciaRef = useRef<string | null>(null);
 
   /*
   |--------------------------------------------------------------------------
@@ -295,6 +296,7 @@ export default function CheckoutPage() {
 
   function invalidarRevision() {
     pedidoPendienteRef.current = null;
+    claveIdempotenciaRef.current = null;
     setDatosConfirmados(false);
     setPedidoPreparado(null);
     setValidacionServidor(null);
@@ -1168,10 +1170,15 @@ export default function CheckoutPage() {
       let pedidoId = pedidoPendienteRef.current;
 
       if (!pedidoId) {
+        const claveIdempotencia =
+          claveIdempotenciaRef.current || crypto.randomUUID();
+        claveIdempotenciaRef.current = claveIdempotencia;
+
         const respuestaPedido = await fetch("/api/pedidos", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            clave_idempotencia: claveIdempotencia,
             productos: pedidoPreparado.productos.map((producto) => ({
               id: producto.productoId,
               varianteId: producto.varianteId,

@@ -9,6 +9,7 @@ type PedidoConsultado = {
   moneda: string;
   estadoPago: string;
   estadoPedido: string;
+  puedeRetomarPago: boolean;
   envio: { transportadora: string | null; servicio: string | null; numeroGuia: string | null; urlSeguimiento: string | null };
   productos: { id: string; nombre: string; cantidad: number; variante: string | null }[];
 };
@@ -33,6 +34,7 @@ export default function ConsultaPedido() {
   const [pedido, setPedido] = useState<PedidoConsultado | null>(null);
   const [error, setError] = useState("");
   const [consultando, setConsultando] = useState(false);
+  const [retomando, setRetomando] = useState(false);
 
   async function consultar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(""); setPedido(null); setConsultando(true);
@@ -40,6 +42,14 @@ export default function ConsultaPedido() {
     const data = await respuesta.json().catch(() => ({})); setConsultando(false);
     if (!respuesta.ok) { setError(data.error || "No fue posible consultar el pedido."); return; }
     setPedido(data.pedido);
+  }
+
+  async function retomarPago() {
+    setError(""); setRetomando(true);
+    const respuesta = await fetch("/api/consultar-pedido/retomar-pago", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pedido: numero, correo }) });
+    const data = await respuesta.json().catch(() => ({}));
+    if (!respuesta.ok || !data.checkoutUrl) { setRetomando(false); setError(data.error || "No fue posible retomar el pago."); return; }
+    window.location.assign(data.checkoutUrl);
   }
 
   const estado = pedido ? (ESTADOS[pedido.estadoPedido] || { titulo: "Pedido en proceso", descripcion: "Estamos actualizando la información de tu pedido.", paso: 0 }) : null;
@@ -59,6 +69,7 @@ export default function ConsultaPedido() {
       <article className="rounded-3xl border border-[#82f000]/25 bg-[#82f000]/[0.045] p-6 sm:p-8">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-[#82f000]">Estado actual</p><h2 className="mt-3 text-2xl font-black">{estado.titulo}</h2><p className="mt-2 text-sm leading-6 text-white/50">{estado.descripcion}</p>
         <div className="mt-7 grid grid-cols-4 gap-2">{["Pagado", "Preparando", "Enviado", "Entregado"].map((paso, indice) => <div key={paso}><div className={`h-2 rounded-full ${estado.paso >= indice + 1 ? "bg-[#82f000]" : "bg-white/10"}`} /><p className="mt-2 text-[10px] font-bold text-white/45 sm:text-xs">{paso}</p></div>)}</div>
+        {pedido.puedeRetomarPago && <button type="button" disabled={retomando} onClick={retomarPago} className="mt-6 rounded-xl bg-[#82f000] px-5 py-3 font-black text-black disabled:opacity-50">{retomando ? "Abriendo pago..." : "Retomar pago seguro"}</button>}
       </article>
       <div className="grid gap-5 md:grid-cols-2">
         <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-6"><h3 className="font-black">Información del pedido</h3><dl className="mt-4 space-y-3 text-sm"><div><dt className="text-white/35">Número</dt><dd className="mt-1 font-semibold">{pedido.numeroPedido}</dd></div><div><dt className="text-white/35">Fecha</dt><dd className="mt-1">{new Date(pedido.creadoEn).toLocaleString("es-CO")}</dd></div><div><dt className="text-white/35">Total</dt><dd className="mt-1 text-xl font-black text-[#82f000]">{new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(pedido.total)}</dd></div></dl></article>
