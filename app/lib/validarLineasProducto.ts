@@ -19,6 +19,7 @@ export type LineaValidada = {
   cantidad: number;
   subtotal: number;
   stockDisponible: number;
+  tipoPrecio: "detal" | "mayorista";
 };
 
 export class ErrorValidacionProductos extends Error {
@@ -62,7 +63,7 @@ export async function validarLineasProducto(
   const idsProductos = [...new Set([...agrupadas.values()].map((linea) => linea.id))];
   const { data: productos, error: errorProductos } = await supabaseAdmin
     .from("productos")
-    .select("id,nombre,sku,precio,controla_stock,stock,imagen_url,activo")
+    .select("id,nombre,sku,precio,venta_mayorista,precio_mayorista,cantidad_minima_mayorista,controla_stock,stock,imagen_url,activo")
     .in("id", idsProductos)
     .eq("activo", true);
   if (errorProductos) throw new Error(`No fue posible consultar productos: ${errorProductos.message}`);
@@ -73,7 +74,7 @@ export async function validarLineasProducto(
   const idsVariantes = [...agrupadas.values()].flatMap((linea) => linea.varianteId ? [linea.varianteId] : []);
   const { data: variantes, error: errorVariantes } = idsVariantes.length
     ? await supabaseAdmin.from("variantes_producto")
-        .select("id,producto_id,nombre,color,talla,sku,precio,controla_stock,stock,imagen_url,activo")
+        .select("id,producto_id,nombre,color,talla,sku,precio,precio_mayorista,cantidad_minima_mayorista,controla_stock,stock,imagen_url,activo")
         .in("id", idsVariantes).eq("activo", true)
     : { data: [], error: null };
   if (errorVariantes) throw new Error(`No fue posible consultar variantes: ${errorVariantes.message}`);
@@ -107,7 +108,14 @@ export async function validarLineasProducto(
         "STOCK_INSUFICIENTE"
       );
     }
-    const precio = variante?.precio ?? producto.precio;
+    const precioDetal = variante?.precio ?? producto.precio;
+    const precioMayorista = variante?.precio_mayorista ?? producto.precio_mayorista;
+    const minimoMayorista = variante?.cantidad_minima_mayorista ?? producto.cantidad_minima_mayorista;
+    const aplicaMayorista = producto.venta_mayorista === true &&
+      typeof precioMayorista === "number" &&
+      typeof minimoMayorista === "number" &&
+      linea.cantidad >= minimoMayorista;
+    const precio = aplicaMayorista ? precioMayorista : precioDetal;
     return {
       id: producto.id,
       varianteId: variante?.id,
@@ -121,6 +129,7 @@ export async function validarLineasProducto(
       cantidad: linea.cantidad,
       subtotal: precio * linea.cantidad,
       stockDisponible: stock,
+      tipoPrecio: aplicaMayorista ? "mayorista" : "detal",
     };
   });
 }

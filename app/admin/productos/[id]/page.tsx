@@ -11,7 +11,7 @@ export default async function ProductoVariantesPage({ params }: { params: Promis
   await requireAdmin();
   const { id } = await params;
   const [{ data: producto }, { data: variantes, error }] = await Promise.all([
-    supabaseAdmin.from("productos").select("id,nombre,sku,descripcion,categoria,precio,precio_anterior,controla_stock,stock,imagen_url,destacado,en_oferta,activo").eq("id", id).maybeSingle(),
+    supabaseAdmin.from("productos").select("id,nombre,sku,descripcion,categoria,precio,precio_anterior,venta_mayorista,precio_mayorista,cantidad_minima_mayorista,controla_stock,stock,imagen_url,destacado,en_oferta,activo").eq("id", id).maybeSingle(),
     supabaseAdmin.from("variantes_producto").select("*").eq("producto_id", id).order("orden"),
   ]);
   if (!producto) notFound();

@@ -91,6 +91,8 @@ export type ProductoPedido = {
 
   precioUnitario: number;
 
+  tipoPrecio?: "detal" | "mayorista";
+
   cantidad: number;
 
   subtotal: number;

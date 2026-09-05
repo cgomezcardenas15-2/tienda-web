@@ -32,6 +32,8 @@ export type CartProduct = {
   sku?: string;
   nombre: string;
   precio: number;
+  precioMayorista?: number;
+  cantidadMinimaMayorista?: number;
   imagen?: string;
 
   controlaStock?: boolean;
@@ -79,6 +81,14 @@ export function obtenerClaveCarrito(
   item: Pick<CartProduct, "id" | "varianteId">
 ) {
   return item.varianteId ?? item.id;
+}
+
+export function obtenerPrecioUnitario(item: Pick<CartItem, "precio" | "precioMayorista" | "cantidadMinimaMayorista" | "cantidad">) {
+  return typeof item.precioMayorista === "number" &&
+    typeof item.cantidadMinimaMayorista === "number" &&
+    item.cantidad >= item.cantidadMinimaMayorista
+    ? item.precioMayorista
+    : item.precio;
 }
 
 /*
@@ -279,6 +289,9 @@ export function CartProvider({
                 precio:
                   producto.precio,
 
+                precioMayorista: producto.precioMayorista,
+                cantidadMinimaMayorista: producto.cantidadMinimaMayorista,
+
                 imagen:
                   producto.imagen,
 
@@ -470,7 +483,7 @@ export function CartProvider({
     items.reduce(
       (total, item) =>
         total +
-        item.precio *
+        obtenerPrecioUnitario(item) *
           item.cantidad,
       0
     );

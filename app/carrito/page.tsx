@@ -10,6 +10,7 @@ import Footer from "../components/Footer";
 
 import {
   obtenerClaveCarrito,
+  obtenerPrecioUnitario,
   useCart,
 } from "../context/CartContext";
 
@@ -322,9 +323,15 @@ export default function CarritoPage() {
 
                             <p className="mt-2 text-xl font-bold text-[#82f000]">
                               {formatoPesos(
-                                item.precio
+                                obtenerPrecioUnitario(item)
                               )}
                             </p>
+
+                            {item.precioMayorista !== undefined && item.cantidadMinimaMayorista !== undefined && (
+                              item.cantidad >= item.cantidadMinimaMayorista
+                                ? <p className="mt-1 text-xs font-bold text-[#9cff35]">Precio mayorista aplicado</p>
+                                : <p className="mt-1 text-xs text-white/40">Agrega {item.cantidadMinimaMayorista - item.cantidad} más para obtener {formatoPesos(item.precioMayorista)} c/u</p>
+                            )}
 
                             {controlaStock &&
                               stockDisponible !==
@@ -471,7 +478,7 @@ export default function CarritoPage() {
 
                           <span className="ml-2 font-bold">
                             {formatoPesos(
-                              item.precio *
+                              obtenerPrecioUnitario(item) *
                                 item.cantidad
                             )}
                           </span>

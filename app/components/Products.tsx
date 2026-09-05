@@ -34,6 +34,9 @@ type ProductoSupabase = {
   categoria: string;
   precio: number;
   precio_anterior: number | null;
+  venta_mayorista: boolean;
+  precio_mayorista: number | null;
+  cantidad_minima_mayorista: number | null;
   controla_stock: boolean;
   stock: number;
   imagen_url: string | null;
@@ -50,6 +53,8 @@ type VarianteProducto = {
   talla: string | null;
   sku: string;
   precio: number | null;
+  precio_mayorista: number | null;
+  cantidad_minima_mayorista: number | null;
   controla_stock: boolean;
   stock: number;
   imagen_url: string | null;
@@ -227,6 +232,9 @@ export default function Products() {
               categoria,
               precio,
               precio_anterior,
+              venta_mayorista,
+              precio_mayorista,
+              cantidad_minima_mayorista,
               controla_stock,
               stock,
               imagen_url,
@@ -243,7 +251,7 @@ export default function Products() {
           }),
         supabase
           .from("variantes_producto")
-          .select("id, producto_id, nombre, color, talla, sku, precio, controla_stock, stock, imagen_url, activo, orden")
+          .select("id, producto_id, nombre, color, talla, sku, precio, precio_mayorista, cantidad_minima_mayorista, controla_stock, stock, imagen_url, activo, orden")
           .eq("activo", true)
           .order("orden", { ascending: true }),
       ]);
@@ -349,6 +357,8 @@ export default function Products() {
         sku: variante.sku,
         nombre: producto.nombre,
         precio: variante.precio ?? producto.precio,
+        precioMayorista: variante.precio_mayorista ?? producto.precio_mayorista ?? undefined,
+        cantidadMinimaMayorista: variante.cantidad_minima_mayorista ?? producto.cantidad_minima_mayorista ?? undefined,
         imagen: variante.imagen_url ?? producto.imagen_url ?? undefined,
         controlaStock: variante.controla_stock,
         stock: variante.stock,
@@ -371,6 +381,9 @@ export default function Products() {
 
       precio:
         producto.precio,
+
+      precioMayorista: producto.venta_mayorista ? producto.precio_mayorista ?? undefined : undefined,
+      cantidadMinimaMayorista: producto.venta_mayorista ? producto.cantidad_minima_mayorista ?? undefined : undefined,
 
       imagen:
         producto.imagen_url ??
@@ -497,6 +510,8 @@ export default function Products() {
                     : producto.controla_stock && producto.stock <= 0;
 
                   const precioVisible = variante?.precio ?? producto.precio;
+                  const precioMayoristaVisible = variante?.precio_mayorista ?? producto.precio_mayorista;
+                  const minimoMayoristaVisible = variante?.cantidad_minima_mayorista ?? producto.cantidad_minima_mayorista;
                   const imagenVisible = variante?.imagen_url ?? producto.imagen_url;
                   const stockVisible = variante?.stock ?? producto.stock;
                   const controlaStockVisible = variante?.controla_stock ?? producto.controla_stock;
@@ -590,6 +605,15 @@ export default function Products() {
                               </span>
                             )}
                         </div>
+
+                        {producto.venta_mayorista && precioMayoristaVisible !== null && minimoMayoristaVisible !== null && (
+                          <div className="mt-3 rounded-xl border border-[#82f000]/20 bg-[#82f000]/[0.06] px-3 py-2.5">
+                            <p className="text-xs font-bold text-[#9cff35]">
+                              Mayorista: {formatoPesos(precioMayoristaVisible)} c/u
+                            </p>
+                            <p className="mt-1 text-[11px] text-white/40">Desde {minimoMayoristaVisible} unidades de esta opción</p>
+                          </div>
+                        )}
 
                         {opciones.length > 0 && (
                           <div className="mt-4">

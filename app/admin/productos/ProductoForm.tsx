@@ -11,6 +11,9 @@ type ProductoEditable = {
   categoria: string;
   precio: number;
   precio_anterior: number | null;
+  venta_mayorista: boolean;
+  precio_mayorista: number | null;
+  cantidad_minima_mayorista: number | null;
   controla_stock: boolean;
   stock: number;
   imagen_url: string | null;
@@ -30,6 +33,9 @@ export default function ProductoForm({ producto }: { producto?: ProductoEditable
     categoria: producto?.categoria ?? "Hogar",
     precio: producto ? String(producto.precio) : "",
     precio_anterior: producto?.precio_anterior === null || producto?.precio_anterior === undefined ? "" : String(producto.precio_anterior),
+    venta_mayorista: producto?.venta_mayorista ?? false,
+    precio_mayorista: producto?.precio_mayorista == null ? "" : String(producto.precio_mayorista),
+    cantidad_minima_mayorista: producto?.cantidad_minima_mayorista == null ? "" : String(producto.cantidad_minima_mayorista),
     controla_stock: producto?.controla_stock ?? true,
     stock: producto ? String(producto.stock) : "0",
     imagen_url: producto?.imagen_url ?? "",
@@ -107,6 +113,14 @@ export default function ProductoForm({ producto }: { producto?: ProductoEditable
         <label className="text-sm text-zinc-400">Stock base
           <input required min="0" step="1" type="number" disabled={!form.controla_stock} className={`${campo} disabled:opacity-40`} value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
         </label>
+        {form.venta_mayorista && <>
+          <label className="text-sm text-zinc-400">Precio mayorista por unidad
+            <input required min="0" step="1" type="number" className={campo} value={form.precio_mayorista} onChange={(e) => setForm({ ...form, precio_mayorista: e.target.value })} placeholder="Ej: 11900" />
+          </label>
+          <label className="text-sm text-zinc-400">Cantidad mínima mayorista
+            <input required min="2" step="1" type="number" className={campo} value={form.cantidad_minima_mayorista} onChange={(e) => setForm({ ...form, cantidad_minima_mayorista: e.target.value })} placeholder="Ej: 6" />
+          </label>
+        </>}
         <label className="sm:col-span-2 text-sm text-zinc-400">Descripción
           <textarea required rows={4} className={`${campo} resize-y`} value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Describe sus características, medidas y utilidad." />
         </label>
@@ -120,6 +134,7 @@ export default function ProductoForm({ producto }: { producto?: ProductoEditable
         <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" checked={form.destacado} onChange={(e) => setForm({ ...form, destacado: e.target.checked })} /> Mostrar como destacado</label>
         <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" checked={form.en_oferta} onChange={(e) => setForm({ ...form, en_oferta: e.target.checked })} /> Marcar como oferta</label>
         <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" checked={form.activo} onChange={(e) => setForm({ ...form, activo: e.target.checked })} /> Mostrar producto en la tienda</label>
+        <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" checked={form.venta_mayorista} onChange={(e) => setForm({ ...form, venta_mayorista: e.target.checked, precio_mayorista: e.target.checked ? form.precio_mayorista : "", cantidad_minima_mayorista: e.target.checked ? form.cantidad_minima_mayorista : "" })} /> Ofrecer precio mayorista</label>
       </div>
 
       {!form.activo && <p className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-200">El producto quedará suspendido: conservará sus datos, pero no aparecerá ni podrá comprarse.</p>}

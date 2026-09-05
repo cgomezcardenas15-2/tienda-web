@@ -62,6 +62,7 @@ type ProductoValidadoServidor = {
   nombre: string;
   sku?: string;
   precioUnitario: number;
+  tipoPrecio: "detal" | "mayorista";
   cantidad: number;
   subtotal: number;
 };
@@ -849,6 +850,8 @@ export default function CheckoutPage() {
 
           precioUnitario:
             producto.precioUnitario,
+
+          tipoPrecio: producto.tipoPrecio,
 
           cantidad:
             producto.cantidad,

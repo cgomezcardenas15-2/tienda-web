@@ -49,6 +49,7 @@ type ProductoValidado = {
   nombre: string;
   sku?: string;
   precioUnitario: number;
+  tipoPrecio: "detal" | "mayorista";
   cantidad: number;
   subtotal: number;
 };
@@ -347,6 +348,7 @@ export async function POST(
         nombre: linea.nombre,
         sku: linea.sku,
         precioUnitario: linea.precio,
+        tipoPrecio: linea.tipoPrecio,
         cantidad: linea.cantidad,
         subtotal: linea.subtotal,
       }));

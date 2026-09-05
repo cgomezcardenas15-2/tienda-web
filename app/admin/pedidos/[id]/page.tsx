@@ -99,7 +99,7 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
                   <p className="font-bold text-white">{producto.nombre}</p>
                   {producto.variante_nombre ? <p className="mt-1 font-semibold text-lime-400">{producto.variante_nombre}</p> : null}
                   {producto.variante_sku || productoCatalogo?.sku ? <p className="mt-1 text-xs uppercase tracking-wide text-zinc-500">SKU: {producto.variante_sku || productoCatalogo?.sku}</p> : null}
-                  <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-zinc-400"><span>Cantidad: <strong className="text-zinc-200">{cantidad}</strong></span><span>Precio unitario: <strong className="text-zinc-200">{dinero.format(precioUnitario)}</strong></span></div>
+                  <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-zinc-400"><span>Cantidad: <strong className="text-zinc-200">{cantidad}</strong></span><span>Precio unitario: <strong className="text-zinc-200">{dinero.format(precioUnitario)}</strong></span><span className={producto.tipo_precio === "mayorista" ? "font-bold text-lime-300" : "text-zinc-400"}>{producto.tipo_precio === "mayorista" ? "Mayorista" : "Detal"}</span></div>
                 </div>
                 <div className="sm:text-right"><p className="text-xs uppercase tracking-wide text-zinc-500">Total</p><p className="mt-1 text-lg font-black text-lime-400">{dinero.format(precioUnitario * cantidad)}</p></div>
               </article>

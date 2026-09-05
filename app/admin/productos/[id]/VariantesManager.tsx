@@ -2,9 +2,9 @@
 
 import { FormEvent, useState } from "react";
 
-type Variante = { id:string; nombre:string; color:string|null; talla:string|null; sku:string; precio:number|null; controla_stock:boolean; stock:number; imagen_url:string|null; activo:boolean; orden:number };
-type Producto = { id:string; nombre:string; sku:string|null; precio:number; imagen_url:string|null };
-const vacio = { nombre:"", color:"", talla:"", sku:"", precio:"", stock:"0", imagen_url:"", activo:true };
+type Variante = { id:string; nombre:string; color:string|null; talla:string|null; sku:string; precio:number|null; precio_mayorista:number|null; cantidad_minima_mayorista:number|null; controla_stock:boolean; stock:number; imagen_url:string|null; activo:boolean; orden:number };
+type Producto = { id:string; nombre:string; sku:string|null; precio:number; precio_mayorista:number|null; cantidad_minima_mayorista:number|null; venta_mayorista:boolean; imagen_url:string|null };
+const vacio = { nombre:"", color:"", talla:"", sku:"", precio:"", precio_mayorista:"", cantidad_minima_mayorista:"", stock:"0", imagen_url:"", activo:true };
 
 export default function VariantesManager({ producto, iniciales }: { producto: Producto; iniciales: Variante[] }) {
   const [variantes, setVariantes] = useState(iniciales);
@@ -15,7 +15,7 @@ export default function VariantesManager({ producto, iniciales }: { producto: Pr
 
   function editar(variante: Variante) {
     setEditando(variante.id);
-    setForm({ nombre:variante.nombre, color:variante.color ?? "", talla:variante.talla ?? "", sku:variante.sku, precio:variante.precio?.toString() ?? "", stock:String(variante.stock), imagen_url:variante.imagen_url ?? "", activo:variante.activo });
+    setForm({ nombre:variante.nombre, color:variante.color ?? "", talla:variante.talla ?? "", sku:variante.sku, precio:variante.precio?.toString() ?? "", precio_mayorista:variante.precio_mayorista?.toString() ?? "", cantidad_minima_mayorista:variante.cantidad_minima_mayorista?.toString() ?? "", stock:String(variante.stock), imagen_url:variante.imagen_url ?? "", activo:variante.activo });
     setMensaje("");
   }
   function cancelar(){ setEditando(null); setForm(vacio); setMensaje(""); }
@@ -49,12 +49,16 @@ export default function VariantesManager({ producto, iniciales }: { producto: Pr
         <label className="text-sm text-zinc-400">SKU único<input required className={`${campo} mt-2`} placeholder="CAM-NEG-M" value={form.sku} onChange={e=>setForm({...form,sku:e.target.value})}/></label>
         <label className="text-sm text-zinc-400">Stock<input required min="0" type="number" className={`${campo} mt-2`} value={form.stock} onChange={e=>setForm({...form,stock:e.target.value})}/></label>
         <label className="text-sm text-zinc-400">Precio especial (opcional)<input min="0" type="number" className={`${campo} mt-2`} placeholder={`Base: ${producto.precio}`} value={form.precio} onChange={e=>setForm({...form,precio:e.target.value})}/></label>
+        {producto.venta_mayorista && <>
+          <label className="text-sm text-zinc-400">Precio mayorista propio (opcional)<input min="0" type="number" className={`${campo} mt-2`} placeholder={producto.precio_mayorista ? `Base: ${producto.precio_mayorista}` : "Usar precio del producto"} value={form.precio_mayorista} onChange={e=>setForm({...form,precio_mayorista:e.target.value})}/></label>
+          <label className="text-sm text-zinc-400">Mínimo mayorista propio (opcional)<input min="2" type="number" className={`${campo} mt-2`} placeholder={producto.cantidad_minima_mayorista ? `Base: ${producto.cantidad_minima_mayorista}` : "Usar mínimo del producto"} value={form.cantidad_minima_mayorista} onChange={e=>setForm({...form,cantidad_minima_mayorista:e.target.value})}/></label>
+        </>}
         <label className="sm:col-span-2 text-sm text-zinc-400">URL de la foto (opcional)<input type="url" className={`${campo} mt-2`} placeholder="https://..." value={form.imagen_url} onChange={e=>setForm({...form,imagen_url:e.target.value})}/></label>
         <label className="sm:col-span-2 flex items-center gap-3 text-sm"><input type="checkbox" checked={form.activo} onChange={e=>setForm({...form,activo:e.target.checked})}/> Mostrar esta variante en la tienda</label>
       </div>
       {mensaje && <p className="mt-4 text-sm text-lime-300">{mensaje}</p>}
       <div className="mt-5 flex gap-3"><button disabled={guardando} className="rounded-xl bg-lime-400 px-5 py-3 font-black text-black disabled:opacity-50">{guardando ? "Guardando..." : "Guardar"}</button>{editando && <button type="button" onClick={cancelar} className="rounded-xl border border-zinc-700 px-5 py-3 font-bold">Cancelar</button>}</div>
     </form>
-    <section className="space-y-3"><h2 className="text-xl font-black">Variantes creadas ({variantes.length})</h2>{variantes.length === 0 ? <p className="rounded-2xl border border-zinc-800 p-6 text-zinc-400">Este producto todavía se compra como una sola opción.</p> : variantes.map(v=><article key={v.id} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"><div className="flex justify-between gap-4"><div><h3 className="font-black">{v.nombre}</h3><p className="mt-1 text-xs text-zinc-500">SKU {v.sku} · Stock {v.stock} · {v.activo ? "Visible" : "Oculta"}</p><p className="mt-2 text-sm text-zinc-300">{v.color || "Sin color"}{v.talla ? ` · Talla ${v.talla}` : ""}{v.precio !== null ? ` · $${v.precio.toLocaleString("es-CO")}` : " · Precio base"}</p></div><div className="flex gap-2"><button onClick={()=>editar(v)} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs font-bold hover:border-lime-400">Editar</button><button onClick={()=>eliminar(v.id)} className="rounded-lg border border-red-900 px-3 py-2 text-xs font-bold text-red-300">Eliminar</button></div></div></article>)}</section>
+    <section className="space-y-3"><h2 className="text-xl font-black">Variantes creadas ({variantes.length})</h2>{variantes.length === 0 ? <p className="rounded-2xl border border-zinc-800 p-6 text-zinc-400">Este producto todavía se compra como una sola opción.</p> : variantes.map(v=><article key={v.id} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"><div className="flex justify-between gap-4"><div><h3 className="font-black">{v.nombre}</h3><p className="mt-1 text-xs text-zinc-500">SKU {v.sku} · Stock {v.stock} · {v.activo ? "Visible" : "Oculta"}</p><p className="mt-2 text-sm text-zinc-300">{v.color || "Sin color"}{v.talla ? ` · Talla ${v.talla}` : ""}{v.precio !== null ? ` · $${v.precio.toLocaleString("es-CO")}` : " · Precio base"}</p>{producto.venta_mayorista && <p className="mt-1 text-xs text-lime-300">Mayorista: ${Number(v.precio_mayorista ?? producto.precio_mayorista).toLocaleString("es-CO")} desde {v.cantidad_minima_mayorista ?? producto.cantidad_minima_mayorista} unidades</p>}</div><div className="flex gap-2"><button onClick={()=>editar(v)} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs font-bold hover:border-lime-400">Editar</button><button onClick={()=>eliminar(v.id)} className="rounded-lg border border-red-900 px-3 py-2 text-xs font-bold text-red-300">Eliminar</button></div></div></article>)}</section>
   </div>;
 }
