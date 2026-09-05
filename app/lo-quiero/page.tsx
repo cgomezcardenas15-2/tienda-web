@@ -1,10 +1,31 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 
 const WHATSAPP_NUMBER = "573105238430";
+
+const productosPropuestos = [
+  {
+    nombre: "Organizador multifuncional",
+    categoria: "Hogar",
+    descripcion: "Una idea práctica para mantener cada espacio en orden.",
+    tono: "from-[#82f000]/25 via-[#19310b] to-black",
+  },
+  {
+    nombre: "Kit para celebraciones",
+    categoria: "Piñatería",
+    descripcion: "Opciones llamativas para cumpleaños y fechas especiales.",
+    tono: "from-[#ff9d00]/25 via-[#351d05] to-black",
+  },
+  {
+    nombre: "Accesorio para mascotas",
+    categoria: "Mascotas",
+    descripcion: "Productos útiles para consentir y cuidar a tu mascota.",
+    tono: "from-[#00c8ff]/20 via-[#062633] to-black",
+  },
+];
 
 export default function LoQuieroPage() {
   const [producto, setProducto] = useState("");
@@ -12,6 +33,23 @@ export default function LoQuieroPage() {
   const [uso, setUso] = useState("Para mí");
   const [cantidad, setCantidad] = useState("1");
   const [detalles, setDetalles] = useState("");
+  const formularioRef = useRef<HTMLFormElement>(null);
+
+  function elegirProducto(nombre: string, categoriaElegida: string) {
+    setProducto(nombre);
+    setCategoria(categoriaElegida);
+    window.setTimeout(() => {
+      formularioRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+  }
+
+  function pedirOtroProducto() {
+    setProducto("");
+    setCategoria("Otra");
+    window.setTimeout(() => {
+      formularioRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+  }
 
   function prepararSolicitud(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -59,6 +97,45 @@ export default function LoQuieroPage() {
                 Queremos traer productos que realmente necesites. Dinos qué buscas y tu solicitud ayudará a decidir nuestras próximas importaciones.
               </p>
 
+              <div className="mt-10">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-[#82f000]">Próximas ideas</p>
+                    <h2 className="mt-2 text-2xl font-black">Elige una o propón la tuya</h2>
+                  </div>
+                  <span className="hidden text-xs text-white/35 sm:block">Tú decides qué traer</span>
+                </div>
+
+                <div className="mt-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                  {productosPropuestos.map((item) => (
+                    <article key={item.categoria} className="group overflow-hidden rounded-2xl border border-white/10 bg-[#111411] transition hover:-translate-y-1 hover:border-[#82f000]/40">
+                      <div className={`flex aspect-[4/3] items-center justify-center bg-gradient-to-br ${item.tono}`}>
+                        <div className="text-center">
+                          <span className="text-3xl" aria-hidden="true">◇</span>
+                          <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/45">Foto próximamente</p>
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#82f000]">{item.categoria}</span>
+                        <h3 className="mt-2 text-sm font-black leading-5">{item.nombre}</h3>
+                        <p className="mt-2 text-xs leading-5 text-white/40">{item.descripcion}</p>
+                        <button
+                          type="button"
+                          onClick={() => elegirProducto(item.nombre, item.categoria)}
+                          className="mt-4 w-full cursor-pointer rounded-lg border border-white/10 px-3 py-2.5 text-xs font-black transition hover:border-[#82f000] hover:bg-[#82f000] hover:text-black"
+                        >
+                          Lo quiero
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                <button type="button" onClick={pedirOtroProducto} className="mt-4 w-full cursor-pointer rounded-xl border border-dashed border-white/15 px-4 py-3 text-sm font-bold text-white/55 transition hover:border-[#82f000]/60 hover:text-[#82f000]">
+                  No está aquí: quiero pedir otro producto →
+                </button>
+              </div>
+
               <div className="mt-10 grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
                 {["Cuéntanos", "Analizamos", "Te avisamos"].map((paso, indice) => (
                   <div key={paso} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
@@ -76,7 +153,7 @@ export default function LoQuieroPage() {
                 <p className="mt-3 text-sm leading-6 text-white/45">Completa la idea y la prepararemos para enviarla por WhatsApp.</p>
               </div>
 
-              <form onSubmit={prepararSolicitud} className="mt-7 space-y-6">
+              <form ref={formularioRef} onSubmit={prepararSolicitud} className="mt-7 scroll-mt-28 space-y-6">
                 <label className="block">
                   <span className="text-sm font-semibold text-white/70">Producto que buscas*</span>
                   <input
