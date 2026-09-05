@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Footer() {
   const year = new Date().getFullYear();
 
@@ -55,6 +57,9 @@ export default function Footer() {
               <a href="/carrito" className="transition hover:text-[#82f000]">
                 Mi carrito
               </a>
+              <Link href="/lo-quiero" className="font-semibold text-[#82f000] transition hover:text-[#a3ff3d]">
+                Lo quiero
+              </Link>
             </div>
           </div>
 

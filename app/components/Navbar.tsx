@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useCart } from "../context/CartContext";
 
 export default function Navbar() {
@@ -160,6 +161,13 @@ export default function Navbar() {
           >
             Mascotas
           </a>
+
+          <Link
+            href="/lo-quiero"
+            className="cursor-pointer whitespace-nowrap font-black text-[#82f000] transition hover:text-[#a3ff3d]"
+          >
+            Lo quiero
+          </Link>
 
           <a
             href="/#productos"
