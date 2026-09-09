@@ -35,7 +35,7 @@ export default function Hero() {
         <div className="relative z-20 max-w-xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#82f000]/30 bg-[#82f000]/10 px-4 py-2 text-sm font-semibold text-[#9cff35]">
             <span className="h-2 w-2 rounded-full bg-[#82f000] shadow-[0_0_12px_rgba(130,240,0,0.9)]" />
-            Una nueva forma de comprar
+            Una forma sencilla de comprar
           </div>
 
           <h1 className="mt-7 text-5xl font-semibold leading-[1.04] tracking-tight sm:text-6xl lg:text-7xl">
