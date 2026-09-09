@@ -18,6 +18,12 @@ const categorias = [
     href: "/categoria/mascotas",
   },
   {
+    nombre: "Motos",
+    descripcion: "Accesorios para cada recorrido",
+    icono: "🏍️",
+    href: "/categoria/motos",
+  },
+  {
     nombre: "Ofertas",
     descripcion: "Productos seleccionados a mejor precio",
     icono: "🔥",
@@ -63,7 +69,7 @@ export default function Categories() {
         </div>
 
         {/* Tarjetas de categorías */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {categorias.map((categoria) => (
             <a
               key={categoria.nombre}

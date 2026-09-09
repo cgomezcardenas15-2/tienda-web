@@ -25,6 +25,12 @@ const productosPropuestos = [
     descripcion: "Productos útiles para consentir y cuidar a tu mascota.",
     tono: "from-[#00c8ff]/20 via-[#062633] to-black",
   },
+  {
+    nombre: "Accesorio para moto",
+    categoria: "Motos",
+    descripcion: "Ideas prácticas para hacer cada recorrido más cómodo y seguro.",
+    tono: "from-[#a855f7]/20 via-[#241032] to-black",
+  },
 ];
 
 export default function LoQuieroPage() {
@@ -106,7 +112,7 @@ export default function LoQuieroPage() {
                   <span className="hidden text-xs text-white/35 sm:block">Tú decides qué traer</span>
                 </div>
 
-                <div className="mt-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                   {productosPropuestos.map((item) => (
                     <article key={item.categoria} className="group overflow-hidden rounded-2xl border border-white/10 bg-[#111411] transition hover:-translate-y-1 hover:border-[#82f000]/40">
                       <div className={`flex aspect-[4/3] items-center justify-center bg-gradient-to-br ${item.tono}`}>
@@ -173,6 +179,7 @@ export default function LoQuieroPage() {
                       <option>Hogar</option>
                       <option>Piñatería</option>
                       <option>Mascotas</option>
+                      <option>Motos</option>
                       <option>Otra</option>
                     </select>
                   </label>

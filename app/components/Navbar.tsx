@@ -1,12 +1,13 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "../context/CartContext";
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
 
   const { cantidadTotal } = useCart();
 
@@ -133,45 +134,27 @@ export default function Navbar() {
         </form>
 
         {/* Categorías */}
-        <div className="mt-4 flex items-center gap-6 overflow-x-auto border-t border-white/10 pt-4 text-sm font-medium text-zinc-400">
-          <a
-            href="/"
-            className="cursor-pointer whitespace-nowrap font-semibold text-lime-400"
-          >
-            Inicio
-          </a>
-
-          <a
-            href="/categoria/pinateria"
-            className="cursor-pointer whitespace-nowrap transition hover:text-white"
-          >
-            Piñatería
-          </a>
-
-          <a
-            href="/categoria/hogar"
-            className="cursor-pointer whitespace-nowrap transition hover:text-white"
-          >
-            Hogar
-          </a>
-
-          <a
-            href="/categoria/mascotas"
-            className="cursor-pointer whitespace-nowrap transition hover:text-white"
-          >
-            Mascotas
-          </a>
-
-          <Link
-            href="/lo-quiero"
-            className="cursor-pointer whitespace-nowrap font-black text-[#82f000] transition hover:text-[#a3ff3d]"
-          >
-            Lo quiero
-          </Link>
+        <div className="mt-4 flex items-center gap-2 overflow-x-auto border-t border-white/10 pt-3 text-sm font-medium text-zinc-400 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {[
+            { href: "/", texto: "Inicio", icono: "⌂" },
+            { href: "/categoria/pinateria", texto: "Piñatería", icono: "🎉" },
+            { href: "/categoria/hogar", texto: "Hogar", icono: "🏠" },
+            { href: "/categoria/mascotas", texto: "Mascotas", icono: "🐾" },
+            { href: "/categoria/motos", texto: "Motos", icono: "🏍️" },
+            { href: "/lo-quiero", texto: "Lo quiero", icono: "✦" },
+          ].map((item) => {
+            const activo = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            return (
+              <Link key={item.href} href={item.href} className={`group inline-flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-xl border px-3.5 py-2 transition ${activo ? "border-[#82f000]/35 bg-[#82f000]/10 font-black text-[#9cff35]" : "border-transparent text-zinc-400 hover:border-white/10 hover:bg-white/[0.04] hover:text-white"}`}>
+                <span aria-hidden="true" className={`text-base transition group-hover:scale-110 ${activo ? "grayscale-0" : "grayscale group-hover:grayscale-0"}`}>{item.icono}</span>
+                {item.texto}
+              </Link>
+            );
+          })}
 
           <a
             href="/#productos"
-            className="group ml-auto inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border border-orange-400/60 bg-gradient-to-r from-orange-500 to-amber-400 px-3.5 py-1.5 text-xs font-black uppercase tracking-[0.08em] text-black shadow-[0_0_18px_rgba(251,146,60,0.22)] transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-[0_0_24px_rgba(251,146,60,0.38)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            className="group ml-auto inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-xl border border-orange-400/60 bg-gradient-to-r from-orange-500 to-amber-400 px-4 py-2 text-xs font-black uppercase tracking-[0.08em] text-black shadow-[0_0_18px_rgba(251,146,60,0.22)] transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-[0_0_24px_rgba(251,146,60,0.38)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             <span
               aria-hidden="true"

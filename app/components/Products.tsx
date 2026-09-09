@@ -148,6 +148,10 @@ function obtenerIconoCategoria(
     return "🐾";
   }
 
+  if (categoriaNormalizada.includes("moto")) {
+    return "🏍️";
+  }
+
   if (
     categoriaNormalizada.includes(
       "ferreter"

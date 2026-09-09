@@ -46,6 +46,13 @@ const categorias = {
       "Accesorios y productos prácticos para consentir a tus mascotas.",
   },
 
+  motos: {
+    nombre: "Motos",
+    icono: "🏍️",
+    descripcion:
+      "Accesorios prácticos para tu moto, tus recorridos y tu seguridad en el camino.",
+  },
+
   ferreteria: {
     nombre: "Ferretería",
     icono: "🔧",

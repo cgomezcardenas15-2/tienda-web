@@ -48,7 +48,7 @@ export function limpiarProducto(body: Record<string, unknown>) {
 
 export function errorValidacionProducto(datos: ReturnType<typeof limpiarProducto>) {
   if (!datos.nombre || !datos.slug || !datos.sku || !datos.descripcion) return "Completa nombre, SKU y descripción.";
-  if (!esCategoriaActiva(datos.categoria)) return "Selecciona Piñatería, Hogar o Mascotas.";
+  if (!esCategoriaActiva(datos.categoria)) return "Selecciona Piñatería, Hogar, Mascotas o Motos.";
   if (!Number.isInteger(datos.precio) || datos.precio < 0) return "El precio no es válido.";
   if (datos.precio_anterior !== null && (!Number.isInteger(datos.precio_anterior) || datos.precio_anterior <= datos.precio)) return "El precio anterior debe ser mayor al precio de venta.";
   if (datos.venta_mayorista && (!Number.isInteger(datos.precio_mayorista) || datos.precio_mayorista! < 0 || datos.precio_mayorista! >= datos.precio)) return "El precio mayorista debe ser menor al precio de detal.";

@@ -22,7 +22,7 @@ type ProductoEditable = {
   activo: boolean;
 };
 
-const CATEGORIAS = ["Piñatería", "Hogar", "Mascotas"];
+const CATEGORIAS = ["Piñatería", "Hogar", "Mascotas", "Motos"];
 
 export default function ProductoForm({ producto }: { producto?: ProductoEditable }) {
   const router = useRouter();

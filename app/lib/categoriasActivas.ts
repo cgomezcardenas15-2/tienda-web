@@ -1,4 +1,4 @@
-export const CATEGORIAS_ACTIVAS = ["pinateria", "hogar", "mascotas"] as const;
+export const CATEGORIAS_ACTIVAS = ["pinateria", "hogar", "mascotas", "motos"] as const;
 
 export function normalizarCategoria(categoria: string) {
   return categoria
@@ -14,6 +14,7 @@ export function esCategoriaActiva(categoria: string) {
   return (
     categoriaNormalizada.includes("pinater") ||
     categoriaNormalizada.includes("hogar") ||
-    categoriaNormalizada.includes("mascota")
+    categoriaNormalizada.includes("mascota") ||
+    categoriaNormalizada.includes("moto")
   );
 }
