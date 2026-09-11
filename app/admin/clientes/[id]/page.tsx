@@ -87,7 +87,7 @@ export default async function ClienteDetallePage({ params }: { params: Promise<{
     documento
       ? supabaseAdmin.from("pedidos").select("*").eq("comprador_numero_documento", pedidoReferencia.comprador_numero_documento).order("creado_en", { ascending: false }).limit(500)
       : Promise.resolve({ data: [] }),
-    correo
+    correo && !documento
       ? supabaseAdmin.from("pedidos").select("*").ilike("comprador_correo", correo).order("creado_en", { ascending: false }).limit(500)
       : Promise.resolve({ data: [] }),
   ]);
