@@ -20,6 +20,7 @@ export type LineaValidada = {
   subtotal: number;
   stockDisponible: number;
   tipoPrecio: "detal" | "mayorista";
+  costoUnitario: number | null;
 };
 
 export class ErrorValidacionProductos extends Error {
@@ -61,22 +62,36 @@ export async function validarLineasProducto(
   }
 
   const idsProductos = [...new Set([...agrupadas.values()].map((linea) => linea.id))];
-  const { data: productos, error: errorProductos } = await supabaseAdmin
+  let { data: productos, error: errorProductos } = await supabaseAdmin
     .from("productos")
-    .select("id,nombre,sku,precio,venta_mayorista,precio_mayorista,cantidad_minima_mayorista,controla_stock,stock,imagen_url,activo")
+    .select("id,nombre,sku,precio,venta_mayorista,precio_mayorista,cantidad_minima_mayorista,controla_stock,stock,imagen_url,activo,costo_promedio")
     .in("id", idsProductos)
     .eq("activo", true);
+  if (errorProductos?.code === "42703" || errorProductos?.code === "PGRST204") {
+    const respaldo = await supabaseAdmin.from("productos")
+      .select("id,nombre,sku,precio,venta_mayorista,precio_mayorista,cantidad_minima_mayorista,controla_stock,stock,imagen_url,activo")
+      .in("id", idsProductos).eq("activo", true);
+    productos = respaldo.data?.map((producto) => ({ ...producto, costo_promedio: null })) ?? null;
+    errorProductos = respaldo.error;
+  }
   if (errorProductos) throw new Error(`No fue posible consultar productos: ${errorProductos.message}`);
   if ((productos ?? []).length !== idsProductos.length) {
     throw new ErrorValidacionProductos("Uno o más productos ya no están disponibles.", 409);
   }
 
   const idsVariantes = [...agrupadas.values()].flatMap((linea) => linea.varianteId ? [linea.varianteId] : []);
-  const { data: variantes, error: errorVariantes } = idsVariantes.length
+  let { data: variantes, error: errorVariantes } = idsVariantes.length
     ? await supabaseAdmin.from("variantes_producto")
-        .select("id,producto_id,nombre,color,talla,sku,precio,precio_mayorista,cantidad_minima_mayorista,controla_stock,stock,imagen_url,activo")
+        .select("id,producto_id,nombre,color,talla,sku,precio,precio_mayorista,cantidad_minima_mayorista,controla_stock,stock,imagen_url,activo,costo_promedio")
         .in("id", idsVariantes).eq("activo", true)
     : { data: [], error: null };
+  if (idsVariantes.length && (errorVariantes?.code === "42703" || errorVariantes?.code === "PGRST204")) {
+    const respaldo = await supabaseAdmin.from("variantes_producto")
+      .select("id,producto_id,nombre,color,talla,sku,precio,precio_mayorista,cantidad_minima_mayorista,controla_stock,stock,imagen_url,activo")
+      .in("id", idsVariantes).eq("activo", true);
+    variantes = respaldo.data?.map((variante) => ({ ...variante, costo_promedio: null })) ?? null;
+    errorVariantes = respaldo.error;
+  }
   if (errorVariantes) throw new Error(`No fue posible consultar variantes: ${errorVariantes.message}`);
   if ((variantes ?? []).length !== new Set(idsVariantes).size) {
     throw new ErrorValidacionProductos("Una opción seleccionada ya no está disponible.", 409);
@@ -130,6 +145,7 @@ export async function validarLineasProducto(
       subtotal: precio * linea.cantidad,
       stockDisponible: stock,
       tipoPrecio: aplicaMayorista ? "mayorista" : "detal",
+      costoUnitario: Number(variante?.costo_promedio ?? producto.costo_promedio) || null,
     };
   });
 }

@@ -36,17 +36,30 @@ function estadoTexto(estado: string) {
   return textos[estado] || estado.replaceAll("_", " ");
 }
 
+async function cargarPedidosConReintentos() {
+  const intentos = 3;
+
+  for (let intento = 1; intento <= intentos; intento += 1) {
+    const resultado = await supabaseAdmin
+      .from("pedidos")
+      .select("id,numero_pedido,comprador_nombre,comprador_correo,entrega_ciudad,total,moneda,estado_pedido,estado_pago,creado_en")
+      .order("creado_en", { ascending: false })
+      .limit(100);
+
+    if (!resultado.error || intento === intentos) return resultado;
+    await new Promise((resolve) => setTimeout(resolve, intento * 500));
+  }
+
+  throw new Error("No fue posible completar la consulta de pedidos.");
+}
+
 export default async function PedidosAdminPage() {
   await requireAdmin();
 
   const { error: errorLimpieza } = await supabaseAdmin.rpc("liberar_reservas_vencidas");
   if (errorLimpieza) console.error("Error limpiando reservas vencidas:", errorLimpieza.message);
 
-  const { data, error } = await supabaseAdmin
-    .from("pedidos")
-    .select("id,numero_pedido,comprador_nombre,comprador_correo,entrega_ciudad,total,moneda,estado_pedido,estado_pago,creado_en")
-    .order("creado_en", { ascending: false })
-    .limit(100);
+  const { data, error } = await cargarPedidosConReintentos();
 
   const pedidos = (data || []) as PedidoResumen[];
   if (error) {
@@ -71,14 +84,17 @@ export default async function PedidosAdminPage() {
       </div>
 
       <section className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"><p className="text-sm text-zinc-400">Pedidos visibles</p><p className="mt-2 text-3xl font-black">{pedidos.length}</p></div>
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"><p className="text-sm text-zinc-400">Pagos aprobados</p><p className="mt-2 text-3xl font-black text-lime-400">{pagados}</p></div>
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"><p className="text-sm text-zinc-400">Pendientes</p><p className="mt-2 text-3xl font-black text-amber-300">{pendientes}</p></div>
-        <div className="rounded-2xl border border-orange-500/20 bg-orange-500/[0.05] p-5"><p className="text-sm text-orange-200/70">Pagos vencidos</p><p className="mt-2 text-3xl font-black text-orange-300">{vencidos}</p></div>
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"><p className="text-sm text-zinc-400">Pedidos visibles</p><p className="mt-2 text-3xl font-black">{error ? "—" : pedidos.length}</p></div>
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"><p className="text-sm text-zinc-400">Pagos aprobados</p><p className="mt-2 text-3xl font-black text-lime-400">{error ? "—" : pagados}</p></div>
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"><p className="text-sm text-zinc-400">Pendientes</p><p className="mt-2 text-3xl font-black text-amber-300">{error ? "—" : pendientes}</p></div>
+        <div className="rounded-2xl border border-orange-500/20 bg-orange-500/[0.05] p-5"><p className="text-sm text-orange-200/70">Pagos vencidos</p><p className="mt-2 text-3xl font-black text-orange-300">{error ? "—" : vencidos}</p></div>
       </section>
 
       {error ? (
-        <p className="mt-7 rounded-2xl border border-red-900 bg-red-950/40 p-5 text-red-300">No fue posible cargar los pedidos.</p>
+        <div className="mt-7 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-700/50 bg-amber-950/30 p-5 text-amber-200">
+          <div><p className="font-bold">La conexión con los pedidos está tardando.</p><p className="mt-1 text-sm text-amber-200/70">La información sigue guardada. Intenta actualizar en unos segundos.</p></div>
+          <Link href="/admin/pedidos" className="rounded-xl border border-amber-400/50 px-4 py-2 text-sm font-bold hover:bg-amber-400/10">Volver a intentar</Link>
+        </div>
       ) : pedidos.length === 0 ? (
         <p className="mt-7 rounded-2xl border border-zinc-800 bg-zinc-900 p-8 text-center text-zinc-400">Todavía no hay pedidos.</p>
       ) : (

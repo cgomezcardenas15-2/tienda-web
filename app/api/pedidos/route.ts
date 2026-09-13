@@ -63,6 +63,7 @@ type ProductoValidado = {
   precio: number;
   tipoPrecio: "detal" | "mayorista";
   cantidad: number;
+  costoUnitario: number | null;
 };
 
 /*
@@ -344,6 +345,7 @@ export async function POST(request: Request) {
         precio: linea.precio,
         tipoPrecio: linea.tipoPrecio,
         cantidad: linea.cantidad,
+        costoUnitario: linea.costoUnitario,
       }));
 
     /*
@@ -797,6 +799,10 @@ export async function POST(request: Request) {
 
           tipo_precio:
             producto.tipoPrecio,
+
+          ...(producto.costoUnitario !== null
+            ? { costo_unitario_capturado: producto.costoUnitario }
+            : {}),
 
           cantidad:
             producto.cantidad,
