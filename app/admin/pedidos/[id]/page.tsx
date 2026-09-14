@@ -59,7 +59,12 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
       <Link href="/admin/pedidos" className="text-sm font-bold text-lime-400 hover:text-lime-300">← Volver a pedidos</Link>
       <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
         <div><p className="text-xs font-black uppercase tracking-[0.24em] text-lime-400">DETALLE DEL PEDIDO</p><h1 className="mt-2 text-3xl font-black">{pedido.comprador_nombre}</h1><p className="mt-2 text-sm font-bold text-lime-400">{pedido.numero_pedido}</p></div>
-        <p className="text-3xl font-black text-lime-400">{dinero.format(Number(pedido.total))}</p>
+        <div className="text-right">
+          <p className="text-3xl font-black text-lime-400">{dinero.format(Number(pedido.total))}</p>
+          <Link href={`/admin/remisiones/${pedido.id}`} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-lime-500 px-5 text-sm font-black text-lime-400 transition hover:bg-lime-400 hover:text-black">
+            Generar remisión
+          </Link>
+        </div>
       </div>
 
       <section className="mt-7 grid gap-5 md:grid-cols-2">
