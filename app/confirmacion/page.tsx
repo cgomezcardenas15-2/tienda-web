@@ -156,8 +156,9 @@ export default function ConfirmacionPage() {
               </h3>
 
               <p className="mt-2 text-sm leading-6 text-white/40">
-                La factura electrónica válida se generará mediante el proveedor
-                correspondiente y se enviará al correo de facturación.
+                Cuando se habilite, la factura electrónica válida será emitida
+                por Señor Nova mediante el proveedor correspondiente y se
+                enviará al correo de facturación.
               </p>
             </div>
           </section>

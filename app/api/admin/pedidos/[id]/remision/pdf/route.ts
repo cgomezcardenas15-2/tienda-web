@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { getAdminSession } from "@/app/lib/adminAuth";
 import { cargarRemision, nombreArchivoRemision, textoRemision } from "@/app/lib/remisionPedido";
+import { IDENTIDAD_COMERCIAL } from "@/app/lib/identidadComercial";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   page.drawText("N", { x: 56, y: 766, size: 18, font: bold, color: negro });
   page.drawText("NOVA", { x: 94, y: 775, size: 20, font: bold, color: negro });
   page.drawText("TODO LO QUE NECESITAS", { x: 94, y: 760, size: 7, font: bold, color: verde });
+  page.drawText(`EMITIDO POR ${IDENTIDAD_COMERCIAL.nombreComercial.toUpperCase()}`, { x: 94, y: 748, size: 6, font: normal, color: gris });
   page.drawText("REMISION", { x: 450, y: 779, size: 9, font: bold, color: verde });
   page.drawText(`REM-${pedido.numero_pedido}`, { x: 395, y: 758, size: 14, font: bold, color: negro });
   page.drawLine({ start: { x, y: 735 }, end: { x: x + ancho, y: 735 }, thickness: 1.5, color: borde });
@@ -66,9 +68,12 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   page.drawText(pesos(pedido.total), { x: 472, y: totalY + 10, size: 12, font: bold, color: verde });
   page.drawLine({ start: { x, y: 125 }, end: { x: 245, y: 125 }, thickness: 0.8, color: gris });
   page.drawLine({ start: { x: 350, y: 125 }, end: { x: 551, y: 125 }, thickness: 0.8, color: gris });
-  page.drawText("Preparado por NOVA", { x: 95, y: 111, size: 8, font: normal, color: gris });
+  page.drawText(`Preparado por ${IDENTIDAD_COMERCIAL.nombreComercial}`, { x: 82, y: 111, size: 8, font: normal, color: gris });
   page.drawText("Nombre y firma de recibido", { x: 393, y: 111, size: 8, font: normal, color: gris });
-  page.drawText("REMISION COMERCIAL - DOCUMENTO NO FISCAL", { x: 192, y: 50, size: 7, font: bold, color: gris });
+  page.drawText(`${IDENTIDAD_COMERCIAL.nombreComercial} - ${IDENTIDAD_COMERCIAL.propietario} - NIT ${IDENTIDAD_COMERCIAL.nitCompleto}`, { x: 153, y: 76, size: 7, font: bold, color: gris });
+  page.drawText(`${IDENTIDAD_COMERCIAL.responsabilidadIva} - Telefono y WhatsApp: ${IDENTIDAD_COMERCIAL.telefono}`, { x: 170, y: 63, size: 7, font: normal, color: gris });
+  page.drawText(`${IDENTIDAD_COMERCIAL.direccionCompleta} - ${IDENTIDAD_COMERCIAL.correo}`, { x: 135, y: 51, size: 7, font: normal, color: gris });
+  page.drawText(`${IDENTIDAD_COMERCIAL.nombreComercial.toUpperCase()} - REMISION COMERCIAL - DOCUMENTO NO FISCAL`, { x: 155, y: 36, size: 7, font: bold, color: gris });
   const bytes = await pdf.save();
   return new Response(Buffer.from(bytes), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${nombreArchivoRemision(pedido.numero_pedido, "pdf")}"`, "Cache-Control": "private, no-store" } });
 }

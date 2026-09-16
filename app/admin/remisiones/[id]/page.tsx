@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/app/lib/adminAuth";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 import ImprimirRemision from "./ImprimirRemision";
+import { IDENTIDAD_COMERCIAL } from "@/app/lib/identidadComercial";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ export default async function RemisionPedidoPage({ params }: { params: Promise<{
           <div className="relative flex flex-wrap items-start justify-between gap-7">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#89f000] text-lg font-black text-black">N</span>
-              <div><p className="text-2xl font-black tracking-[0.24em]">NOVA</p><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-lime-700">Todo lo que necesitas</p></div>
+              <div><p className="text-2xl font-black tracking-[0.24em]">{IDENTIDAD_COMERCIAL.marca}</p><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-lime-700">Todo lo que necesitas</p><p className="mt-1 text-[10px] font-semibold text-zinc-500">Emitido por {IDENTIDAD_COMERCIAL.nombreComercial}</p></div>
             </div>
             <div className="text-left sm:text-right">
               <span className="inline-flex rounded-full bg-[#89f000] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-black">Remisión</span>
@@ -96,7 +97,7 @@ export default async function RemisionPedidoPage({ params }: { params: Promise<{
           </section>
 
           <section className="mt-6 grid items-end gap-6 sm:grid-cols-[1fr_340px]">
-            <div className="text-sm text-zinc-500"><p>Gracias por elegir NOVA.</p><p className="mt-1">Atención directa · Compra sencilla</p></div>
+            <div className="text-sm text-zinc-500"><p>Gracias por elegir {IDENTIDAD_COMERCIAL.marca}.</p><p className="mt-1">Atención directa · Compra sencilla</p></div>
             <div className="rounded-2xl border-2 border-zinc-200 bg-zinc-50 p-5 text-zinc-950">
               <dl className="space-y-2 text-sm">
                 <div className="flex justify-between gap-8 text-zinc-500"><dt>Subtotal</dt><dd className="text-zinc-950">{dinero.format(Number(pedido.subtotal))}</dd></div>
@@ -108,8 +109,14 @@ export default async function RemisionPedidoPage({ params }: { params: Promise<{
           </section>
 
           <footer className="mt-12">
-            <div className="grid gap-10 text-center text-[11px] text-zinc-500 sm:grid-cols-2"><div className="border-t border-zinc-400 pt-2">Preparado por NOVA</div><div className="border-t border-zinc-400 pt-2">Nombre y firma de recibido</div></div>
-            <p className="mt-8 text-center text-[9px] uppercase tracking-[0.16em] text-zinc-400">Remisión comercial · Documento no fiscal</p>
+            <div className="grid gap-10 text-center text-[11px] text-zinc-500 sm:grid-cols-2"><div className="border-t border-zinc-400 pt-2">Preparado por {IDENTIDAD_COMERCIAL.nombreComercial}</div><div className="border-t border-zinc-400 pt-2">Nombre y firma de recibido</div></div>
+            <div className="mt-7 text-center text-[10px] leading-5 text-zinc-500">
+              <p className="font-bold text-zinc-700">{IDENTIDAD_COMERCIAL.nombreComercial} · Propietario: {IDENTIDAD_COMERCIAL.propietario}</p>
+              <p>NIT {IDENTIDAD_COMERCIAL.nitCompleto} · {IDENTIDAD_COMERCIAL.responsabilidadIva}</p>
+              <p>Teléfono y WhatsApp: {IDENTIDAD_COMERCIAL.telefono}</p>
+              <p>{IDENTIDAD_COMERCIAL.direccionCompleta} · {IDENTIDAD_COMERCIAL.correo}</p>
+            </div>
+            <p className="mt-8 text-center text-[9px] uppercase tracking-[0.16em] text-zinc-400">{IDENTIDAD_COMERCIAL.nombreComercial} · Remisión comercial · Documento no fiscal</p>
           </footer>
         </div>
       </article>

@@ -1,4 +1,5 @@
 import Footer from "./Footer";
+import { IDENTIDAD_COMERCIAL } from "../lib/identidadComercial";
 
 type LegalSection = { title: string; paragraphs?: string[]; items?: string[] };
 
@@ -27,7 +28,7 @@ export default function LegalPage({ eyebrow, title, intro, sections }: {
 
         <div className="mt-10 rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] p-5 text-sm leading-6 text-amber-100/80">
           <strong className="text-amber-200">Documento en preparación.</strong>{" "}
-          NOVA continúa en modo de pruebas. Antes de habilitar ventas reales se incorporarán la razón social o nombre del responsable, NIT, dirección, teléfono y correo oficial, y se realizará la revisión legal final.
+          NOVA es la marca visible de la tienda y {IDENTIDAD_COMERCIAL.nombreComercial} es el establecimiento de comercio de {IDENTIDAD_COMERCIAL.propietario}, persona natural comerciante con NIT {IDENTIDAD_COMERCIAL.nitCompleto}. Los datos de contacto publicados corresponden a los informados por el responsable y podrán actualizarse cuando el establecimiento adopte canales empresariales propios.
         </div>
 
         <div className="mt-12 grid gap-5">
