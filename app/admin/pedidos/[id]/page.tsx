@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 import EstadoPedidoControl from "./EstadoPedidoControl";
 import EnvioPedidoForm from "./EnvioPedidoForm";
 import NotificacionEnvioControl from "./NotificacionEnvioControl";
+import NuevaDevolucionForm from "./NuevaDevolucionForm";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +27,10 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
   if (errorLimpieza) console.error("Error limpiando reservas vencidas:", errorLimpieza.message);
   const { id } = await params;
 
-  const [{ data: pedido, error }, { data: productos, error: productosError }] = await Promise.all([
+  const [{ data: pedido, error }, { data: productos, error: productosError }, devolucionesResultado] = await Promise.all([
     supabaseAdmin.from("pedidos").select("*").eq("id", id).maybeSingle(),
     supabaseAdmin.from("productos_pedido").select("*").eq("pedido_id", id),
+    supabaseAdmin.from("devoluciones").select("id,numero,tipo,estado,creado_en").eq("pedido_id",id).order("creado_en",{ascending:false}),
   ]);
 
   if (error || !pedido) notFound();
@@ -114,6 +116,13 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
       </section>
 
       <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6"><h2 className="font-black">Resumen</h2><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between"><dt className="text-zinc-500">Subtotal</dt><dd>{dinero.format(Number(pedido.subtotal))}</dd></div><div className="flex justify-between"><dt className="text-zinc-500">Envío</dt><dd>{dinero.format(Number(pedido.costo_envio))}</dd></div><div className="flex justify-between"><dt className="text-zinc-500">Descuento</dt><dd>{dinero.format(Number(pedido.descuento))}</dd></div><div className="flex justify-between border-t border-zinc-700 pt-3 text-lg font-black"><dt>Total</dt><dd>{dinero.format(Number(pedido.total))}</dd></div></dl></section>
+
+      <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-lime-400">Posventa</p><h2 className="mt-2 text-xl font-black">Devoluciones, garantías y reembolsos</h2><p className="mt-2 text-sm text-zinc-400">Registra cada novedad sin perder su historial ni devolver existencias dos veces.</p>
+        {devolucionesResultado.error&&devolucionesResultado.error.code!=="42P01"?<p className="mt-4 text-sm text-amber-300">No fue posible consultar los casos.</p>:null}
+        {devolucionesResultado.data?.length?<div className="mt-4 divide-y divide-zinc-800 rounded-xl border border-zinc-800">{devolucionesResultado.data.map(c=><Link key={c.id} href={`/admin/devoluciones/${c.id}`} className="flex justify-between gap-3 p-4 hover:bg-zinc-800"><span><strong>{c.numero}</strong><small className="ml-2 text-zinc-400">{c.tipo}</small></span><span className="font-bold text-lime-300">{c.estado}</span></Link>)}</div>:null}
+        <NuevaDevolucionForm pedidoId={pedido.id} lineas={(productos||[]).map(p=>({id:String(p.id),nombre:p.nombre,variante:p.variante_nombre||null,cantidad:Number(p.cantidad)}))}/>
+      </section>
     </main>
   );
 }
