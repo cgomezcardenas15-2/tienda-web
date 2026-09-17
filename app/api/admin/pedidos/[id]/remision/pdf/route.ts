@@ -71,9 +71,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   page.drawText(`Preparado por ${IDENTIDAD_COMERCIAL.nombreComercial}`, { x: 82, y: 111, size: 8, font: normal, color: gris });
   page.drawText("Nombre y firma de recibido", { x: 393, y: 111, size: 8, font: normal, color: gris });
   page.drawText(`${IDENTIDAD_COMERCIAL.nombreComercial} - ${IDENTIDAD_COMERCIAL.propietario} - NIT ${IDENTIDAD_COMERCIAL.nitCompleto}`, { x: 153, y: 76, size: 7, font: bold, color: gris });
-  page.drawText(`${IDENTIDAD_COMERCIAL.responsabilidadIva} - Telefono y WhatsApp: ${IDENTIDAD_COMERCIAL.telefono}`, { x: 170, y: 63, size: 7, font: normal, color: gris });
-  page.drawText(`${IDENTIDAD_COMERCIAL.direccionCompleta} - ${IDENTIDAD_COMERCIAL.correo}`, { x: 135, y: 51, size: 7, font: normal, color: gris });
-  page.drawText(`${IDENTIDAD_COMERCIAL.nombreComercial.toUpperCase()} - REMISION COMERCIAL - DOCUMENTO NO FISCAL`, { x: 155, y: 36, size: 7, font: bold, color: gris });
+  page.drawText(`${IDENTIDAD_COMERCIAL.responsabilidadIva} - Matricula ${IDENTIDAD_COMERCIAL.matriculaMercantil} - CIIU ${IDENTIDAD_COMERCIAL.actividadPrincipal} / ${IDENTIDAD_COMERCIAL.actividadSecundaria}`, { x: 127, y: 63, size: 7, font: normal, color: gris });
+  page.drawText(`${IDENTIDAD_COMERCIAL.direccionCompleta} - Tel. ${IDENTIDAD_COMERCIAL.telefono}`, { x: 142, y: 51, size: 7, font: normal, color: gris });
+  page.drawText(`${IDENTIDAD_COMERCIAL.nombreComercial.toUpperCase()} - REMISION DE VENTA`, { x: 205, y: 36, size: 7, font: bold, color: gris });
   const bytes = await pdf.save();
   return new Response(Buffer.from(bytes), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${nombreArchivoRemision(pedido.numero_pedido, "pdf")}"`, "Cache-Control": "private, no-store" } });
 }

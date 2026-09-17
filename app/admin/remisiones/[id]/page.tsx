@@ -113,10 +113,11 @@ export default async function RemisionPedidoPage({ params }: { params: Promise<{
             <div className="mt-7 text-center text-[10px] leading-5 text-zinc-500">
               <p className="font-bold text-zinc-700">{IDENTIDAD_COMERCIAL.nombreComercial} · Propietario: {IDENTIDAD_COMERCIAL.propietario}</p>
               <p>NIT {IDENTIDAD_COMERCIAL.nitCompleto} · {IDENTIDAD_COMERCIAL.responsabilidadIva}</p>
+              <p>Matrícula mercantil {IDENTIDAD_COMERCIAL.matriculaMercantil} · CIIU {IDENTIDAD_COMERCIAL.actividadPrincipal} / {IDENTIDAD_COMERCIAL.actividadSecundaria}</p>
               <p>Teléfono y WhatsApp: {IDENTIDAD_COMERCIAL.telefono}</p>
               <p>{IDENTIDAD_COMERCIAL.direccionCompleta} · {IDENTIDAD_COMERCIAL.correo}</p>
             </div>
-            <p className="mt-8 text-center text-[9px] uppercase tracking-[0.16em] text-zinc-400">{IDENTIDAD_COMERCIAL.nombreComercial} · Remisión comercial · Documento no fiscal</p>
+            <p className="mt-8 text-center text-[9px] uppercase tracking-[0.16em] text-zinc-400">{IDENTIDAD_COMERCIAL.nombreComercial} · Remisión de venta</p>
           </footer>
         </div>
       </article>

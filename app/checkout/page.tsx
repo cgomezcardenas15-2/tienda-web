@@ -779,7 +779,7 @@ export default function CheckoutPage() {
         )
       ) {
         nuevosErrores.facturacionCorreo =
-          "Ingresa un correo de facturación válido.";
+          "Ingresa un correo válido para la remisión.";
       }
 
       if (
@@ -801,7 +801,7 @@ export default function CheckoutPage() {
           .length < 5
       ) {
         nuevosErrores.facturacionDireccion =
-          "Ingresa una dirección de facturación válida.";
+          "Ingresa una dirección válida para la remisión.";
       }
     }
 
@@ -1759,13 +1759,13 @@ export default function CheckoutPage() {
                   </span>
 
                   <h2 className="mt-2 text-2xl font-semibold">
-                    Datos de facturación
+                    Datos para la remisión
                   </h2>
 
                   <p className="mt-2 text-sm leading-6 text-white/40">
-                    Define qué información se
-                    utilizará posteriormente para
-                    la facturación electrónica.
+                    Define los datos que aparecerán
+                    en la remisión de venta de tu
+                    pedido.
                   </p>
 
                   <label className="mt-6 flex cursor-pointer items-start gap-4 rounded-2xl border border-[#82f000]/20 bg-[#82f000]/[0.04] p-5">
@@ -1784,13 +1784,13 @@ export default function CheckoutPage() {
 
                     <div>
                       <p className="font-semibold">
-                        Usar los mismos datos para
-                        facturación
+                        Usar los mismos datos en la
+                        remisión
                       </p>
 
                       <p className="mt-1 text-sm leading-6 text-white/40">
                         Mantén esta opción activa
-                        si la factura debe utilizar
+                        si la remisión debe utilizar
                         los mismos datos del
                         comprador y la dirección
                         registrada.
@@ -1802,14 +1802,14 @@ export default function CheckoutPage() {
                     <div className="mt-6 border-t border-white/[0.07] pt-6">
                       <div className="mb-6">
                         <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#82f000]">
-                          Facturación diferente
+                          Datos diferentes para la remisión
                         </span>
 
                         <p className="mt-2 text-sm leading-6 text-white/35">
                           Completa los datos de la
                           persona o empresa a
                           nombre de quien deberá
-                          emitirse la factura.
+                          emitirse la remisión.
                         </p>
                       </div>
 
@@ -1830,14 +1830,14 @@ export default function CheckoutPage() {
                             );
                             invalidarRevision();
                           }}
-                          placeholder="Nombre para facturación"
+                          placeholder="Nombre para la remisión"
                           error={
                             errores.facturacionNombre
                           }
                         />
 
                         <Campo
-                          label="Correo de facturación"
+                          label="Correo para la remisión"
                           obligatorio
                           value={
                             facturacionCorreo
@@ -1848,7 +1848,7 @@ export default function CheckoutPage() {
                             );
                             invalidarRevision();
                           }}
-                          placeholder="facturacion@ejemplo.com"
+                          placeholder="correo@ejemplo.com"
                           type="email"
                           error={
                             errores.facturacionCorreo
@@ -1943,7 +1943,7 @@ export default function CheckoutPage() {
                         )}
 
                         <SelectorUbicacion
-                          label="Departamento de facturación"
+                          label="Departamento"
                           value={
                             facturacionDepartamento
                           }
@@ -2001,7 +2001,7 @@ export default function CheckoutPage() {
 
                         <div className="sm:col-span-2">
                           <Campo
-                            label="Dirección de facturación"
+                            label="Dirección para la remisión"
                             obligatorio
                             value={
                               facturacionDireccion
@@ -2024,10 +2024,9 @@ export default function CheckoutPage() {
 
                   <div className="mt-6 rounded-2xl border border-white/[0.07] bg-black/20 p-4">
                     <p className="text-xs leading-5 text-white/35">
-                      La estructura queda
-                      preparada para la futura
-                      integración de facturación
-                      electrónica.
+                      Estos datos se usarán en la
+                      remisión comercial. Señor Nova
+                      es no responsable de IVA.
                     </p>
                   </div>
                 </div>
@@ -2367,7 +2366,7 @@ export default function CheckoutPage() {
                         />
 
                         <ResumenCompacto
-                          titulo="Facturación"
+                          titulo="Datos de la remisión"
                           principal={
                             facturacionResumenNombre
                           }
@@ -2380,7 +2379,7 @@ export default function CheckoutPage() {
                         />
 
                         <ResumenCompacto
-                          titulo="Dirección de factura"
+                          titulo="Dirección de la remisión"
                           principal={
                             facturacionResumenDireccion
                           }

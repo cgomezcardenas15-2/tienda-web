@@ -152,13 +152,12 @@ export default function ConfirmacionPage() {
               <span className="text-[#82f000]">03</span>
 
               <h3 className="mt-4 font-semibold">
-                Facturación
+                Remisión de venta
               </h3>
 
               <p className="mt-2 text-sm leading-6 text-white/40">
-                Cuando se habilite, la factura electrónica válida será emitida
-                por Señor Nova mediante el proveedor correspondiente y se
-                enviará al correo de facturación.
+                Los datos del pedido quedarán disponibles para generar la
+                remisión comercial desde el administrador de Señor Nova.
               </p>
             </div>
           </section>
