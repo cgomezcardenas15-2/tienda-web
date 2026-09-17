@@ -2,22 +2,44 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
-export const WOMPI_API_URL = "https://sandbox.wompi.co/v1";
 export const WOMPI_CHECKOUT_URL = "https://checkout.wompi.co/p/";
 
+export type AmbienteWompi = "sandbox" | "production";
+
+export function obtenerAmbienteWompi(): AmbienteWompi {
+  const ambiente = process.env.WOMPI_ENVIRONMENT?.trim().toLowerCase() || "sandbox";
+
+  if (ambiente !== "sandbox" && ambiente !== "production") {
+    throw new Error("WOMPI_ENVIRONMENT debe ser sandbox o production.");
+  }
+
+  return ambiente;
+}
+
 export function obtenerConfiguracionWompi() {
-  const publicKey = process.env.WOMPI_PUBLIC_KEY;
-  const integritySecret = process.env.WOMPI_INTEGRITY_SECRET;
+  const ambiente = obtenerAmbienteWompi();
+  const publicKey = process.env.WOMPI_PUBLIC_KEY?.trim();
+  const integritySecret = process.env.WOMPI_INTEGRITY_SECRET?.trim();
+  const esProduccion = ambiente === "production";
+  const prefijoLlavePublica = esProduccion ? "pub_prod_" : "pub_test_";
+  const prefijoIntegridad = esProduccion ? "prod_integrity_" : "test_integrity_";
 
-  if (!publicKey?.startsWith("pub_test_")) {
-    throw new Error("WOMPI_PUBLIC_KEY debe ser una llave Sandbox pub_test_.");
+  if (!publicKey?.startsWith(prefijoLlavePublica)) {
+    throw new Error(`WOMPI_PUBLIC_KEY no corresponde al ambiente ${ambiente}.`);
   }
 
-  if (!integritySecret) {
-    throw new Error("Falta WOMPI_INTEGRITY_SECRET.");
+  if (!integritySecret?.startsWith(prefijoIntegridad)) {
+    throw new Error(`WOMPI_INTEGRITY_SECRET no corresponde al ambiente ${ambiente}.`);
   }
 
-  return { publicKey, integritySecret };
+  return {
+    ambiente,
+    apiUrl: esProduccion ? "https://production.wompi.co/v1" : "https://sandbox.wompi.co/v1",
+    eventEnvironment: esProduccion ? "prod" : "test",
+    eventsSecretPrefix: esProduccion ? "prod_events_" : "test_events_",
+    publicKey,
+    integritySecret,
+  };
 }
 
 export function convertirPesosACentavos(valor: number) {
@@ -52,9 +74,9 @@ export type TransaccionWompi = {
 };
 
 export async function consultarTransaccionWompi(id: string) {
-  const { publicKey } = obtenerConfiguracionWompi();
+  const { apiUrl, publicKey } = obtenerConfiguracionWompi();
   const respuesta = await fetch(
-    `${WOMPI_API_URL}/transactions/${encodeURIComponent(id)}`,
+    `${apiUrl}/transactions/${encodeURIComponent(id)}`,
     {
       headers: { Authorization: `Bearer ${publicKey}` },
       cache: "no-store",

@@ -3,6 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { verificarYActualizarPagoWompi } from "@/app/lib/verificarPagoWompi";
+import { obtenerConfiguracionWompi } from "@/app/lib/wompi";
 
 type EventoWompi = {
   event?: unknown;
@@ -59,16 +60,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ignorado: true });
   }
 
-  if (evento.environment !== "test") {
-    return responderError("El evento no pertenece al ambiente Sandbox.", 400);
-  }
-
   const secreto = process.env.WOMPI_EVENTS_SECRET?.trim();
   const propiedades = evento.signature?.properties;
   const checksum = evento.signature?.checksum;
+  let configuracionWompi: ReturnType<typeof obtenerConfiguracionWompi>;
 
-  if (!secreto?.startsWith("test_events_")) {
-    console.error("Falta la configuración Sandbox de eventos Wompi.");
+  try {
+    configuracionWompi = obtenerConfiguracionWompi();
+  } catch (error) {
+    console.error("Configuración Wompi inválida", {
+      error: error instanceof Error ? error.message : "Error desconocido",
+    });
+    return responderError("El servidor no puede validar el evento.", 500);
+  }
+
+  if (evento.environment !== configuracionWompi.eventEnvironment) {
+    return responderError("El evento no pertenece al ambiente configurado.", 400);
+  }
+
+  if (!secreto?.startsWith(configuracionWompi.eventsSecretPrefix)) {
+    console.error("Falta la configuración de eventos Wompi para el ambiente activo.");
     return responderError("El servidor no puede validar el evento.", 500);
   }
 
