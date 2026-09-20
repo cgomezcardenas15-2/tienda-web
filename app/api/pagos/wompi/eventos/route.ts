@@ -2,7 +2,14 @@ import { createHash, timingSafeEqual } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
-import { verificarYActualizarPagoWompi } from "@/app/lib/verificarPagoWompi";
+import {
+  alertarStockBajoDespuesDePago,
+  enviarAlertaWhatsAppAdmin,
+} from "@/app/lib/alertasWhatsApp";
+import {
+  ErrorVerificacionPago,
+  verificarYActualizarPagoWompi,
+} from "@/app/lib/verificarPagoWompi";
 import { obtenerConfiguracionWompi } from "@/app/lib/wompi";
 
 type EventoWompi = {
@@ -145,12 +152,38 @@ export async function POST(request: Request) {
       pedidoId: resultado.pedidoId,
       estado: resultado.estado,
     });
+
+    if (resultado.aprobado) {
+      await enviarAlertaWhatsAppAdmin(
+        "pago_aprobado",
+        idTransaccion,
+        "Pago aprobado",
+        `Pedido ${resultado.numeroPedido || resultado.pedidoId}. Transacción ${idTransaccion}.`
+      );
+      await alertarStockBajoDespuesDePago(resultado.pedidoId);
+    } else if (["DECLINED", "VOIDED", "ERROR"].includes(resultado.estado)) {
+      await enviarAlertaWhatsAppAdmin(
+        "pago_rechazado",
+        idTransaccion,
+        "Pago no aprobado",
+        `Pedido ${resultado.numeroPedido || resultado.pedidoId}. Estado ${resultado.estado}${resultado.mensaje ? `: ${resultado.mensaje}` : "."}`
+      );
+    }
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Error procesando evento Wompi", {
       transactionId: idTransaccion,
       error: error instanceof Error ? error.message : "Error desconocido",
     });
+    if (error instanceof ErrorVerificacionPago && error.status === 409) {
+      await enviarAlertaWhatsAppAdmin(
+        "diferencia_pago",
+        idTransaccion,
+        "Diferencia de pago",
+        `La transacción ${idTransaccion} no coincide con el pedido. Revisa Conciliación Wompi antes de despachar.`
+      );
+    }
     return responderError("No fue posible procesar el evento.", 500);
   }
 }
