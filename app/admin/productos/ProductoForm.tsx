@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import ImageUploader from "./ImageUploader";
 
 type ProductoEditable = {
   id: string;
@@ -124,9 +125,10 @@ export default function ProductoForm({ producto }: { producto?: ProductoEditable
         <label className="sm:col-span-2 text-sm text-zinc-400">Descripción
           <textarea required rows={4} className={`${campo} resize-y`} value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} placeholder="Describe sus características, medidas y utilidad." />
         </label>
-        <label className="sm:col-span-2 text-sm text-zinc-400">URL de la fotografía (opcional)
-          <input type="url" className={campo} value={form.imagen_url} onChange={(e) => setForm({ ...form, imagen_url: e.target.value })} placeholder="https://..." />
-        </label>
+        <ImageUploader
+          value={form.imagen_url}
+          onChange={(imagen_url) => setForm({ ...form, imagen_url })}
+        />
       </div>
 
       <div className="mt-6 grid gap-3 rounded-xl border border-zinc-800 bg-black/30 p-4 sm:grid-cols-2">
