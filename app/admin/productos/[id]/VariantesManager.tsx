@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import ImageUploader from "../ImageUploader";
 
 type Variante = { id:string; nombre:string; color:string|null; talla:string|null; sku:string; precio:number|null; precio_mayorista:number|null; cantidad_minima_mayorista:number|null; controla_stock:boolean; stock:number; imagen_url:string|null; activo:boolean; orden:number };
 type Producto = { id:string; nombre:string; sku:string|null; precio:number; precio_mayorista:number|null; cantidad_minima_mayorista:number|null; venta_mayorista:boolean; imagen_url:string|null };
@@ -53,7 +54,11 @@ export default function VariantesManager({ producto, iniciales }: { producto: Pr
           <label className="text-sm text-zinc-400">Precio mayorista propio (opcional)<input min="0" type="number" className={`${campo} mt-2`} placeholder={producto.precio_mayorista ? `Base: ${producto.precio_mayorista}` : "Usar precio del producto"} value={form.precio_mayorista} onChange={e=>setForm({...form,precio_mayorista:e.target.value})}/></label>
           <label className="text-sm text-zinc-400">Mínimo mayorista propio (opcional)<input min="2" type="number" className={`${campo} mt-2`} placeholder={producto.cantidad_minima_mayorista ? `Base: ${producto.cantidad_minima_mayorista}` : "Usar mínimo del producto"} value={form.cantidad_minima_mayorista} onChange={e=>setForm({...form,cantidad_minima_mayorista:e.target.value})}/></label>
         </>}
-        <label className="sm:col-span-2 text-sm text-zinc-400">URL de la foto (opcional)<input type="url" className={`${campo} mt-2`} placeholder="https://..." value={form.imagen_url} onChange={e=>setForm({...form,imagen_url:e.target.value})}/></label>
+        <ImageUploader
+          label="Fotografía de esta variante (opcional)"
+          value={form.imagen_url}
+          onChange={(imagen_url) => setForm({...form,imagen_url})}
+        />
         <label className="sm:col-span-2 flex items-center gap-3 text-sm"><input type="checkbox" checked={form.activo} onChange={e=>setForm({...form,activo:e.target.checked})}/> Mostrar esta variante en la tienda</label>
       </div>
       {mensaje && <p className="mt-4 text-sm text-lime-300">{mensaje}</p>}
