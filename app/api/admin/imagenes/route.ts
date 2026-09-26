@@ -8,17 +8,24 @@ import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 const BUCKET = "imagenes-productos";
 const MAX_FILE_SIZE = 4 * 1024 * 1024;
+const STORAGE_FILE_SIZE = 8 * 1024 * 1024;
 const MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 async function asegurarBucket() {
   const { data, error } = await supabaseAdmin.storage.getBucket(BUCKET);
-  if (data) return null;
+  if (data) {
+    const { error: updateError } = await supabaseAdmin.storage.updateBucket(BUCKET, {
+      public: true,
+      fileSizeLimit: STORAGE_FILE_SIZE,
+      allowedMimeTypes: null,
+    });
+    return updateError;
+  }
   if (error && !/not found/i.test(error.message)) return error;
 
   const { error: createError } = await supabaseAdmin.storage.createBucket(BUCKET, {
     public: true,
-    fileSizeLimit: MAX_FILE_SIZE,
-    allowedMimeTypes: [...MIME_TYPES],
+    fileSizeLimit: STORAGE_FILE_SIZE,
   });
   return createError;
 }
@@ -61,7 +68,7 @@ export async function POST(request: NextRequest) {
   }
 
   const ruta = `catalogo/${new Date().toISOString().slice(0, 10)}/${randomUUID()}.webp`;
-  const { error } = await supabaseAdmin.storage.from(BUCKET).upload(ruta, imagen, {
+  const { error } = await supabaseAdmin.storage.from(BUCKET).upload(ruta, new Uint8Array(imagen), {
     contentType: "image/webp",
     cacheControl: "31536000",
     upsert: false,
