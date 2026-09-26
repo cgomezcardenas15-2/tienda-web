@@ -177,6 +177,7 @@ export default function LoQuieroPage() {
                     <span className="text-sm font-semibold text-white/70">Categoría*</span>
                     <select value={categoria} onChange={(event) => setCategoria(event.target.value)} className="mt-2 w-full cursor-pointer rounded-xl border border-white/10 bg-black px-4 py-3.5 text-white outline-none focus:border-[#82f000]/70">
                       <option>Hogar</option>
+                      <option>Cacharrería</option>
                       <option>Piñatería</option>
                       <option>Mascotas</option>
                       <option>Motos</option>
