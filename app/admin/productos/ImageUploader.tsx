@@ -2,6 +2,35 @@
 
 import { ChangeEvent, useRef, useState } from "react";
 
+const MAX_ORIGINAL_SIZE = 8 * 1024 * 1024;
+const MAX_IMAGE_SIDE = 1600;
+
+async function optimizarImagen(archivo: File) {
+  const imagen = await createImageBitmap(archivo, { imageOrientation: "from-image" });
+  const escala = Math.min(1, MAX_IMAGE_SIDE / Math.max(imagen.width, imagen.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(imagen.width * escala));
+  canvas.height = Math.max(1, Math.round(imagen.height * escala));
+
+  const contexto = canvas.getContext("2d");
+  if (!contexto) {
+    imagen.close();
+    throw new Error("No fue posible preparar la fotografía.");
+  }
+  contexto.drawImage(imagen, 0, 0, canvas.width, canvas.height);
+  imagen.close();
+
+  const resultado = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/webp", 0.82);
+  });
+  if (!resultado) throw new Error("No fue posible optimizar la fotografía.");
+
+  return new File([resultado], "producto.webp", {
+    type: "image/webp",
+    lastModified: Date.now(),
+  });
+}
+
 export default function ImageUploader({
   value,
   onChange,
@@ -19,23 +48,29 @@ export default function ImageUploader({
     const archivo = event.target.files?.[0];
     event.target.value = "";
     if (!archivo) return;
-    if (archivo.size > 4 * 1024 * 1024) {
-      setError("La fotografía debe pesar máximo 4 MB.");
+    if (archivo.size > MAX_ORIGINAL_SIZE) {
+      setError("La fotografía original debe pesar máximo 8 MB.");
       return;
     }
 
     setSubiendo(true);
     setError("");
-    const datos = new FormData();
-    datos.append("imagen", archivo);
-    const respuesta = await fetch("/api/admin/imagenes", { method: "POST", body: datos });
-    const resultado = await respuesta.json().catch(() => ({}));
-    setSubiendo(false);
-    if (!respuesta.ok) {
-      setError(resultado.error ?? "No fue posible subir la fotografía.");
-      return;
+    try {
+      const imagenOptimizada = await optimizarImagen(archivo);
+      const datos = new FormData();
+      datos.append("imagen", imagenOptimizada);
+      const respuesta = await fetch("/api/admin/imagenes", { method: "POST", body: datos });
+      const resultado = await respuesta.json().catch(() => ({}));
+      if (!respuesta.ok) {
+        setError(resultado.error ?? `No fue posible subir la fotografía (error ${respuesta.status}).`);
+        return;
+      }
+      onChange(resultado.url);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "No fue posible subir la fotografía.");
+    } finally {
+      setSubiendo(false);
     }
-    onChange(resultado.url);
   }
 
   return (
@@ -74,7 +109,7 @@ export default function ImageUploader({
               Quitar
             </button>
           )}
-          <p className="mt-3 text-xs text-zinc-500">JPG, PNG o WEBP · máximo 4 MB. La tienda la optimiza automáticamente.</p>
+          <p className="mt-3 text-xs text-zinc-500">JPG, PNG o WEBP · máximo 8 MB. La tienda la optimiza automáticamente.</p>
           {error && <p className="mt-2 text-sm text-red-300">{error}</p>}
         </div>
       </div>
