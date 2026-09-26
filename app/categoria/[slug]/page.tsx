@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import Products from "../../components/Products";
 import { CATEGORIAS_ACTIVAS } from "../../lib/categoriasActivas";
 
 const categorias = {
@@ -170,28 +171,7 @@ export default async function CategoriaPage({
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-6 py-16 lg:px-10">
-          <div className="rounded-3xl border border-white/10 bg-white/[0.025] p-8 sm:p-10">
-            <div className="max-w-2xl">
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#82f000]">
-                Próximamente
-              </p>
-
-              <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
-                Estamos preparando esta categoría
-              </h2>
-
-              <p className="mt-4 leading-7 text-white/55">
-                Aquí aparecerán los productos disponibles de{" "}
-                <span className="font-semibold text-white">
-                  {categoria.nombre}
-                </span>
-                . Cuando tengamos las fotografías y el catálogo real,
-                agregaremos los productos sin tener que reconstruir esta página.
-              </p>
-            </div>
-          </div>
-        </section>
+        <Products categoria={categoria.nombre} />
       </main>
 
       <Footer />
