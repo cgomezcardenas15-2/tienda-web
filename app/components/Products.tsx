@@ -76,6 +76,14 @@ function formatoPesos(valor: number) {
   }).format(valor);
 }
 
+function normalizarCategoria(valor: string) {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
 /*
 |--------------------------------------------------------------------------
 | ICONO TEMPORAL POR CATEGORÍA
@@ -193,7 +201,7 @@ function obtenerEtiqueta(
 |--------------------------------------------------------------------------
 */
 
-export default function Products() {
+export default function Products({ categoria }: { categoria?: string }) {
   const { agregarProducto } =
     useCart();
 
@@ -290,6 +298,7 @@ export default function Products() {
       }
 
       const soloOfertas =
+        !categoria &&
         new URLSearchParams(window.location.search).get("ofertas") === "1";
 
       setModoOfertas(soloOfertas);
@@ -297,7 +306,11 @@ export default function Products() {
         (data ?? []).filter(
           (producto) =>
             esCategoriaActiva(producto.categoria) &&
-            (soloOfertas ? producto.en_oferta : producto.destacado)
+            (categoria
+              ? normalizarCategoria(producto.categoria) === normalizarCategoria(categoria)
+              : soloOfertas
+                ? producto.en_oferta
+                : producto.destacado)
         ) as ProductoSupabase[]
       );
 
@@ -327,7 +340,7 @@ export default function Products() {
     return () => {
       componenteActivo = false;
     };
-  }, []);
+  }, [categoria]);
 
   /*
   |--------------------------------------------------------------------------
@@ -436,15 +449,25 @@ export default function Products() {
         <div className="mb-12">
           <div>
             <span className="text-sm font-bold uppercase tracking-[0.2em] text-[#82f000]">
-              {modoOfertas ? "Precios especiales" : "Lo que más se mueve"}
+              {categoria
+                ? `Categoría ${categoria}`
+                : modoOfertas
+                  ? "Precios especiales"
+                  : "Lo que más se mueve"}
             </span>
 
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-              {modoOfertas ? "Ofertas" : "Productos destacados"}
+              {categoria
+                ? `Productos de ${categoria}`
+                : modoOfertas
+                  ? "Ofertas"
+                  : "Productos destacados"}
             </h2>
 
             <p className="mt-3 max-w-2xl text-sm leading-6 text-white/50 sm:text-base">
-              {modoOfertas
+              {categoria
+                ? `Explora todos los productos disponibles de ${categoria}.`
+                : modoOfertas
                 ? "Aquí aparecen únicamente los productos marcados como oferta."
                 : "Productos útiles, accesibles y pensados para resolver necesidades del día a día."}
             </p>
@@ -492,15 +515,19 @@ export default function Products() {
               </div>
 
               <p className="mt-4 font-semibold">
-                {modoOfertas
+                {categoria
+                  ? `Todavía no hay productos disponibles en ${categoria}.`
+                  : modoOfertas
                   ? "Todavía no hay ofertas disponibles."
                   : "Todavía no hay productos disponibles."}
               </p>
 
               <p className="mt-2 text-sm text-white/40">
-                {modoOfertas
+                {categoria
+                  ? "Los productos visibles de esta categoría aparecerán aquí automáticamente."
+                  : modoOfertas
                   ? "Cuando marques un producto como oferta, aparecerá aquí automáticamente."
-                  : "Los productos activos aparecerán aquí automáticamente."}
+                  : "Cuando marques un producto como destacado, aparecerá aquí automáticamente."}
               </p>
             </div>
           )}
