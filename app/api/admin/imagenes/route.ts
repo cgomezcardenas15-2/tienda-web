@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 
 import { NextRequest, NextResponse } from "next/server";
-import sharp from "sharp";
 
 import { getAdminSession } from "@/app/lib/adminAuth";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
@@ -50,16 +49,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let imagen: Buffer;
-  try {
-    imagen = await sharp(Buffer.from(await archivo.arrayBuffer()))
-      .rotate()
-      .resize(1600, 1600, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 84 })
-      .toBuffer();
-  } catch {
-    return NextResponse.json({ error: "El archivo seleccionado no es una imagen válida." }, { status: 400 });
-  }
+  const imagen = new Uint8Array(await archivo.arrayBuffer());
 
   const errorBucket = await asegurarBucket();
   if (errorBucket) {
@@ -67,9 +57,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No fue posible preparar el almacenamiento." }, { status: 500 });
   }
 
-  const ruta = `catalogo/${new Date().toISOString().slice(0, 10)}/${randomUUID()}.webp`;
-  const { error } = await supabaseAdmin.storage.from(BUCKET).upload(ruta, new Uint8Array(imagen), {
-    contentType: "image/webp",
+  const extension = archivo.type === "image/png" ? "png" : archivo.type === "image/jpeg" ? "jpg" : "webp";
+  const ruta = `catalogo/${new Date().toISOString().slice(0, 10)}/${randomUUID()}.${extension}`;
+  const { error } = await supabaseAdmin.storage.from(BUCKET).upload(ruta, imagen, {
+    contentType: archivo.type,
     cacheControl: "31536000",
     upsert: false,
   });
