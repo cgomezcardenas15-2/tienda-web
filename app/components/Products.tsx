@@ -121,6 +121,10 @@ function obtenerIconoCategoria(
     return "🏠";
   }
 
+  if (categoriaNormalizada.includes("cacharr")) {
+    return "🛍️";
+  }
+
   if (
     categoriaNormalizada.includes(
       "beb"

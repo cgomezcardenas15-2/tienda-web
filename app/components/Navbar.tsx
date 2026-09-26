@@ -139,6 +139,7 @@ export default function Navbar() {
             { href: "/", texto: "Inicio", icono: "⌂" },
             { href: "/categoria/pinateria", texto: "Piñatería", icono: "🎉" },
             { href: "/categoria/hogar", texto: "Hogar", icono: "🏠" },
+            { href: "/categoria/cacharreria", texto: "Cacharrería", icono: "🛍️" },
             { href: "/categoria/mascotas", texto: "Mascotas", icono: "🐾" },
             { href: "/categoria/motos", texto: "Motos", icono: "🏍️" },
             { href: "/lo-quiero", texto: "Lo quiero", icono: "✦" },
