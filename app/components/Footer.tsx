@@ -54,9 +54,6 @@ export default function Footer() {
               <a href="/categoria/cacharreria" className="transition hover:text-[#82f000]">
                 Cacharrería
               </a>
-              <a href="/categoria/mascotas" className="transition hover:text-[#82f000]">
-                Mascotas
-              </a>
               <a href="/categoria/motos" className="transition hover:text-[#82f000]">
                 Motos
               </a>
