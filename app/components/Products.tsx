@@ -202,6 +202,10 @@ function obtenerEtiqueta(
 */
 
 export default function Products({ categoria }: { categoria?: string }) {
+  const [imagenAmpliada, setImagenAmpliada] = useState<{
+    url: string;
+    nombre: string;
+  } | null>(null);
   const { agregarProducto } =
     useCart();
 
@@ -341,6 +345,23 @@ export default function Products({ categoria }: { categoria?: string }) {
       componenteActivo = false;
     };
   }, [categoria]);
+
+  useEffect(() => {
+    if (!imagenAmpliada) return;
+
+    const cerrarConEscape = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape") setImagenAmpliada(null);
+    };
+
+    document.addEventListener("keydown", cerrarConEscape);
+    const overflowAnterior = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", cerrarConEscape);
+      document.body.style.overflow = overflowAnterior;
+    };
+  }, [imagenAmpliada]);
 
   /*
   |--------------------------------------------------------------------------
@@ -590,15 +611,27 @@ export default function Products({ categoria }: { categoria?: string }) {
                         )}
 
                         {imagenVisible ? (
-                          <img
-                            src={
-                              imagenVisible
-                            }
-                            alt={
-                              producto.nombre
-                            }
-                            className="h-full w-full object-contain p-6 transition duration-300 group-hover:scale-[1.03]"
-                          />
+                          <>
+                            <img
+                              src={imagenVisible}
+                              alt={producto.nombre}
+                              className="h-full w-full object-contain p-6 transition duration-300 group-hover:scale-[1.03]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setImagenAmpliada({
+                                  url: imagenVisible,
+                                  nombre: producto.nombre,
+                                })
+                              }
+                              aria-label={`Ver imagen ampliada de ${producto.nombre}`}
+                              title="Ver imagen"
+                              className="absolute right-4 top-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/70 text-white shadow-lg backdrop-blur transition hover:border-[#82f000] hover:bg-[#82f000] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#82f000]"
+                            >
+                              <EyeIcon />
+                            </button>
+                          </>
                         ) : (
                           <div className="flex h-32 w-32 items-center justify-center rounded-full bg-[#82f000]/[0.055] text-7xl transition duration-300 group-hover:scale-105 group-hover:bg-[#82f000]/10">
                             {obtenerIconoCategoria(
@@ -748,7 +781,37 @@ export default function Products({ categoria }: { categoria?: string }) {
             </div>
           )}
 
-      </div>
+              {imagenAmpliada && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Vista ampliada de ${imagenAmpliada.nombre}`}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm sm:p-8"
+            onClick={() => setImagenAmpliada(null)}
+          >
+            <div
+              className="relative flex max-h-full w-full max-w-5xl items-center justify-center rounded-2xl border border-white/15 bg-[#111411] p-4 shadow-2xl sm:p-8"
+              onClick={(evento) => evento.stopPropagation()}
+            >
+              <img
+                src={imagenAmpliada.url}
+                alt={imagenAmpliada.nombre}
+                className="max-h-[82vh] max-w-full object-contain"
+              />
+              <button
+                type="button"
+                onClick={() => setImagenAmpliada(null)}
+                aria-label="Cerrar vista ampliada"
+                title="Cerrar"
+                className="absolute right-3 top-3 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/75 text-2xl text-white transition hover:border-[#82f000] hover:bg-[#82f000] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#82f000]"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
+</div>
     </section>
   );
 }
@@ -782,6 +845,22 @@ function CartIcon() {
         cy="20"
         r="1"
       />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+      <circle cx="12" cy="12" r="3" />
     </svg>
   );
 }
