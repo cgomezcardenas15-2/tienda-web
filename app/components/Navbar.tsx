@@ -154,7 +154,7 @@ export default function Navbar() {
           })}
 
           <a
-            href="/#productos"
+            href="/?ofertas=1#productos"
             className="group ml-auto inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-xl border border-orange-400/60 bg-gradient-to-r from-orange-500 to-amber-400 px-4 py-2 text-xs font-black uppercase tracking-[0.08em] text-black shadow-[0_0_18px_rgba(251,146,60,0.22)] transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-[0_0_24px_rgba(251,146,60,0.38)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             <span

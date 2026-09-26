@@ -200,6 +200,9 @@ export default function Products() {
   const [productos, setProductos] =
     useState<ProductoSupabase[]>([]);
 
+  const [modoOfertas, setModoOfertas] =
+    useState(false);
+
   const [variantes, setVariantes] =
     useState<Record<string, VarianteProducto[]>>({});
 
@@ -286,11 +289,16 @@ export default function Products() {
         return;
       }
 
+      const soloOfertas =
+        new URLSearchParams(window.location.search).get("ofertas") === "1";
+
+      setModoOfertas(soloOfertas);
       setProductos(
-        (data ??
-          []).filter((producto) =>
-            esCategoriaActiva(producto.categoria)
-          ) as ProductoSupabase[]
+        (data ?? []).filter(
+          (producto) =>
+            esCategoriaActiva(producto.categoria) &&
+            (!soloOfertas || producto.en_oferta)
+        ) as ProductoSupabase[]
       );
 
       if (resultadoVariantes.error) {
@@ -428,17 +436,17 @@ export default function Products() {
         <div className="mb-12">
           <div>
             <span className="text-sm font-bold uppercase tracking-[0.2em] text-[#82f000]">
-              Lo que más se mueve
+              {modoOfertas ? "Precios especiales" : "Lo que más se mueve"}
             </span>
 
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-              Productos destacados
+              {modoOfertas ? "Ofertas" : "Productos destacados"}
             </h2>
 
             <p className="mt-3 max-w-2xl text-sm leading-6 text-white/50 sm:text-base">
-              Productos útiles, accesibles y
-              pensados para resolver necesidades
-              del día a día.
+              {modoOfertas
+                ? "Aquí aparecen únicamente los productos marcados como oferta."
+                : "Productos útiles, accesibles y pensados para resolver necesidades del día a día."}
             </p>
           </div>
 
@@ -484,14 +492,15 @@ export default function Products() {
               </div>
 
               <p className="mt-4 font-semibold">
-                Todavía no hay productos
-                disponibles.
+                {modoOfertas
+                  ? "Todavía no hay ofertas disponibles."
+                  : "Todavía no hay productos disponibles."}
               </p>
 
               <p className="mt-2 text-sm text-white/40">
-                Los productos activos
-                aparecerán aquí
-                automáticamente.
+                {modoOfertas
+                  ? "Cuando marques un producto como oferta, aparecerá aquí automáticamente."
+                  : "Los productos activos aparecerán aquí automáticamente."}
               </p>
             </div>
           )}

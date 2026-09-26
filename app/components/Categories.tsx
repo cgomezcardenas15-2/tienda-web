@@ -33,7 +33,7 @@ const categorias = [
     nombre: "Ofertas",
     descripcion: "Productos seleccionados a mejor precio",
     icono: "🔥",
-    href: "/#productos",
+    href: "/?ofertas=1#productos",
     oferta: true,
   },
 ];
