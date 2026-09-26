@@ -297,7 +297,7 @@ export default function Products() {
         (data ?? []).filter(
           (producto) =>
             esCategoriaActiva(producto.categoria) &&
-            (!soloOfertas || producto.en_oferta)
+            (soloOfertas ? producto.en_oferta : producto.destacado)
         ) as ProductoSupabase[]
       );
 
