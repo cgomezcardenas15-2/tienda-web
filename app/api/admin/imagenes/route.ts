@@ -75,7 +75,15 @@ export async function POST(request: NextRequest) {
   });
   if (error) {
     console.error("Error subiendo imagen de producto", error.message);
-    return NextResponse.json({ error: "No fue posible subir la fotografía." }, { status: 500 });
+    const detalle = error.message.trim();
+    return NextResponse.json(
+      {
+        error: detalle
+          ? `No fue posible subir la fotografía: ${detalle}`
+          : "No fue posible subir la fotografía.",
+      },
+      { status: 500 },
+    );
   }
 
   const { data } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(ruta);
