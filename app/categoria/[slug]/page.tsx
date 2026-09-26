@@ -178,3 +178,4 @@ export default async function CategoriaPage({
     </>
   );
 }
+// Catálogo dinámico de categorías activo.
