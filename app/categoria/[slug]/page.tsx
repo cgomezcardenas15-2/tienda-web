@@ -25,6 +25,13 @@ const categorias = {
       "Productos prácticos para organizar, complementar y facilitar tu hogar.",
   },
 
+  cacharreria: {
+    nombre: "Cacharrería",
+    icono: "🛍️",
+    descripcion:
+      "Artículos variados, útiles y prácticos para resolver necesidades del día a día.",
+  },
+
   bebes: {
     nombre: "Bebés",
     icono: "🍼",
