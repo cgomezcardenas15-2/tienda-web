@@ -2,74 +2,7 @@ import Link from "next/link";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import Products from "../../components/Products";
-import { CATEGORIAS_ACTIVAS } from "../../lib/categoriasActivas";
-
-const categorias = {
-  tecnologia: {
-    nombre: "Tecnología y accesorios",
-    icono: "⚡",
-    descripcion:
-      "Cables, cargadores, audífonos y accesorios prácticos para el día a día.",
-  },
-
-  pinateria: {
-    nombre: "Piñatería",
-    icono: "🎉",
-    descripcion:
-      "Todo lo que necesitas para celebrar cumpleaños y momentos especiales.",
-  },
-
-  hogar: {
-    nombre: "Hogar",
-    icono: "🏠",
-    descripcion:
-      "Productos prácticos para organizar, complementar y facilitar tu hogar.",
-  },
-
-  cacharreria: {
-    nombre: "Cacharrería",
-    icono: "🛍️",
-    descripcion:
-      "Artículos variados, útiles y prácticos para resolver necesidades del día a día.",
-  },
-
-  bebes: {
-    nombre: "Bebés",
-    icono: "🍼",
-    descripcion:
-      "Productos y accesorios pensados para el cuidado de los más pequeños.",
-  },
-
-  maquillaje: {
-    nombre: "Maquillaje",
-    icono: "💄",
-    descripcion:
-      "Productos y accesorios para complementar tu rutina de belleza.",
-  },
-
-  mascotas: {
-    nombre: "Mascotas",
-    icono: "🐾",
-    descripcion:
-      "Accesorios y productos prácticos para consentir a tus mascotas.",
-  },
-
-  motos: {
-    nombre: "Motos",
-    icono: "🏍️",
-    descripcion:
-      "Accesorios prácticos para tu moto, tus recorridos y tu seguridad en el camino.",
-  },
-
-  ferreteria: {
-    nombre: "Ferretería",
-    icono: "🔧",
-    descripcion:
-      "Herramientas y soluciones útiles para reparaciones y tareas del día a día.",
-  },
-};
-
-type CategoriaKey = keyof typeof categorias;
+import { supabaseAdmin } from "../../lib/supabaseAdmin";
 
 type CategoriaPageProps = {
   params: Promise<{
@@ -82,12 +15,9 @@ export default async function CategoriaPage({
 }: CategoriaPageProps) {
   const { slug } = await params;
 
-  const categoria = categorias[slug as CategoriaKey];
-  const categoriaEstaActiva = CATEGORIAS_ACTIVAS.includes(
-    slug as (typeof CATEGORIAS_ACTIVAS)[number]
-  );
+  const { data: categoria } = await supabaseAdmin.from("categorias_producto").select("nombre,slug,descripcion,icono").eq("slug", slug).eq("activo", true).maybeSingle();
 
-  if (!categoria || !categoriaEstaActiva) {
+  if (!categoria) {
     return (
       <>
         <Navbar />
@@ -178,4 +108,3 @@ export default async function CategoriaPage({
     </>
   );
 }
-// Catálogo dinámico de categorías activo.
