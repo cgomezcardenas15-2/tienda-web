@@ -1,7 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
+import type { CategoriaProducto } from "../lib/categoriasProducto";
 
 export default function Footer() {
   const year = new Date().getFullYear();
+  const [categorias, setCategorias] = useState<CategoriaProducto[]>([]);
+  useEffect(() => {
+    supabase.from("categorias_producto").select("id,nombre,slug,descripcion,icono,activo,orden").order("orden")
+      .then(({ data }) => setCategorias((data ?? []) as CategoriaProducto[]));
+  }, []);
 
   return (
     <footer className="relative overflow-hidden border-t border-white/[0.08] bg-[#050705] text-white">
@@ -45,18 +55,7 @@ export default function Footer() {
               <a href="/#categorias" className="transition hover:text-[#82f000]">
                 Categorías
               </a>
-              <a href="/categoria/pinateria" className="transition hover:text-[#82f000]">
-                Piñatería
-              </a>
-              <a href="/categoria/hogar" className="transition hover:text-[#82f000]">
-                Hogar
-              </a>
-              <a href="/categoria/cacharreria" className="transition hover:text-[#82f000]">
-                Cacharrería
-              </a>
-              <a href="/categoria/motos" className="transition hover:text-[#82f000]">
-                Motos
-              </a>
+              {categorias.map((categoria) => <a key={categoria.id} href={`/categoria/${categoria.slug}`} className="transition hover:text-[#82f000]">{categoria.nombre}</a>)}
               <a href="/carrito" className="transition hover:text-[#82f000]">
                 Mi carrito
               </a>

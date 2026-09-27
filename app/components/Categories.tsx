@@ -1,38 +1,16 @@
-const categorias = [
-  {
-    nombre: "Piñatería",
-    descripcion: "Todo para celebrar momentos especiales",
-    icono: "🎉",
-    href: "/categoria/pinateria",
-  },
-  {
-    nombre: "Hogar",
-    descripcion: "Productos prácticos para tu día a día",
-    icono: "🏠",
-    href: "/categoria/hogar",
-  },
-  {
-    nombre: "Cacharrería",
-    descripcion: "Artículos variados, útiles y prácticos",
-    icono: "🛍️",
-    href: "/categoria/cacharreria",
-  },
-  {
-    nombre: "Motos",
-    descripcion: "Accesorios para cada recorrido",
-    icono: "🏍️",
-    href: "/categoria/motos",
-  },
-  {
-    nombre: "Ofertas",
-    descripcion: "Productos seleccionados a mejor precio",
-    icono: "🔥",
-    href: "/?ofertas=1#productos",
-    oferta: true,
-  },
-];
+"use client";
+
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
+import type { CategoriaProducto } from "../lib/categoriasProducto";
 
 export default function Categories() {
+  const [categorias, setCategorias] = useState<CategoriaProducto[]>([]);
+  useEffect(() => {
+    supabase.from("categorias_producto").select("id,nombre,slug,descripcion,icono,activo,orden").order("orden")
+      .then(({ data }) => setCategorias((data ?? []) as CategoriaProducto[]));
+  }, []);
+  const tarjetas = [...categorias.map((categoria) => ({ ...categoria, href: `/categoria/${categoria.slug}`, oferta: false })), { id: "ofertas", nombre: "Ofertas", slug: "ofertas", descripcion: "Productos seleccionados a mejor precio", icono: "🔥", activo: true, orden: 999, href: "/?ofertas=1#productos", oferta: true }];
   return (
     <section
       id="categorias"
@@ -70,7 +48,7 @@ export default function Categories() {
 
         {/* Tarjetas de categorías */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {categorias.map((categoria) => (
+          {tarjetas.map((categoria) => (
             <a
               key={categoria.nombre}
               href={categoria.href}

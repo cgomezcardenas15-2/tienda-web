@@ -1,9 +1,11 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "../context/CartContext";
+import { supabase } from "../lib/supabase";
+import type { CategoriaProducto } from "../lib/categoriasProducto";
 
 export default function Navbar() {
   const router = useRouter();
@@ -13,6 +15,12 @@ export default function Navbar() {
 
   const [searchDesktop, setSearchDesktop] = useState("");
   const [searchMobile, setSearchMobile] = useState("");
+  const [categorias, setCategorias] = useState<CategoriaProducto[]>([]);
+
+  useEffect(() => {
+    supabase.from("categorias_producto").select("id,nombre,slug,descripcion,icono,activo,orden").order("orden")
+      .then(({ data }) => setCategorias((data ?? []) as CategoriaProducto[]));
+  }, []);
 
   function buscarProducto(
     event: FormEvent<HTMLFormElement>,
@@ -137,10 +145,7 @@ export default function Navbar() {
         <div className="mt-4 flex items-center gap-2 overflow-x-auto border-t border-white/10 pt-3 text-sm font-medium text-zinc-400 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {[
             { href: "/", texto: "Inicio", icono: "⌂" },
-            { href: "/categoria/pinateria", texto: "Piñatería", icono: "🎉" },
-            { href: "/categoria/hogar", texto: "Hogar", icono: "🏠" },
-            { href: "/categoria/cacharreria", texto: "Cacharrería", icono: "🛍️" },
-            { href: "/categoria/motos", texto: "Motos", icono: "🏍️" },
+            ...categorias.map((item) => ({ href: `/categoria/${item.slug}`, texto: item.nombre, icono: item.icono })),
             { href: "/lo-quiero", texto: "Lo quiero", icono: "✦" },
           ].map((item) => {
             const activo = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
