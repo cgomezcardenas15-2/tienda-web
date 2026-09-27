@@ -12,6 +12,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const datos = limpiarProducto(body);
   const validacion = errorValidacionProducto(datos);
   if (validacion) return NextResponse.json({ error: validacion }, { status: 400 });
+  const { data: categoria } = await supabaseAdmin.from("categorias_producto").select("id").eq("nombre", datos.categoria).maybeSingle();
+  if (!categoria) return NextResponse.json({ error: "La categoría seleccionada ya no existe." }, { status: 400 });
 
   const { data, error } = await supabaseAdmin.from("productos").update(datos).eq("id", id).select("*").maybeSingle();
   if (error) {
