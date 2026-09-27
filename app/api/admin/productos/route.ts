@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/app/lib/adminAuth";
-import { esCategoriaActiva, normalizarCategoria } from "@/app/lib/categoriasActivas";
+import { normalizarCategoria } from "@/app/lib/categoriasActivas";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 function texto(valor: unknown) {
@@ -48,7 +48,7 @@ export function limpiarProducto(body: Record<string, unknown>) {
 
 export function errorValidacionProducto(datos: ReturnType<typeof limpiarProducto>) {
   if (!datos.nombre || !datos.slug || !datos.sku || !datos.descripcion) return "Completa nombre, SKU y descripción.";
-  if (!esCategoriaActiva(datos.categoria)) return "Selecciona Piñatería, Hogar, Mascotas o Motos.";
+  if (!datos.categoria) return "Selecciona una categoría.";
   if (!Number.isInteger(datos.precio) || datos.precio < 0) return "El precio no es válido.";
   if (datos.precio_anterior !== null && (!Number.isInteger(datos.precio_anterior) || datos.precio_anterior <= datos.precio)) return "El precio anterior debe ser mayor al precio de venta.";
   if (datos.venta_mayorista && (!Number.isInteger(datos.precio_mayorista) || datos.precio_mayorista! < 0 || datos.precio_mayorista! >= datos.precio)) return "El precio mayorista debe ser menor al precio de detal.";
@@ -65,6 +65,8 @@ export async function POST(request: NextRequest) {
   const datos = limpiarProducto(body);
   const validacion = errorValidacionProducto(datos);
   if (validacion) return NextResponse.json({ error: validacion }, { status: 400 });
+  const { data: categoria } = await supabaseAdmin.from("categorias_producto").select("id").eq("nombre", datos.categoria).maybeSingle();
+  if (!categoria) return NextResponse.json({ error: "La categoría seleccionada ya no existe." }, { status: 400 });
 
   const { data, error } = await supabaseAdmin.from("productos").insert(datos).select("*").single();
   if (error) {
