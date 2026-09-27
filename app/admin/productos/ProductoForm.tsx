@@ -23,9 +23,9 @@ type ProductoEditable = {
   activo: boolean;
 };
 
-const CATEGORIAS = ["Piñatería", "Hogar", "Cacharrería", "Mascotas", "Motos"];
+type CategoriaOpcion = { nombre: string; activo: boolean };
 
-export default function ProductoForm({ producto }: { producto?: ProductoEditable }) {
+export default function ProductoForm({ producto, categorias }: { producto?: ProductoEditable; categorias: CategoriaOpcion[] }) {
   const router = useRouter();
   const [form, setForm] = useState({
     nombre: producto?.nombre ?? "",
@@ -102,7 +102,7 @@ export default function ProductoForm({ producto }: { producto?: ProductoEditable
         </label>
         <label className="text-sm text-zinc-400">Categoría
           <select className={`${campo} cursor-pointer`} value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })}>
-            {CATEGORIAS.map((categoria) => <option key={categoria}>{categoria}</option>)}
+            {categorias.map((categoria) => <option key={categoria.nombre} value={categoria.nombre}>{categoria.nombre}{categoria.activo ? "" : " (inactiva)"}</option>)}
           </select>
         </label>
         <label className="text-sm text-zinc-400">Precio de venta
