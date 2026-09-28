@@ -3,6 +3,7 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import Products from "../../components/Products";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
+import { CATEGORIAS_PREDETERMINADAS } from "../../lib/categoriasProducto";
 
 type CategoriaPageProps = {
   params: Promise<{
@@ -10,12 +11,15 @@ type CategoriaPageProps = {
   }>;
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function CategoriaPage({
   params,
 }: CategoriaPageProps) {
   const { slug } = await params;
 
-  const { data: categoria } = await supabaseAdmin.from("categorias_producto").select("nombre,slug,descripcion,icono").eq("slug", slug).eq("activo", true).maybeSingle();
+  const { data, error } = await supabaseAdmin.from("categorias_producto").select("nombre,slug,descripcion,icono").eq("slug", slug).eq("activo", true).maybeSingle();
+  const categoria = data ?? (error ? CATEGORIAS_PREDETERMINADAS.find((item) => item.slug === slug) : null);
 
   if (!categoria) {
     return (
