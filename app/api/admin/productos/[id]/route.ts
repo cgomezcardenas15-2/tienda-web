@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/app/lib/adminAuth";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
+import { esCategoriaPredeterminada } from "@/app/lib/categoriasProducto";
 import { errorValidacionProducto, limpiarProducto } from "../route";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -13,7 +14,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const validacion = errorValidacionProducto(datos);
   if (validacion) return NextResponse.json({ error: validacion }, { status: 400 });
   const { data: categoria } = await supabaseAdmin.from("categorias_producto").select("id").eq("nombre", datos.categoria).maybeSingle();
-  if (!categoria) return NextResponse.json({ error: "La categoría seleccionada ya no existe." }, { status: 400 });
+  if (!categoria && !esCategoriaPredeterminada(datos.categoria)) return NextResponse.json({ error: "La categoría seleccionada ya no existe." }, { status: 400 });
 
   const { data, error } = await supabaseAdmin.from("productos").update(datos).eq("id", id).select("*").maybeSingle();
   if (error) {
