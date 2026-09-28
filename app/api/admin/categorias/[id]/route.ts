@@ -12,8 +12,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const icono = typeof body?.icono === "string" ? body.icono.trim() : "";
   const orden = Number(body?.orden);
   if (!nombre || !descripcion || !icono || !Number.isInteger(orden) || orden < 0) return NextResponse.json({ error: "Completa correctamente todos los campos." }, { status: 400 });
+  const { data: categoriaAnterior } = await supabaseAdmin.from("categorias_producto").select("nombre").eq("id", id).maybeSingle();
+  if (!categoriaAnterior) return NextResponse.json({ error: "Categoría no encontrada." }, { status: 404 });
+  const { data: duplicada } = await supabaseAdmin.from("categorias_producto").select("id").eq("nombre", nombre).neq("id", id).limit(1).maybeSingle();
+  if (duplicada) return NextResponse.json({ error: "Ya existe una categoría con ese nombre." }, { status: 409 });
   const { data, error } = await supabaseAdmin.from("categorias_producto").update({ nombre, descripcion, icono, orden, activo: body?.activo === true, actualizado_en: new Date().toISOString() }).eq("id", id).select("*").maybeSingle();
   if (error) return NextResponse.json({ error: "No fue posible guardar la categoría." }, { status: 409 });
   if (!data) return NextResponse.json({ error: "Categoría no encontrada." }, { status: 404 });
+  if (categoriaAnterior.nombre !== nombre) {
+    const { error: errorProductos } = await supabaseAdmin.from("productos").update({ categoria: nombre }).eq("categoria", categoriaAnterior.nombre);
+    if (errorProductos) {
+      await supabaseAdmin.from("categorias_producto").update({ nombre: categoriaAnterior.nombre }).eq("id", id);
+      return NextResponse.json({ error: "No fue posible actualizar los productos de la categoría." }, { status: 409 });
+    }
+  }
   return NextResponse.json({ ok: true, categoria: data });
 }

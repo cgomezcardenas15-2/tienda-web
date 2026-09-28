@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { CategoriaProducto } from "../lib/categoriasProducto";
+import { CATEGORIAS_PREDETERMINADAS, type CategoriaProducto } from "../lib/categoriasProducto";
 
 export default function Categories() {
   const [categorias, setCategorias] = useState<CategoriaProducto[]>([]);
   useEffect(() => {
     supabase.from("categorias_producto").select("id,nombre,slug,descripcion,icono,activo,orden").order("orden")
-      .then(({ data }) => setCategorias((data ?? []) as CategoriaProducto[]));
+      .then(({ data, error }) => setCategorias((error ? CATEGORIAS_PREDETERMINADAS : (data ?? [])) as CategoriaProducto[]));
   }, []);
   const tarjetas = [...categorias.map((categoria) => ({ ...categoria, href: `/categoria/${categoria.slug}`, oferta: false })), { id: "ofertas", nombre: "Ofertas", slug: "ofertas", descripcion: "Productos seleccionados a mejor precio", icono: "🔥", activo: true, orden: 999, href: "/?ofertas=1#productos", oferta: true }];
   return (

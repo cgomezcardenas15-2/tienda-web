@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "../context/CartContext";
 import { supabase } from "../lib/supabase";
-import type { CategoriaProducto } from "../lib/categoriasProducto";
+import { CATEGORIAS_PREDETERMINADAS, type CategoriaProducto } from "../lib/categoriasProducto";
 
 export default function Navbar() {
   const router = useRouter();
@@ -19,7 +19,7 @@ export default function Navbar() {
 
   useEffect(() => {
     supabase.from("categorias_producto").select("id,nombre,slug,descripcion,icono,activo,orden").order("orden")
-      .then(({ data }) => setCategorias((data ?? []) as CategoriaProducto[]));
+      .then(({ data, error }) => setCategorias((error ? CATEGORIAS_PREDETERMINADAS : (data ?? [])) as CategoriaProducto[]));
   }, []);
 
   function buscarProducto(

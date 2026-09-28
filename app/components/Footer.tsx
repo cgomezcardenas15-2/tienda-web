@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { CategoriaProducto } from "../lib/categoriasProducto";
+import { CATEGORIAS_PREDETERMINADAS, type CategoriaProducto } from "../lib/categoriasProducto";
 
 export default function Footer() {
   const year = new Date().getFullYear();
   const [categorias, setCategorias] = useState<CategoriaProducto[]>([]);
   useEffect(() => {
     supabase.from("categorias_producto").select("id,nombre,slug,descripcion,icono,activo,orden").order("orden")
-      .then(({ data }) => setCategorias((data ?? []) as CategoriaProducto[]));
+      .then(({ data, error }) => setCategorias((error ? CATEGORIAS_PREDETERMINADAS : (data ?? [])) as CategoriaProducto[]));
   }, []);
 
   return (

@@ -8,8 +8,10 @@ export const dynamic = "force-dynamic";
 
 export default async function NuevoProductoPage() {
   await requireAdmin();
-  const { data: categorias } = await supabaseAdmin.from("categorias_producto").select("nombre,activo").order("orden");
-  const opcionesCategorias = categorias?.length ? categorias : CATEGORIAS_PREDETERMINADAS;
+  const { data: categorias, error } = await supabaseAdmin.from("categorias_producto").select("nombre,activo").order("orden");
+  const opcionesCategorias = error
+    ? CATEGORIAS_PREDETERMINADAS
+    : (categorias ?? []).filter((categoria) => categoria.activo);
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-8">
