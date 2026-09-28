@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/app/lib/adminAuth";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
-import { esCategoriaPredeterminada } from "@/app/lib/categoriasProducto";
-import { errorValidacionProducto, limpiarProducto } from "../route";
+import { errorValidacionProducto, limpiarProducto } from "@/app/lib/productoAdmin";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (request.headers.get("origin") !== request.nextUrl.origin) return NextResponse.json({ error: "Solicitud no permitida." }, { status: 403 });
@@ -13,8 +12,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const datos = limpiarProducto(body);
   const validacion = errorValidacionProducto(datos);
   if (validacion) return NextResponse.json({ error: validacion }, { status: 400 });
-  const { data: categoria } = await supabaseAdmin.from("categorias_producto").select("id").eq("nombre", datos.categoria).maybeSingle();
-  if (!categoria && !esCategoriaPredeterminada(datos.categoria)) return NextResponse.json({ error: "La categoría seleccionada ya no existe." }, { status: 400 });
+  const [{ data: categoria }, { data: productoActual }] = await Promise.all([
+    supabaseAdmin.from("categorias_producto").select("id").eq("nombre", datos.categoria).eq("activo", true).maybeSingle(),
+    supabaseAdmin.from("productos").select("categoria").eq("id", id).maybeSingle(),
+  ]);
+  if (!productoActual) return NextResponse.json({ error: "Producto no encontrado." }, { status: 404 });
+  if (!categoria && datos.categoria !== productoActual.categoria) return NextResponse.json({ error: "La categoría seleccionada no existe o está desactivada." }, { status: 400 });
 
   const { data, error } = await supabaseAdmin.from("productos").update(datos).eq("id", id).select("*").maybeSingle();
   if (error) {
