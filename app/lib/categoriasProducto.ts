@@ -8,6 +8,13 @@ export type CategoriaProducto = {
   orden: number;
 };
 
+export const CATEGORIAS_PREDETERMINADAS = [
+  { nombre: "Piñatería", activo: true },
+  { nombre: "Hogar", activo: true },
+  { nombre: "Cacharrería", activo: true },
+  { nombre: "Motos", activo: true },
+];
+
 export function slugCategoria(valor: string) {
   return valor
     .normalize("NFD")
@@ -17,4 +24,3 @@ export function slugCategoria(valor: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
-
