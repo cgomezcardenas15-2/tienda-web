@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/app/lib/adminAuth";
 import { normalizarCategoria } from "@/app/lib/categoriasActivas";
+import { esCategoriaPredeterminada } from "@/app/lib/categoriasProducto";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 function texto(valor: unknown) {
@@ -10,7 +11,6 @@ function texto(valor: unknown) {
 function enteroPesos(valor: unknown) {
   if (typeof valor === "number") return valor;
   if (typeof valor !== "string") return Number.NaN;
-
   const limpio = valor.trim().replace(/[$\s]/g, "").replace(/\./g, "");
   return limpio === "" ? Number.NaN : Number(limpio);
 }
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
   const validacion = errorValidacionProducto(datos);
   if (validacion) return NextResponse.json({ error: validacion }, { status: 400 });
   const { data: categoria } = await supabaseAdmin.from("categorias_producto").select("id").eq("nombre", datos.categoria).maybeSingle();
-  if (!categoria) return NextResponse.json({ error: "La categoría seleccionada ya no existe." }, { status: 400 });
+  if (!categoria && !esCategoriaPredeterminada(datos.categoria)) return NextResponse.json({ error: "La categoría seleccionada ya no existe." }, { status: 400 });
 
   const { data, error } = await supabaseAdmin.from("productos").insert(datos).select("*").single();
   if (error) {
