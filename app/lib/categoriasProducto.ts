@@ -15,6 +15,10 @@ export const CATEGORIAS_PREDETERMINADAS = [
   { nombre: "Motos", activo: true },
 ];
 
+export function esCategoriaPredeterminada(nombre: string) {
+  return CATEGORIAS_PREDETERMINADAS.some((categoria) => categoria.nombre === nombre);
+}
+
 export function slugCategoria(valor: string) {
   return valor
     .normalize("NFD")
