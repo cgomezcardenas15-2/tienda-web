@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 
 import { useCart } from "../context/CartContext";
 import { supabase } from "../lib/supabase";
-import { esCategoriaActiva } from "../lib/categoriasActivas";
 
 /*
 |--------------------------------------------------------------------------
@@ -242,7 +241,7 @@ export default function Products({ categoria }: { categoria?: string }) {
       setCargando(true);
       setErrorProductos("");
 
-      const [resultadoProductos, resultadoVariantes] = await Promise.all([
+      const [resultadoProductos, resultadoVariantes, resultadoCategorias] = await Promise.all([
         supabase
           .from("productos")
           .select(
@@ -277,6 +276,7 @@ export default function Products({ categoria }: { categoria?: string }) {
           .select("id, producto_id, nombre, color, talla, sku, precio, precio_mayorista, cantidad_minima_mayorista, controla_stock, stock, imagen_url, activo, orden")
           .eq("activo", true)
           .order("orden", { ascending: true }),
+        supabase.from("categorias_producto").select("nombre").order("orden"),
       ]);
 
       const { data, error } = resultadoProductos;
@@ -306,10 +306,11 @@ export default function Products({ categoria }: { categoria?: string }) {
         new URLSearchParams(window.location.search).get("ofertas") === "1";
 
       setModoOfertas(soloOfertas);
+      const categoriasActivas = new Set((resultadoCategorias.data ?? []).map((item) => normalizarCategoria(item.nombre)));
       setProductos(
         (data ?? []).filter(
           (producto) =>
-            esCategoriaActiva(producto.categoria) &&
+            categoriasActivas.has(normalizarCategoria(producto.categoria)) &&
             (categoria
               ? normalizarCategoria(producto.categoria) === normalizarCategoria(categoria)
               : soloOfertas
@@ -781,7 +782,7 @@ export default function Products({ categoria }: { categoria?: string }) {
             </div>
           )}
 
-              {imagenAmpliada && (
+        {imagenAmpliada && (
           <div
             role="dialog"
             aria-modal="true"
@@ -811,7 +812,7 @@ export default function Products({ categoria }: { categoria?: string }) {
           </div>
         )}
 
-</div>
+      </div>
     </section>
   );
 }
