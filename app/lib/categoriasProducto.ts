@@ -9,15 +9,11 @@ export type CategoriaProducto = {
 };
 
 export const CATEGORIAS_PREDETERMINADAS = [
-  { nombre: "Piñatería", activo: true },
-  { nombre: "Hogar", activo: true },
-  { nombre: "Cacharrería", activo: true },
-  { nombre: "Motos", activo: true },
+  { id: "predeterminada-pinateria", nombre: "Piñatería", slug: "pinateria", descripcion: "Todo para celebrar momentos especiales.", icono: "🎉", activo: true, orden: 10 },
+  { id: "predeterminada-hogar", nombre: "Hogar", slug: "hogar", descripcion: "Productos prácticos para cada espacio de tu hogar.", icono: "🏠", activo: true, orden: 20 },
+  { id: "predeterminada-cacharreria", nombre: "Cacharrería", slug: "cacharreria", descripcion: "Artículos variados, útiles y prácticos para el día a día.", icono: "🛍️", activo: true, orden: 30 },
+  { id: "predeterminada-motos", nombre: "Motos", slug: "motos", descripcion: "Accesorios y artículos útiles para motociclistas.", icono: "🏍️", activo: true, orden: 50 },
 ];
-
-export function esCategoriaPredeterminada(nombre: string) {
-  return CATEGORIAS_PREDETERMINADAS.some((categoria) => categoria.nombre === nombre);
-}
 
 export function slugCategoria(valor: string) {
   return valor
