@@ -123,40 +123,82 @@ export async function enviarAlertaWhatsAppAdmin(
 }
 
 export async function alertarStockBajoDespuesDePago(pedidoId: string) {
-  const [productosRes, variantesRes] = await Promise.all([
-    supabaseAdmin
-      .from("productos")
-      .select("nombre,sku,stock,controla_stock,activo")
-      .eq("activo", true)
-      .eq("controla_stock", true)
-      .lte("stock", 3),
-    supabaseAdmin
-      .from("variantes_producto")
-      .select("nombre,sku,stock,controla_stock,activo,productos(nombre)")
-      .eq("activo", true)
-      .eq("controla_stock", true)
-      .lte("stock", 3),
-  ]);
+  const { data: lineas, error: errorLineas } = await supabaseAdmin
+    .from("productos_pedido")
+    .select("producto_id,variante_id")
+    .eq("pedido_id", pedidoId);
 
-  if (productosRes.error || variantesRes.error) {
-    console.error("No fue posible consultar el inventario para WhatsApp", {
-      productos: productosRes.error?.message,
-      variantes: variantesRes.error?.message,
+  if (errorLineas) {
+    console.error("No fue posible consultar los productos del pedido para WhatsApp", {
+      pedidoId,
+      error: errorLineas.message,
     });
     return;
   }
 
-  const productos = (productosRes.data || []).map(
-    (item) => `${item.nombre} (${item.sku || "sin SKU"}): ${item.stock}`
-  );
-  const variantes = (variantesRes.data || []).map((item) => {
-    const producto = Array.isArray(item.productos) ? item.productos[0] : item.productos;
-    const nombreProducto = producto && typeof producto === "object" && "nombre" in producto
-      ? String(producto.nombre)
-      : "Producto";
-    return `${nombreProducto} · ${item.nombre} (${item.sku || "sin SKU"}): ${item.stock}`;
-  });
-  const bajos = [...productos, ...variantes];
+  const idsProductos = [
+    ...new Set(
+      (lineas || [])
+        .filter((linea) => !linea.variante_id)
+        .map((linea) => linea.producto_id)
+        .filter(Boolean)
+    ),
+  ];
+  const idsVariantes = [
+    ...new Set((lineas || []).map((linea) => linea.variante_id).filter(Boolean)),
+  ];
+
+  const bajos: string[] = [];
+
+  if (idsProductos.length > 0) {
+    const { data: productos, error } = await supabaseAdmin
+      .from("productos")
+      .select("nombre,sku,stock")
+      .in("id", idsProductos)
+      .eq("controla_stock", true)
+      .lte("stock", 3);
+
+    if (error) {
+      console.error("No fue posible consultar el inventario del pedido para WhatsApp", {
+        pedidoId,
+        productos: error.message,
+      });
+      return;
+    }
+
+    bajos.push(
+      ...(productos || []).map(
+        (item) => `${item.nombre} (${item.sku || "sin SKU"}): ${item.stock}`
+      )
+    );
+  }
+
+  if (idsVariantes.length > 0) {
+    const { data: variantes, error } = await supabaseAdmin
+      .from("variantes_producto")
+      .select("nombre,sku,stock,productos(nombre)")
+      .in("id", idsVariantes)
+      .eq("controla_stock", true)
+      .lte("stock", 3);
+
+    if (error) {
+      console.error("No fue posible consultar las variantes del pedido para WhatsApp", {
+        pedidoId,
+        variantes: error.message,
+      });
+      return;
+    }
+
+    bajos.push(
+      ...(variantes || []).map((item) => {
+        const producto = Array.isArray(item.productos) ? item.productos[0] : item.productos;
+        const nombreProducto = producto && typeof producto === "object" && "nombre" in producto
+          ? String(producto.nombre)
+          : "Producto";
+        return `${nombreProducto} · ${item.nombre} (${item.sku || "sin SKU"}): ${item.stock}`;
+      })
+    );
+  }
 
   if (bajos.length === 0) return;
 
