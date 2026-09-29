@@ -11,9 +11,38 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "NOVA | Todo lo que necesitas",
+  metadataBase: new URL("https://senornova.com.co"),
+  title: {
+    default: "Señor Nova | Tienda online en Cali",
+    template: "%s | Señor Nova",
+  },
   description:
-    "Encuentra productos para el hogar, mascotas y piñatería en NOVA.",
+    "Compra productos para el hogar, piñatería, cacharrería y motos en Señor Nova, tienda online en Cali, Colombia.",
+  applicationName: "Señor Nova",
+  keywords: [
+    "Señor Nova",
+    "NOVA",
+    "tienda online Cali",
+    "productos para el hogar",
+    "piñatería",
+    "cacharrería",
+    "accesorios para motos",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "es_CO",
+    url: "/",
+    siteName: "Señor Nova",
+    title: "Señor Nova | Tienda online en Cali",
+    description: "Productos para el hogar, piñatería, cacharrería y motos en Cali, Colombia.",
+  },
+  twitter: {
+    card: "summary",
+    title: "Señor Nova | Tienda online en Cali",
+    description: "Productos para el hogar, piñatería, cacharrería y motos en Cali, Colombia.",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({
@@ -21,6 +50,18 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const datosEstructurados = {
+    "@context": "https://schema.org",
+    "@type": "OnlineStore",
+    name: "Señor Nova",
+    alternateName: "NOVA",
+    url: "https://senornova.com.co",
+    logo: "https://senornova.com.co/icon.png",
+    description:
+      "Tienda online de productos para el hogar, piñatería, cacharrería y motos en Cali, Colombia.",
+    areaServed: { "@type": "Country", name: "Colombia" },
+  };
+
   return (
     <html lang="es">
       <body
@@ -29,6 +70,10 @@ export default function RootLayout({
           fontFamily: geistSans.style.fontFamily,
         }}
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(datosEstructurados) }}
+        />
         <CartProvider>
           {children}
           <WhatsAppButton />
