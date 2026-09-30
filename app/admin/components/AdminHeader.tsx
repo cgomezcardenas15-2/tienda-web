@@ -23,6 +23,7 @@ export default function AdminHeader() {
           <Link href="/admin/categorias" className="rounded-lg px-3 py-2 text-sm font-bold text-zinc-300 hover:text-lime-300">Categorías</Link>
           <Link href="/admin/inventario" className="rounded-lg px-3 py-2 text-sm font-bold text-zinc-300 hover:text-lime-300">Inventario</Link>
           <Link href="/admin/envios" className="rounded-lg px-3 py-2 text-sm font-bold text-zinc-300 hover:text-lime-300">Envíos</Link>
+          <Link href="/admin/configuracion" className="rounded-lg px-3 py-2 text-sm font-bold text-zinc-300 hover:text-lime-300">Configuración</Link>
           <Link href="/consultar-pedido" className="rounded-lg px-3 py-2 text-sm font-bold text-zinc-300 hover:text-lime-300">Consulta pública</Link>
         </nav>
         <form action="/api/admin/logout" method="post">

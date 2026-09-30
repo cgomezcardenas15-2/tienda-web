@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 import { calcularEnvio } from "@/app/data/envios";
 import { obtenerConfiguracionEnvios } from "@/app/lib/configuracionEnvios";
 import { ErrorValidacionProductos, validarLineasProducto } from "@/app/lib/validarLineasProducto";
+import { obtenerConfiguracionTienda, validarCompraMinima } from "@/app/lib/configuracionTienda";
 
 /*
 |--------------------------------------------------------------------------
@@ -369,6 +370,16 @@ export async function POST(
           producto.subtotal,
         0
       );
+
+    const configuracionTienda = await obtenerConfiguracionTienda();
+    const compraMinima = validarCompraMinima(subtotal, configuracionTienda);
+    if (!compraMinima.cumple) {
+      return NextResponse.json({
+        ok: false,
+        codigo: "COMPRA_MINIMA",
+        error: `La compra mínima es de $ ${configuracionTienda.montoMinimoCompra.toLocaleString("es-CO")}. Agrega $ ${compraMinima.faltante.toLocaleString("es-CO")} en productos para continuar.`,
+      }, { status: 409 });
+    }
 
     /*
     |--------------------------------------------------------------------------

@@ -50,6 +50,19 @@ export default function CarritoPage() {
     quitarProducto,
     vaciarCarrito,
   } = useCart();
+  const [compraMinima, setCompraMinima] = useState({ activa: false, monto: 0 });
+
+  useEffect(() => {
+    fetch("/api/configuracion-tienda", { cache: "no-store" })
+      .then((respuesta) => respuesta.ok ? respuesta.json() : null)
+      .then((data) => {
+        if (data) setCompraMinima({ activa: data.compraMinimaActiva === true, monto: Number(data.montoMinimoCompra) || 0 });
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const faltanteCompraMinima = compraMinima.activa ? Math.max(0, compraMinima.monto - subtotal) : 0;
+  const cumpleCompraMinima = faltanteCompraMinima === 0;
 
   /*
   |--------------------------------------------------------------------------
@@ -550,12 +563,13 @@ export default function CarritoPage() {
                   </span>
                 </div>
 
-                <a
+                {cumpleCompraMinima ? <a
                   href="/checkout"
                   className="mt-7 flex w-full cursor-pointer items-center justify-center rounded-xl bg-[#82f000] px-5 py-3.5 font-bold text-black transition hover:bg-[#9cff35]"
-                >
-                  Continuar compra
-                </a>
+                >Continuar compra</a> : <div className="mt-7 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-center">
+                  <p className="font-bold text-amber-200">Agrega {formatoPesos(faltanteCompraMinima)} más para continuar</p>
+                  <p className="mt-1 text-xs text-white/50">La compra mínima es de {formatoPesos(compraMinima.monto)} en productos.</p>
+                </div>}
 
                 <p className="mt-4 text-center text-xs leading-5 text-white/30">
                   El valor final del
