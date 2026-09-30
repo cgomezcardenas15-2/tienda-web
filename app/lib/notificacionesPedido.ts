@@ -1,6 +1,7 @@
 import "server-only";
 
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
+import { generarPdfRemision } from "@/app/lib/remisionPedido";
 
 type PedidoEnvio = {
   id: string;
@@ -61,6 +62,14 @@ export async function notificarEnvioPorCorreo(pedido: PedidoEnvio): Promise<Resu
 
   const html = `<!doctype html><html><body style="margin:0;background:#070a07;color:#f5f5f5;font-family:Arial,sans-serif"><div style="max-width:620px;margin:auto;padding:36px 22px"><p style="color:#84f000;font-weight:900;letter-spacing:3px">NOVA</p><div style="background:#111411;border:1px solid #2b302b;border-radius:18px;padding:28px"><h1 style="margin-top:0">Tu pedido ya fue enviado</h1><p>Hola ${nombre}, tu compra ya fue entregada a la transportadora.</p><div style="margin:24px 0;padding:18px;background:#090b09;border-radius:12px"><p><strong>Transportadora:</strong> ${transportadora}</p><p><strong>Servicio:</strong> ${servicio}</p><p><strong>Número de guía:</strong> ${guia}</p></div>${seguimiento}<p style="color:#a1a1aa;font-size:14px">Conserva este correo para consultar la información de tu envío.</p></div></div></body></html>`;
 
+  const remision = await generarPdfRemision(pedido.id).catch((error) => {
+    console.error("Error generando la remisión adjunta:", error);
+    return null;
+  });
+  if (!remision) {
+    return { ok: false, enviado: false, mensaje: "No fue posible preparar la remisión PDF. El correo no se envió." };
+  }
+
   const respuesta = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -73,6 +82,7 @@ export async function notificarEnvioPorCorreo(pedido: PedidoEnvio): Promise<Resu
       to: [pedido.comprador_correo],
       subject: `Tu pedido NOVA ya fue enviado · Guía ${pedido.envio_numero_guia}`,
       html,
+      attachments: [{ filename: remision.nombre, content: Buffer.from(remision.bytes).toString("base64") }],
       ...(config.respuesta ? { reply_to: config.respuesta } : {}),
     }),
     cache: "no-store",
