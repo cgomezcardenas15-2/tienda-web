@@ -340,14 +340,9 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
           (agrupadas[variante.producto_id] ??= []).push(variante);
         }
         setVariantes(agrupadas);
-        setVarianteSeleccionada(
-          Object.fromEntries(
-            Object.entries(agrupadas).map(([productoId, opciones]) => [
-              productoId,
-              opciones.find((opcion) => !opcion.controla_stock || opcion.stock > 0)?.id ?? opciones[0]?.id,
-            ])
-          )
-        );
+        // El cliente debe escoger de forma consciente el color u opción.
+        // No seleccionamos automáticamente la primera alternativa.
+        setVarianteSeleccionada({});
       }
 
       setCargando(false);
@@ -589,6 +584,8 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
                   const variante = opciones.find(
                     (opcion) => opcion.id === varianteSeleccionada[producto.id]
                   );
+                  const requiereSeleccion = opciones.length > 0 && !variante;
+                  const tieneColores = opciones.some((opcion) => Boolean(opcion.color));
                   const etiqueta =
                     obtenerEtiqueta(
                       producto
@@ -596,7 +593,9 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
 
                   const sinStock = variante
                     ? variante.controla_stock && variante.stock <= 0
-                    : producto.controla_stock && producto.stock <= 0;
+                    : opciones.length > 0
+                      ? opciones.every((opcion) => opcion.controla_stock && opcion.stock <= 0)
+                      : producto.controla_stock && producto.stock <= 0;
 
                   const precioVisible = variante?.precio ?? producto.precio;
                   const precioMayoristaVisible = variante?.precio_mayorista ?? producto.precio_mayorista;
@@ -719,7 +718,7 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
                         {opciones.length > 0 && (
                           <div className="mt-4">
                             <p className="mb-2 text-xs font-semibold text-white/55">
-                              Elige una opción
+                              {tieneColores ? "Elige un color" : "Elige una opción"}
                             </p>
                             <div className="flex flex-wrap gap-2">
                               {opciones.map((opcion) => {
@@ -740,7 +739,10 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
                                           : "cursor-pointer border-white/15 text-white/65 hover:border-[#82f000]/50")
                                     }
                                   >
-                                    {opcion.nombre}
+                                    <span className="flex items-center gap-2">
+                                      <span>{opcion.color || opcion.nombre}{opcion.talla ? ` · ${opcion.talla}` : ""}</span>
+                                      {agotada && <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-black uppercase text-red-300 no-underline">Agotado</span>}
+                                    </span>
                                   </button>
                                 );
                               })}
@@ -750,7 +752,11 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
 
                         {/* Stock */}
 
-                        {controlaStockVisible && (
+                        {requiereSeleccion ? (
+                          <p className="mt-3 text-xs font-semibold text-[#9cff35]">
+                            Selecciona {tieneColores ? "un color" : "una opción"} para continuar.
+                          </p>
+                        ) : controlaStockVisible && (
                           <p
                             className={
                               "mt-3 text-xs font-medium " +
@@ -776,7 +782,7 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
                         <button
                           type="button"
                           disabled={
-                            sinStock
+                            sinStock || requiereSeleccion
                           }
                           onClick={() =>
                             agregarAlCarrito(
@@ -785,7 +791,7 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
                           }
                           className={
                             "mt-5 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition " +
-                            (sinStock
+                            (sinStock || requiereSeleccion
                               ? "cursor-not-allowed bg-white/10 text-white/30"
                               : "cursor-pointer bg-[#82f000] text-black hover:bg-[#9cff35]")
                           }
@@ -794,7 +800,9 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
 
                           {sinStock
                             ? "Sin disponibilidad"
-                            : "Agregar al carrito"}
+                            : requiereSeleccion
+                              ? `Elige ${tieneColores ? "un color" : "una opción"}`
+                              : "Agregar al carrito"}
                         </button>
 
                       </div>
