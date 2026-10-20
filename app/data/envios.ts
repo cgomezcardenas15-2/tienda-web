@@ -6,6 +6,7 @@ export type ZonaEnvio =
 export type ResultadoEnvio = {
   disponible: boolean;
   valor: number;
+  pagoContraentrega: boolean;
   zona: ZonaEnvio | null;
   nombreZona: string;
   mensaje: string;
@@ -94,6 +95,7 @@ export function calcularEnvio(
     return {
       disponible: false,
       valor: 0,
+      pagoContraentrega: false,
       zona: null,
       nombreZona: "",
       mensaje:
@@ -126,6 +128,7 @@ export function calcularEnvio(
     return {
       disponible: true,
       valor: esEnvioGratis ? 0 : configuracion.tarifaCali,
+      pagoContraentrega: false,
       zona: "CALI",
       nombreZona: "Cali",
       mensaje: esEnvioGratis ? "Envío gratis por el valor de tu compra." : "Envío local en Cali.",
@@ -144,10 +147,11 @@ export function calcularEnvio(
   ) {
     return {
       disponible: true,
-      valor: esEnvioGratis ? 0 : configuracion.tarifaValle,
+      valor: 0,
+      pagoContraentrega: true,
       zona: "VALLE",
       nombreZona: "Valle del Cauca",
-      mensaje: esEnvioGratis ? "Envío gratis por el valor de tu compra." : "Envío departamental en Valle del Cauca.",
+      mensaje: "El costo del transporte no se cobra en esta compra. Lo pagas directamente a la transportadora cuando recibas el pedido.",
     };
   }
 
@@ -159,9 +163,10 @@ export function calcularEnvio(
 
   return {
     disponible: true,
-    valor: esEnvioGratis ? 0 : configuracion.tarifaNacional,
+    valor: 0,
+    pagoContraentrega: true,
     zona: "NACIONAL",
     nombreZona: "Nacional",
-    mensaje: esEnvioGratis ? "Envío gratis por el valor de tu compra." : "Envío nacional.",
+    mensaje: "El costo del transporte no se cobra en esta compra. Lo pagas directamente a la transportadora cuando recibas el pedido.",
   };
 }

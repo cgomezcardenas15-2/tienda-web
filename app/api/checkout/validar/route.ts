@@ -493,6 +493,9 @@ export async function POST(
           costo:
             costoEnvio,
 
+          pagoContraentrega:
+            resultadoEnvio.pagoContraentrega,
+
           zona:
             resultadoEnvio.zona ??
             "",

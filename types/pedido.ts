@@ -188,6 +188,8 @@ export type FacturacionPedido = {
 export type EnvioPedido = {
   costo: number;
 
+  pagoContraentrega?: boolean;
+
   zona: string;
 
   nombreZona: string;

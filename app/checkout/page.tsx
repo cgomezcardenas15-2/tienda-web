@@ -84,6 +84,7 @@ type RespuestaValidacionCheckout = {
 
   envio?: {
     costo: number;
+    pagoContraentrega?: boolean;
     zona: string;
     nombreZona: string;
     mensaje: string;
@@ -983,6 +984,9 @@ export default function CheckoutPage() {
       costo:
         validacion.envio.costo,
 
+      pagoContraentrega:
+        validacion.envio.pagoContraentrega === true,
+
       zona:
         validacion.envio.zona,
 
@@ -1661,7 +1665,7 @@ export default function CheckoutPage() {
                         <div className="flex flex-col gap-4 rounded-2xl border border-[#82f000]/20 bg-[#82f000]/[0.045] p-5 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#82f000]">
-                              Envío calculado
+                              {resultadoEnvio.pagoContraentrega ? "Envío por pagar" : "Envío calculado"}
                             </p>
 
                             <p className="mt-2 font-semibold">
@@ -1679,13 +1683,11 @@ export default function CheckoutPage() {
 
                           <div className="shrink-0 sm:text-right">
                             <p className="text-xs text-white/35">
-                              Tarifa de envío
+                              {resultadoEnvio.pagoContraentrega ? "Pago a la transportadora" : "Tarifa de envío"}
                             </p>
 
                             <p className="mt-1 text-2xl font-bold text-[#82f000]">
-                              {formatoPesos(
-                                valorEnvio
-                              )}
+                              {resultadoEnvio.pagoContraentrega ? "Al recibir" : formatoPesos(valorEnvio)}
                             </p>
                           </div>
                         </div>
@@ -2184,9 +2186,9 @@ export default function CheckoutPage() {
 
                         {resultadoEnvio.disponible ? (
                           <span className="font-semibold">
-                            {formatoPesos(
-                              valorEnvioMostrado
-                            )}
+                            {resultadoEnvio.pagoContraentrega
+                              ? "Por pagar al recibir"
+                              : formatoPesos(valorEnvioMostrado)}
                           </span>
                         ) : (
                           <span className="text-white/35">
@@ -2397,11 +2399,9 @@ export default function CheckoutPage() {
                                 .nombreZona
                             }
                             secundario={
-                              formatoPesos(
-                                validacionServidor
-                                  .envio
-                                  .costo
-                              )
+                              validacionServidor.envio.pagoContraentrega
+                                ? "Por pagar al recibir"
+                                : formatoPesos(validacionServidor.envio.costo)
                             }
                             detalle={
                               validacionServidor
