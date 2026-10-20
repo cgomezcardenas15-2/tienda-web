@@ -11,7 +11,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://senornova.com.co"),
+  metadataBase: new URL("https://www.senornova.com.co"),
   title: {
     default: "Señor Nova | Tienda online en Cali",
     template: "%s | Señor Nova",
@@ -55,8 +55,8 @@ export default function RootLayout({
     "@type": "OnlineStore",
     name: "Señor Nova",
     alternateName: "NOVA",
-    url: "https://senornova.com.co",
-    logo: "https://senornova.com.co/icon.png",
+    url: "https://www.senornova.com.co",
+    logo: "https://www.senornova.com.co/icon.png",
     description:
       "Tienda online de productos para el hogar, piñatería, cacharrería y motos en Cali, Colombia.",
     areaServed: { "@type": "Country", name: "Colombia" },

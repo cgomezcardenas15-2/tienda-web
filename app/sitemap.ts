@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const DOMINIO = "https://senornova.com.co";
+const DOMINIO = "https://www.senornova.com.co";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const rutas = [
