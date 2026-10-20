@@ -23,6 +23,12 @@ export function nombreArchivoRemision(numero: unknown, extension: string) {
 
 const pesos = (valor: unknown) => `$ ${Math.round(Number(valor) || 0).toLocaleString("es-CO")}`;
 
+export function costoEnvioRemision(pedido: { costo_envio?: unknown; envio_zona?: unknown }) {
+  return Number(pedido.costo_envio) === 0 && pedido.envio_zona !== "CALI"
+    ? "Por pagar al recibir"
+    : pesos(pedido.costo_envio);
+}
+
 export async function generarPdfRemision(id: string) {
   const datos = await cargarRemision(id);
   if (!datos) return null;
@@ -78,7 +84,7 @@ export async function generarPdfRemision(id: string) {
   pagina.drawRectangle({ x: 345, y: totalY, width: 206, height: 102, color: rgb(0.97, 0.98, 0.96), borderColor: borde, borderWidth: 1 });
   const resumen: Array<[string, string]> = [
     ["Subtotal", pesos(pedido.subtotal)],
-    ["Envio", pesos(pedido.costo_envio)],
+    ["Envio", costoEnvioRemision(pedido)],
     ["Descuento", `- ${pesos(pedido.descuento)}`],
   ];
   resumen.forEach(([etiqueta, valor], i) => {

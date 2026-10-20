@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { getAdminSession } from "@/app/lib/adminAuth";
-import { cargarRemision, nombreArchivoRemision, textoRemision } from "@/app/lib/remisionPedido";
+import { cargarRemision, costoEnvioRemision, nombreArchivoRemision, textoRemision } from "@/app/lib/remisionPedido";
 import { IDENTIDAD_COMERCIAL } from "@/app/lib/identidadComercial";
 
 export const runtime = "nodejs";
@@ -62,7 +62,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
   const totalY = Math.max(230, y - 112);
   page.drawRectangle({ x: 345, y: totalY, width: 206, height: 102, color: rgb(0.97, 0.98, 0.96), borderColor: borde, borderWidth: 1 });
-  [["Subtotal", pesos(pedido.subtotal)], ["Envio", pesos(pedido.costo_envio)], ["Descuento", `- ${pesos(pedido.descuento)}`]].forEach(([etiqueta, valor], i) => { page.drawText(etiqueta, { x: 358, y: totalY + 81 - i * 19, size: 8, font: normal, color: gris }); page.drawText(valor, { x: 475, y: totalY + 81 - i * 19, size: 8, font: bold, color: negro }); });
+  [["Subtotal", pesos(pedido.subtotal)], ["Envio", costoEnvioRemision(pedido)], ["Descuento", `- ${pesos(pedido.descuento)}`]].forEach(([etiqueta, valor], i) => { page.drawText(etiqueta, { x: 358, y: totalY + 81 - i * 19, size: 8, font: normal, color: gris }); page.drawText(valor, { x: valor === "Por pagar al recibir" ? 430 : 475, y: totalY + 81 - i * 19, size: valor === "Por pagar al recibir" ? 7 : 8, font: bold, color: negro }); });
   page.drawLine({ start: { x: 358, y: totalY + 27 }, end: { x: 538, y: totalY + 27 }, thickness: 1.2, color: negro });
   page.drawText("TOTAL", { x: 358, y: totalY + 10, size: 11, font: bold, color: negro });
   page.drawText(pesos(pedido.total), { x: 472, y: totalY + 10, size: 12, font: bold, color: verde });

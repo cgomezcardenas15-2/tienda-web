@@ -4,6 +4,7 @@ import { requireAdmin } from "@/app/lib/adminAuth";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 import ImprimirRemision from "./ImprimirRemision";
 import { IDENTIDAD_COMERCIAL } from "@/app/lib/identidadComercial";
+import { costoEnvioRemision } from "@/app/lib/remisionPedido";
 
 export const dynamic = "force-dynamic";
 
@@ -101,7 +102,7 @@ export default async function RemisionPedidoPage({ params }: { params: Promise<{
             <div className="rounded-2xl border-2 border-zinc-200 bg-zinc-50 p-5 text-zinc-950">
               <dl className="space-y-2 text-sm">
                 <div className="flex justify-between gap-8 text-zinc-500"><dt>Subtotal</dt><dd className="text-zinc-950">{dinero.format(Number(pedido.subtotal))}</dd></div>
-                <div className="flex justify-between gap-8 text-zinc-500"><dt>Envío</dt><dd className="text-zinc-950">{dinero.format(Number(pedido.costo_envio))}</dd></div>
+                <div className="flex justify-between gap-8 text-zinc-500"><dt>Envío</dt><dd className="text-right text-zinc-950">{costoEnvioRemision(pedido)}</dd></div>
                 <div className="flex justify-between gap-8 text-zinc-500"><dt>Descuento</dt><dd className="text-zinc-950">-{dinero.format(Number(pedido.descuento))}</dd></div>
                 <div className="mt-3 flex justify-between gap-8 border-t-2 border-zinc-950 pt-4 text-xl font-black"><dt>Total</dt><dd className="text-lime-700">{dinero.format(Number(pedido.total))}</dd></div>
               </dl>

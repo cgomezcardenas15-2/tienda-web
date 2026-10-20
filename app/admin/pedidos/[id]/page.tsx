@@ -6,6 +6,7 @@ import EstadoPedidoControl from "./EstadoPedidoControl";
 import EnvioPedidoForm from "./EnvioPedidoForm";
 import NotificacionEnvioControl from "./NotificacionEnvioControl";
 import NuevaDevolucionForm from "./NuevaDevolucionForm";
+import { costoEnvioRemision } from "@/app/lib/remisionPedido";
 
 export const dynamic = "force-dynamic";
 
@@ -115,7 +116,7 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
         </div>
       </section>
 
-      <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6"><h2 className="font-black">Resumen</h2><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between"><dt className="text-zinc-500">Subtotal</dt><dd>{dinero.format(Number(pedido.subtotal))}</dd></div><div className="flex justify-between"><dt className="text-zinc-500">Envío</dt><dd>{dinero.format(Number(pedido.costo_envio))}</dd></div><div className="flex justify-between"><dt className="text-zinc-500">Descuento</dt><dd>{dinero.format(Number(pedido.descuento))}</dd></div><div className="flex justify-between border-t border-zinc-700 pt-3 text-lg font-black"><dt>Total</dt><dd>{dinero.format(Number(pedido.total))}</dd></div></dl></section>
+      <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6"><h2 className="font-black">Resumen</h2><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between"><dt className="text-zinc-500">Subtotal</dt><dd>{dinero.format(Number(pedido.subtotal))}</dd></div><div className="flex justify-between gap-4"><dt className="text-zinc-500">Envío</dt><dd className="text-right">{costoEnvioRemision(pedido)}</dd></div><div className="flex justify-between"><dt className="text-zinc-500">Descuento</dt><dd>{dinero.format(Number(pedido.descuento))}</dd></div><div className="flex justify-between border-t border-zinc-700 pt-3 text-lg font-black"><dt>Total pagado en la tienda</dt><dd>{dinero.format(Number(pedido.total))}</dd></div></dl></section>
 
       <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-lime-400">Posventa</p><h2 className="mt-2 text-xl font-black">Devoluciones, garantías y reembolsos</h2><p className="mt-2 text-sm text-zinc-400">Registra cada novedad sin perder su historial ni devolver existencias dos veces.</p>
