@@ -84,6 +84,32 @@ function normalizarCategoria(valor: string) {
     .toLowerCase();
 }
 
+const COLORES_VISUALES: Record<string, string> = {
+  negro: "#111111",
+  blanco: "#ffffff",
+  verde: "#22c55e",
+  rojo: "#ef4444",
+  azul: "#3b82f6",
+  amarillo: "#facc15",
+  naranja: "#f97316",
+  rosado: "#ec4899",
+  rosa: "#ec4899",
+  morado: "#a855f7",
+  violeta: "#8b5cf6",
+  gris: "#71717a",
+  cafe: "#92400e",
+  marron: "#92400e",
+  beige: "#d6c7a1",
+  dorado: "#d4a017",
+  plateado: "#a1a1aa",
+};
+
+function muestraColor(valor: string | null) {
+  if (!valor) return "#71717a";
+  if (/^#[0-9a-f]{6}$/i.test(valor)) return valor;
+  return COLORES_VISUALES[normalizarCategoria(valor)] ?? valor;
+}
+
 /*
 |--------------------------------------------------------------------------
 | ICONO TEMPORAL POR CATEGORÍA
@@ -724,6 +750,33 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
                               {opciones.map((opcion) => {
                                 const agotada = opcion.controla_stock && opcion.stock <= 0;
                                 const activa = opcion.id === variante?.id;
+                                const etiquetaOpcion = opcion.color ? opcion.nombre : `${opcion.nombre}${opcion.talla ? ` · ${opcion.talla}` : ""}`;
+
+                                if (opcion.color) {
+                                  return (
+                                    <button
+                                      key={opcion.id}
+                                      type="button"
+                                      disabled={agotada}
+                                      aria-label={`${etiquetaOpcion}${agotada ? ", agotado" : ""}`}
+                                      title={`${etiquetaOpcion}${agotada ? " · Agotado" : ""}`}
+                                      onClick={() => setVarianteSeleccionada((actual) => ({ ...actual, [producto.id]: opcion.id }))}
+                                      className={
+                                        "relative h-11 w-11 rounded-full border-2 p-1 transition " +
+                                        (agotada
+                                          ? "cursor-not-allowed border-white/10 opacity-35"
+                                          : activa
+                                            ? "scale-110 border-[#82f000] shadow-[0_0_0_3px_rgba(130,240,0,0.2)]"
+                                            : "cursor-pointer border-white/30 hover:scale-105 hover:border-white/70")
+                                      }
+                                    >
+                                      <span className="block h-full w-full rounded-full border border-black/20" style={{ backgroundColor: muestraColor(opcion.color) }} />
+                                      {agotada && <span className="absolute left-1/2 top-1/2 h-0.5 w-10 -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-red-400" />}
+                                      {activa && !agotada && <span className="absolute -bottom-2 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#82f000]" />}
+                                    </button>
+                                  );
+                                }
+
                                 return (
                                   <button
                                     key={opcion.id}
@@ -740,7 +793,7 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
                                     }
                                   >
                                     <span className="flex items-center gap-2">
-                                      <span>{opcion.color || opcion.nombre}{opcion.talla ? ` · ${opcion.talla}` : ""}</span>
+                                      <span>{etiquetaOpcion}</span>
                                       {agotada && <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-black uppercase text-red-300 no-underline">Agotado</span>}
                                     </span>
                                   </button>
