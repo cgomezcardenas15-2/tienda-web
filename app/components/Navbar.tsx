@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "../context/CartContext";
@@ -10,6 +10,8 @@ import { CATEGORIAS_PREDETERMINADAS, type CategoriaProducto } from "../lib/categ
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
+  const esFlujoDePago =
+    pathname.startsWith("/checkout") || pathname.startsWith("/pago/");
 
   const { cantidadTotal } = useCart();
 
@@ -17,6 +19,8 @@ export default function Navbar() {
   const [searchMobile, setSearchMobile] = useState("");
   const [categorias, setCategorias] = useState<CategoriaProducto[]>([]);
   const [sugerencias, setSugerencias] = useState<string[]>([]);
+  const menuCategoriasRef = useRef<HTMLDivElement>(null);
+  const categoriaActivaRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     supabase.from("categorias_producto").select("id,nombre,slug,descripcion,icono,activo,orden").order("orden")
@@ -24,6 +28,17 @@ export default function Navbar() {
     supabase.from("productos").select("nombre").eq("activo", true).order("nombre").limit(200)
       .then(({ data }) => setSugerencias([...new Set((data ?? []).map((producto) => String(producto.nombre).trim()).filter(Boolean))]));
   }, []);
+
+  useEffect(() => {
+    const menu = menuCategoriasRef.current;
+    const categoriaActiva = categoriaActivaRef.current;
+    if (!menu || !categoriaActiva || window.innerWidth >= 768) return;
+
+    const izquierda =
+      categoriaActiva.offsetLeft -
+      (menu.clientWidth - categoriaActiva.clientWidth) / 2;
+    menu.scrollTo({ left: Math.max(0, izquierda), behavior: "smooth" });
+  }, [pathname, categorias]);
 
   function buscarProducto(
     event: FormEvent<HTMLFormElement>,
@@ -41,9 +56,9 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#070907]/95 text-white shadow-xl backdrop-blur">
-      <div className="mx-auto max-w-7xl px-5 py-4 lg:px-8">
-        <div className="flex items-center gap-4 lg:gap-6">
+    <header className="relative z-50 border-b border-white/10 bg-[#070907]/95 text-white shadow-xl backdrop-blur md:sticky md:top-0">
+      <div className="mx-auto max-w-7xl px-4 py-3 sm:px-5 sm:py-4 lg:px-8">
+        <div className="flex items-center gap-3 lg:gap-6">
           {/* Logo */}
           <Link
             href="/"
@@ -53,7 +68,7 @@ export default function Navbar() {
             <img
               src="/nova-symbol.png"
               alt="Símbolo de NOVA"
-              className="h-11 w-11 object-contain"
+              className="h-10 w-10 object-contain sm:h-11 sm:w-11"
             />
 
             <div className="hidden sm:block">
@@ -104,7 +119,7 @@ export default function Navbar() {
             {/* Carrito */}
             <Link
               href="/carrito"
-              className="relative flex cursor-pointer items-center gap-2 rounded-xl bg-lime-400 px-3.5 py-3 font-bold text-zinc-950 shadow-[0_8px_28px_rgba(163,230,53,0.16)] transition hover:-translate-y-0.5 hover:bg-lime-300 sm:px-4"
+              className="relative flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-lime-400 px-3.5 py-2.5 font-bold text-zinc-950 shadow-[0_8px_28px_rgba(163,230,53,0.16)] transition hover:-translate-y-0.5 hover:bg-lime-300 sm:px-4 sm:py-3"
               aria-label="Abrir carrito"
             >
               <CartIcon />
@@ -123,7 +138,7 @@ export default function Navbar() {
         {/* Buscador móvil */}
         <form
           onSubmit={(event) => buscarProducto(event, searchMobile)}
-          className="mt-4 md:hidden"
+          className={esFlujoDePago ? "hidden" : "mt-3 md:hidden"}
         >
           <div className="flex overflow-hidden rounded-xl border border-white/10 bg-white/[0.05]">
             <div className="flex items-center pl-4 text-zinc-500">
@@ -142,7 +157,7 @@ export default function Navbar() {
 
             <button
               type="submit"
-              className="m-1.5 cursor-pointer rounded-lg bg-lime-400 px-4 font-bold text-zinc-950"
+              className="m-1.5 min-h-10 cursor-pointer rounded-lg bg-lime-400 px-4 font-bold text-zinc-950"
             >
               Buscar
             </button>
@@ -150,7 +165,7 @@ export default function Navbar() {
         </form>
 
         {/* Categorías */}
-        <div className="mt-4 flex items-center gap-2 overflow-x-auto border-t border-white/10 pt-3 text-sm font-medium text-zinc-400 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div ref={menuCategoriasRef} className={`${esFlujoDePago ? "hidden md:flex" : "flex"} -mx-4 mt-3 snap-x snap-mandatory items-center gap-2 overflow-x-auto border-t border-white/10 px-4 pb-1 pt-3 text-sm font-medium text-zinc-400 overscroll-x-contain [scrollbar-width:none] sm:mx-0 sm:mt-4 sm:px-0 [&::-webkit-scrollbar]:hidden`}>
           {[
             { href: "/", texto: "Inicio", icono: "⌂" },
             ...categorias.map((item) => ({ href: `/categoria/${item.slug}`, texto: item.nombre, icono: item.icono })),
@@ -158,7 +173,7 @@ export default function Navbar() {
           ].map((item) => {
             const activo = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             return (
-              <Link key={item.href} href={item.href} className={`group inline-flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-xl border px-3.5 py-2 transition ${activo ? "border-[#82f000]/35 bg-[#82f000]/10 font-black text-[#9cff35]" : "border-transparent text-zinc-400 hover:border-white/10 hover:bg-white/[0.04] hover:text-white"}`}>
+              <Link ref={activo ? categoriaActivaRef : undefined} key={item.href} href={item.href} className={`group inline-flex min-h-11 shrink-0 snap-start cursor-pointer items-center gap-2 whitespace-nowrap rounded-xl border px-3.5 py-2.5 transition ${activo ? "border-[#82f000]/35 bg-[#82f000]/10 font-black text-[#9cff35]" : "border-transparent text-zinc-400 hover:border-white/10 hover:bg-white/[0.04] hover:text-white"}`}>
                 <span aria-hidden="true" className={`text-base transition group-hover:scale-110 ${activo ? "grayscale-0" : "grayscale group-hover:grayscale-0"}`}>{item.icono}</span>
                 {item.texto}
               </Link>
@@ -167,7 +182,7 @@ export default function Navbar() {
 
           <Link
             href="/?ofertas=1#productos"
-            className="group ml-auto inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-xl border border-orange-400/60 bg-gradient-to-r from-orange-500 to-amber-400 px-4 py-2 text-xs font-black uppercase tracking-[0.08em] text-black shadow-[0_0_18px_rgba(251,146,60,0.22)] transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-[0_0_24px_rgba(251,146,60,0.38)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            className="group inline-flex min-h-11 shrink-0 snap-start cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-xl border border-orange-400/60 bg-gradient-to-r from-orange-500 to-amber-400 px-4 py-2.5 text-xs font-black uppercase tracking-[0.08em] text-black shadow-[0_0_18px_rgba(251,146,60,0.22)] transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-[0_0_24px_rgba(251,146,60,0.38)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:ml-auto"
           >
             <span
               aria-hidden="true"

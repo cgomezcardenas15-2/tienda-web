@@ -170,6 +170,8 @@ export function CartProvider({
                 item.cantidad > 0
             );
 
+          // Restaurar el estado persistido es la sincronización intencional de este efecto.
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setItems(
             carritoRecuperado
           );

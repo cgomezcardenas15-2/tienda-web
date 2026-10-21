@@ -483,7 +483,7 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
   return (
     <section
       id="productos"
-      className="relative scroll-mt-40 overflow-hidden bg-[#080a08] px-6 py-20 text-white"
+      className="relative scroll-mt-40 overflow-hidden bg-[#080a08] px-4 py-12 text-white sm:px-6 sm:py-16 lg:py-20"
     >
       {/* Iluminación decorativa */}
 
@@ -494,7 +494,7 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
       <div className="relative mx-auto max-w-7xl">
         {/* Encabezado */}
 
-        <div className="mb-12">
+        <div className="mb-8 sm:mb-12">
           <div>
             <span className="text-sm font-bold uppercase tracking-[0.2em] text-[#82f000]">
               {busqueda
@@ -595,7 +595,7 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
         {!cargando &&
           errorProductos === "" &&
           productos.length > 0 && (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 min-[520px]:grid-cols-2 sm:gap-5 lg:grid-cols-4">
               {productos.map(
                 (producto) => {
                   const opciones = variantes[producto.id] ?? [];
@@ -629,7 +629,7 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
                     >
                       {/* Imagen */}
 
-                      <div className="relative flex h-56 items-center justify-center border-b border-white/[0.07] bg-gradient-to-br from-white/[0.055] to-transparent">
+                      <div className="relative flex h-52 items-center justify-center border-b border-white/[0.07] bg-gradient-to-br from-white/[0.055] to-transparent sm:h-56">
                         {etiqueta !==
                           "" && (
                           <span
@@ -668,7 +668,7 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
                               }
                               aria-label={`Ver imagen ampliada de ${producto.nombre}`}
                               title="Ver imagen"
-                              className="absolute right-4 top-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/70 text-white shadow-lg backdrop-blur transition hover:border-[#82f000] hover:bg-[#82f000] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#82f000]"
+                              className="absolute right-4 top-4 z-10 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/70 text-white shadow-lg backdrop-blur transition hover:border-[#82f000] hover:bg-[#82f000] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#82f000]"
                             >
                               <EyeIcon />
                             </button>
@@ -684,7 +684,7 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
 
                       {/* Información */}
 
-                      <div className="p-5">
+                      <div className="p-4 sm:p-5">
                         <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[#82f000]/70">
                           {
                             producto.categoria
@@ -705,8 +705,8 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
                           </p>
                         )}
 
-                        <div className="mt-4 flex items-end gap-3">
-                          <span className="text-2xl font-bold">
+                        <div className="mt-4 flex flex-wrap items-end gap-3">
+                          <span className="break-words text-2xl font-bold">
                             {formatoPesos(
                               precioVisible
                             )}
@@ -863,11 +863,11 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
             role="dialog"
             aria-modal="true"
             aria-label={`Vista ampliada de ${imagenAmpliada.nombre}`}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm sm:p-8"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-2 backdrop-blur-sm sm:p-8"
             onClick={() => setImagenAmpliada(null)}
           >
             <div
-              className="relative flex max-h-full w-full max-w-5xl items-center justify-center rounded-2xl border border-white/15 bg-[#111411] p-4 shadow-2xl sm:p-8"
+              className="relative flex max-h-full w-full max-w-5xl items-center justify-center rounded-xl border border-white/15 bg-[#111411] p-2 shadow-2xl sm:rounded-2xl sm:p-8"
               onClick={(evento) => evento.stopPropagation()}
             >
               <img

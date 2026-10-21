@@ -4,6 +4,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import Link from "next/link";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -198,11 +199,11 @@ export default function CarritoPage() {
     <>
       <Navbar />
 
-      <main className="min-h-screen bg-[#080a08] px-6 py-14 text-white lg:px-10">
+      <main className="min-h-screen bg-[#080a08] px-4 py-10 text-white sm:px-6 sm:py-14 lg:px-10">
         <div className="mx-auto max-w-7xl">
           {/* Encabezado */}
 
-          <div className="mb-10">
+          <div className="mb-8 sm:mb-10">
             <span className="text-sm font-bold uppercase tracking-[0.22em] text-[#82f000]">
               Tu compra
             </span>
@@ -226,7 +227,7 @@ export default function CarritoPage() {
             |--------------------------------------------------------------------------
             */
 
-            <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-10 text-center">
+            <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-center sm:p-10">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-[#82f000]/30 bg-[#82f000]/10 text-3xl">
                 🛒
               </div>
@@ -242,12 +243,12 @@ export default function CarritoPage() {
                 puedas revisar tu compra.
               </p>
 
-              <a
+              <Link
                 href="/#productos"
                 className="mt-7 inline-flex cursor-pointer rounded-xl bg-[#82f000] px-6 py-3 font-bold text-black transition hover:bg-[#9cff35]"
               >
                 Ver productos
-              </a>
+              </Link>
             </section>
           ) : (
             /*
@@ -296,7 +297,7 @@ export default function CarritoPage() {
                         key={
                           obtenerClaveCarrito(item)
                         }
-                        className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"
+                        className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 sm:p-5"
                       >
                         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
                           {/* Imagen */}
@@ -373,7 +374,7 @@ export default function CarritoPage() {
 
                           {/* Controles */}
 
-                          <div className="flex flex-wrap items-center gap-3">
+                          <div className="flex w-full flex-wrap items-center justify-between gap-3 sm:w-auto sm:justify-start">
                             <div className="flex items-center overflow-hidden rounded-xl border border-white/10 bg-black/20">
                               <button
                                 type="button"
@@ -386,7 +387,7 @@ export default function CarritoPage() {
                                     obtenerClaveCarrito(item)
                                   );
                                 }}
-                                className="h-10 w-10 cursor-pointer text-lg text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+                                className="h-11 w-11 cursor-pointer text-lg text-white/70 transition hover:bg-white/[0.06] hover:text-white"
                                 aria-label={
                                   "Disminuir cantidad de " +
                                   item.nombre
@@ -395,7 +396,7 @@ export default function CarritoPage() {
                                 −
                               </button>
 
-                              <span className="flex h-10 min-w-12 items-center justify-center border-x border-white/10 px-3 font-semibold">
+                              <span className="flex h-11 min-w-12 items-center justify-center border-x border-white/10 px-3 font-semibold">
                                 {
                                   item.cantidad
                                 }
@@ -409,7 +410,7 @@ export default function CarritoPage() {
                                   )
                                 }
                                 className={
-                                  "h-10 w-10 text-lg transition " +
+                                  "h-11 w-11 text-lg transition " +
                                   (alcanzoLimite
                                     ? "cursor-pointer text-white/30 hover:bg-orange-400/[0.06] hover:text-orange-300"
                                     : "cursor-pointer text-white/70 hover:bg-white/[0.06] hover:text-white")
@@ -518,7 +519,7 @@ export default function CarritoPage() {
 
               {/* Resumen */}
 
-              <aside className="h-fit rounded-3xl border border-white/10 bg-white/[0.035] p-6 lg:sticky lg:top-36">
+              <aside className="h-fit rounded-3xl border border-white/10 bg-white/[0.035] p-5 sm:p-6 lg:sticky lg:top-36">
                 <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#82f000]">
                   Resumen
                 </span>
@@ -551,12 +552,12 @@ export default function CarritoPage() {
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-end justify-between">
+                <div className="mt-6 flex flex-wrap items-end justify-between gap-3">
                   <span className="text-sm text-white/50">
                     Total provisional
                   </span>
 
-                  <span className="text-3xl font-bold text-[#82f000]">
+                  <span className="break-words text-2xl font-bold text-[#82f000] sm:text-3xl">
                     {formatoPesos(
                       subtotal
                     )}

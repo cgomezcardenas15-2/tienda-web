@@ -27,12 +27,12 @@ export default async function SearchPage({
         <section className="relative overflow-hidden border-b border-white/10">
           <div className="pointer-events-none absolute right-0 top-0 h-[420px] w-[420px] rounded-full bg-[#82f000]/10 blur-[150px]" />
 
-          <div className="relative mx-auto max-w-7xl px-6 py-20 lg:px-10">
+          <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
             <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#82f000]">
               Buscar en NOVA
             </p>
 
-            <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">
+            <h1 className="mt-4 break-words text-3xl font-bold tracking-tight sm:text-5xl">
               {titulo}
             </h1>
 

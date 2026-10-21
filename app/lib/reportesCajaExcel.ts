@@ -2,8 +2,30 @@ import "server-only";
 import ExcelJS from "exceljs";
 import { IDENTIDAD_COMERCIAL } from "./identidadComercial";
 
-export type GastoExcel = Record<string, any>;
-export type CierreExcel = Record<string, any>;
+export type GastoExcel = {
+  fecha: string;
+  descripcion: string;
+  valor: number | string | null;
+  medio_pago: string | null;
+  comprobante: string | null;
+  recurrente: boolean;
+  estado: string;
+  notas: string | null;
+  creado_en: string;
+  categorias_gasto: { nombre?: string } | { nombre?: string }[] | null;
+};
+export type CierreExcel = {
+  fecha: string;
+  ventas_aprobadas: number | string | null;
+  reembolsos: number | string | null;
+  gastos: number | string | null;
+  comisiones_pagadas: number | string | null;
+  saldo_esperado: number | string | null;
+  saldo_reportado: number | string | null;
+  diferencia: number | string | null;
+  observaciones: string | null;
+  creado_en: string;
+};
 const moneda = '"$"#,##0;[Red]("$"#,##0);-';
 const formatoDinero = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 

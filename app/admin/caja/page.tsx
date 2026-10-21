@@ -35,6 +35,31 @@ function bogotaDate() {
   }).format(new Date());
 }
 
+type ExpenseRow = {
+  id: string;
+  fecha: string;
+  descripcion: string;
+  valor: number | string | null;
+  medio_pago: string | null;
+  comprobante: string | null;
+  recurrente: boolean;
+  estado: string;
+  categorias_gasto: { nombre?: string } | { nombre?: string }[] | null;
+};
+
+type ClosureRow = {
+  id: string;
+  fecha: string;
+  ventas_aprobadas: number | string | null;
+  reembolsos: number | string | null;
+  gastos: number | string | null;
+  comisiones_pagadas: number | string | null;
+  saldo_esperado: number | string | null;
+  saldo_reportado: number | string | null;
+  diferencia: number | string | null;
+  creado_en: string;
+};
+
 export default async function CajaPage() {
   await requireAdmin();
   const supabase = supabaseAdmin;
@@ -84,8 +109,8 @@ export default async function CajaPage() {
     todayResult.error;
 
   const categories = (categoriesResult.data ?? []) as { id: string; nombre: string }[];
-  const expenses = (expensesResult.data ?? []) as Array<Record<string, any>>;
-  const closures = (closuresResult.data ?? []) as Array<Record<string, any>>;
+  const expenses = (expensesResult.data ?? []) as ExpenseRow[];
+  const closures = (closuresResult.data ?? []) as ClosureRow[];
   const monthRows = (monthResult.data ?? []) as { valor: number | string | null }[];
   const todayRows = (todayResult.data ?? []) as { valor: number | string | null }[];
   const monthTotal = monthRows.reduce(

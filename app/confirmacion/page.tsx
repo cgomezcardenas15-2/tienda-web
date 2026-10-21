@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useCart } from "../context/CartContext";
@@ -21,10 +22,10 @@ export default function ConfirmacionPage() {
     <>
       <Navbar />
 
-      <main className="min-h-screen bg-[#080a08] px-6 py-14 text-white lg:px-10">
+      <main className="min-h-screen bg-[#080a08] px-4 py-10 text-white sm:px-6 sm:py-14 lg:px-10">
         <div className="mx-auto max-w-5xl">
           {/* Encabezado */}
-          <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.035] p-8 sm:p-10 lg:p-12">
+          <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.035] p-6 sm:p-10 lg:p-12">
             <div className="pointer-events-none absolute right-0 top-0 h-80 w-80 rounded-full bg-[#82f000]/10 blur-[120px]" />
 
             <div className="relative">
@@ -36,14 +37,14 @@ export default function ConfirmacionPage() {
                 Confirmación NOVA
               </p>
 
-              <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">
+              <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-5xl">
                 Tu pedido está casi listo
               </h1>
 
               <p className="mt-5 max-w-2xl text-base leading-7 text-white/50">
-                Esta pantalla ya está preparada para mostrar la confirmación
-                final de una compra. Durante esta etapa de desarrollo todavía
-                no se realiza ningún cobro ni se genera un pedido definitivo.
+                Revisa el estado de tu compra. La confirmación definitiva y el
+                número del pedido se muestran después de que Wompi apruebe el
+                pago.
               </p>
             </div>
           </section>
@@ -57,17 +58,17 @@ export default function ConfirmacionPage() {
 
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-400">
-                  Pago pendiente de integración
+                  Pago pendiente
                 </p>
 
                 <h2 className="mt-2 text-xl font-semibold">
-                  Todavía no se ha realizado ningún cobro
+                  Completa el pago para confirmar el pedido
                 </h2>
 
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-white/45">
-                  Cuando conectemos la pasarela de pagos real, esta página solo
-                  se mostrará después de que NOVA reciba la confirmación segura
-                  de que la transacción fue aprobada.
+                  Si todavía no has pagado, vuelve al checkout para continuar
+                  de forma segura con Wompi. Si ya pagaste, consulta tu pedido
+                  con el número enviado a tu correo.
                 </p>
               </div>
             </div>
@@ -89,7 +90,7 @@ export default function ConfirmacionPage() {
               <div className="mt-6 space-y-4">
                 {items.map((item) => (
                   <div
-                    key={item.id}
+                    key={`${item.id}:${item.varianteId || "base"}`}
                     className="flex flex-col gap-3 rounded-2xl border border-white/[0.07] bg-black/10 p-5 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
@@ -109,19 +110,19 @@ export default function ConfirmacionPage() {
                 ))}
               </div>
 
-              <div className="mt-6 flex items-end justify-between border-t border-white/[0.08] pt-6">
+              <div className="mt-6 flex flex-wrap items-end justify-between gap-3 border-t border-white/[0.08] pt-6">
                 <span className="text-sm text-white/50">
                   Total provisional
                 </span>
 
-                <span className="text-3xl font-bold text-[#82f000]">
+                <span className="text-2xl font-bold text-[#82f000] sm:text-3xl">
                   {formatoPesos(subtotal)}
                 </span>
               </div>
             </section>
           )}
 
-          {/* Lo que ocurrirá en producción */}
+          {/* Proceso de la compra */}
           <section className="mt-6 grid gap-4 sm:grid-cols-3">
             <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
               <span className="text-[#82f000]">01</span>
@@ -131,8 +132,7 @@ export default function ConfirmacionPage() {
               </h3>
 
               <p className="mt-2 text-sm leading-6 text-white/40">
-                El proveedor de pagos confirmará la transacción de forma
-                segura.
+                Wompi confirma la transacción de forma segura.
               </p>
             </div>
 
@@ -163,20 +163,20 @@ export default function ConfirmacionPage() {
           </section>
 
           {/* Navegación */}
-          <div className="mt-8 flex flex-wrap gap-4">
-            <a
+          <div className="mt-8 grid gap-3 min-[440px]:flex min-[440px]:flex-wrap sm:gap-4">
+            <Link
               href="/"
               className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-[#82f000] px-6 py-3 font-bold text-black transition hover:bg-[#9cff35]"
             >
               Volver al inicio
-            </a>
+            </Link>
 
-            <a
+            <Link
               href="/carrito"
               className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-white/15 px-6 py-3 font-semibold text-white transition hover:border-[#82f000]/50 hover:text-[#82f000]"
             >
               Volver al carrito
-            </a>
+            </Link>
           </div>
         </div>
       </main>

@@ -1,4 +1,5 @@
 import Footer from "./Footer";
+import Link from "next/link";
 import { IDENTIDAD_COMERCIAL } from "../lib/identidadComercial";
 
 type LegalSection = { title: string; paragraphs?: string[]; items?: string[] };
@@ -13,11 +14,11 @@ export default function LegalPage({ eyebrow, title, intro, sections }: {
     <div className="min-h-screen bg-[#080a08] text-white">
       <header className="border-b border-white/10 bg-[#050705]">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
-          <a href="/" className="flex items-center gap-3" aria-label="Volver al inicio de NOVA">
+          <Link href="/" className="flex items-center gap-3" aria-label="Volver al inicio de NOVA">
             <img src="/nova-symbol.png" alt="" className="h-9 w-9 object-contain" />
             <span className="font-black tracking-[0.22em]">NOVA</span>
-          </a>
-          <a href="/" className="text-sm font-semibold text-[#82f000] hover:text-[#9cff35]">← Volver a la tienda</a>
+          </Link>
+          <Link href="/" className="text-sm font-semibold text-[#82f000] hover:text-[#9cff35]">← Volver a la tienda</Link>
         </div>
       </header>
 

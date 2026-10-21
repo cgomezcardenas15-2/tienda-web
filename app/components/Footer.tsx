@@ -16,8 +16,8 @@ export default function Footer() {
   return (
     <footer className="relative overflow-hidden border-t border-white/[0.08] bg-[#050705] text-white">
       <div className="pointer-events-none absolute -bottom-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-[#82f000]/[0.06] blur-[110px]" />
-      <div className="relative mx-auto max-w-7xl px-6 py-14 lg:px-10">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr]">
+      <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-10">
+        <div className="grid gap-8 sm:gap-10 md:grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr]">
           {/* Marca */}
           <div>
             <div className="flex items-center gap-3">
@@ -49,16 +49,16 @@ export default function Footer() {
             <h3 className="text-sm font-semibold text-white">Explorar</h3>
 
             <div className="mt-5 flex flex-col gap-3 text-sm text-white/45">
-              <a href="/#productos" className="transition hover:text-[#82f000]">
+              <Link href="/#productos" className="transition hover:text-[#82f000]">
                 Todos los productos
-              </a>
-              <a href="/#categorias" className="transition hover:text-[#82f000]">
+              </Link>
+              <Link href="/#categorias" className="transition hover:text-[#82f000]">
                 Categorías
-              </a>
-              {categorias.map((categoria) => <a key={categoria.id} href={`/categoria/${categoria.slug}`} className="transition hover:text-[#82f000]">{categoria.nombre}</a>)}
-              <a href="/carrito" className="transition hover:text-[#82f000]">
+              </Link>
+              {categorias.map((categoria) => <Link key={categoria.id} href={`/categoria/${categoria.slug}`} className="transition hover:text-[#82f000]">{categoria.nombre}</Link>)}
+              <Link href="/carrito" className="transition hover:text-[#82f000]">
                 Mi carrito
-              </a>
+              </Link>
               <Link href="/lo-quiero" className="font-semibold text-[#82f000] transition hover:text-[#a3ff3d]">
                 Lo quiero
               </Link>
@@ -70,15 +70,15 @@ export default function Footer() {
             <h3 className="text-sm font-semibold text-white">Información legal</h3>
 
             <div className="mt-5 flex flex-col gap-3 text-sm text-white/45">
-              <a href="/terminos" className="transition hover:text-[#82f000]">
+              <Link href="/terminos" className="transition hover:text-[#82f000]">
                 Términos y condiciones
-              </a>
-              <a href="/privacidad" className="transition hover:text-[#82f000]">
+              </Link>
+              <Link href="/privacidad" className="transition hover:text-[#82f000]">
                 Privacidad y datos personales
-              </a>
-              <a href="/cookies" className="transition hover:text-[#82f000]">
+              </Link>
+              <Link href="/cookies" className="transition hover:text-[#82f000]">
                 Política de cookies
-              </a>
+              </Link>
               <a href="https://www.sic.gov.co/" target="_blank" rel="noreferrer" className="transition hover:text-[#82f000]">
                 Protección al consumidor ↗
               </a>
@@ -93,17 +93,17 @@ export default function Footer() {
           </p>
 
           <div className="flex flex-wrap gap-5">
-            <a href="/terminos" className="transition hover:text-white/60">
+            <Link href="/terminos" className="transition hover:text-white/60">
               Términos
-            </a>
+            </Link>
 
-            <a href="/privacidad" className="transition hover:text-white/60">
+            <Link href="/privacidad" className="transition hover:text-white/60">
               Privacidad
-            </a>
+            </Link>
 
-            <a href="/cookies" className="transition hover:text-white/60">
+            <Link href="/cookies" className="transition hover:text-white/60">
               Cookies
-            </a>
+            </Link>
           </div>
         </div>
       </div>

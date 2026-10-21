@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "../lib/supabase";
 import { CATEGORIAS_PREDETERMINADAS, type CategoriaProducto } from "../lib/categoriasProducto";
 
@@ -14,14 +15,14 @@ export default function Categories() {
   return (
     <section
       id="categorias"
-      className="relative scroll-mt-40 overflow-hidden bg-[#0b0d0b] px-6 py-20 text-white"
+      className="relative scroll-mt-40 overflow-hidden bg-[#0b0d0b] px-4 py-12 text-white sm:px-6 sm:py-16 lg:py-20"
     >
       {/* Iluminación decorativa */}
       <div className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-[#82f000]/5 blur-[120px]" />
 
       <div className="relative mx-auto max-w-7xl">
         {/* Encabezado */}
-        <div className="mb-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="mb-8 flex flex-col gap-4 sm:mb-12 md:flex-row md:items-end md:justify-between">
           <div>
             <span className="text-sm font-bold uppercase tracking-[0.2em] text-[#82f000]">
               Explora NOVA
@@ -37,22 +38,22 @@ export default function Categories() {
             </p>
           </div>
 
-          <a
+          <Link
             href="/#productos"
             className="group inline-flex w-fit items-center gap-2 text-sm font-semibold text-white/60 transition hover:text-[#82f000]"
           >
             Ver todos los productos
             <span className="transition group-hover:translate-x-1">→</span>
-          </a>
+          </Link>
         </div>
 
         {/* Tarjetas de categorías */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 min-[500px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {tarjetas.map((categoria) => (
-            <a
+            <Link
               key={categoria.nombre}
               href={categoria.href}
-              className={`group relative block min-h-[205px] cursor-pointer overflow-hidden rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-1 ${
+              className={`group relative block min-h-[185px] cursor-pointer overflow-hidden rounded-2xl border p-5 transition-all duration-300 hover:-translate-y-1 sm:min-h-[205px] sm:p-6 ${
                 categoria.oferta
                   ? "border-orange-500/30 bg-gradient-to-br from-orange-500/10 to-white/[0.03] hover:border-orange-400/70"
                   : "border-white/10 bg-white/[0.035] hover:border-[#82f000]/60 hover:bg-[#82f000]/[0.055]"
@@ -106,7 +107,7 @@ export default function Categories() {
                   {categoria.descripcion}
                 </p>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
 

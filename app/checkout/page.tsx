@@ -316,6 +316,7 @@ export default function CheckoutPage() {
     useState("");
 
   const iniciandoPagoRef = useRef(false);
+  const resumenErroresRef = useRef<HTMLDivElement>(null);
   const pedidoPendienteRef = useRef<string | null>(null);
   const claveIdempotenciaRef = useRef<string | null>(null);
 
@@ -1105,6 +1106,12 @@ export default function CheckoutPage() {
     setValidacionServidor(null);
 
     if (!validarFormulario()) {
+      window.requestAnimationFrame(() => {
+        resumenErroresRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      });
       return;
     }
 
@@ -1430,11 +1437,11 @@ export default function CheckoutPage() {
     <>
       <Navbar />
 
-      <main className="min-h-screen bg-[#080a08] px-6 py-14 text-white lg:px-10">
+      <main className="min-h-screen bg-[#080a08] px-4 py-10 text-white sm:px-6 sm:py-14 lg:px-10">
         <div className="mx-auto max-w-7xl">
           {/* ENCABEZADO */}
 
-          <div className="mb-10">
+          <div className="mb-8 sm:mb-10">
             <span className="text-sm font-bold uppercase tracking-[0.22em] text-[#82f000]">
               Finaliza tu compra
             </span>
@@ -1447,14 +1454,14 @@ export default function CheckoutPage() {
               Completa tus datos, calcula el
               envío y revisa toda la
               información antes de continuar al
-              futuro proceso de pago.
+              pago seguro con Wompi.
             </p>
           </div>
 
           {!carritoCargado ? (
             <section
               aria-live="polite"
-              className="rounded-3xl border border-white/10 bg-white/[0.03] p-10 text-center"
+              className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-center sm:p-10"
             >
               <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/15 border-t-[#82f000]" />
               <p className="mt-5 text-sm text-white/50">
@@ -1462,7 +1469,7 @@ export default function CheckoutPage() {
               </p>
             </section>
           ) : carritoVacio ? (
-            <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-10 text-center">
+            <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-center sm:p-10">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-[#82f000]/30 bg-[#82f000]/10 text-3xl">
                 🛒
               </div>
@@ -1493,7 +1500,7 @@ export default function CheckoutPage() {
               <section className="space-y-6">
                 {/* PASO 1 */}
 
-                <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 sm:p-8">
+                <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 sm:p-8">
                   <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#82f000]">
                     Paso 1
                   </span>
@@ -1573,7 +1580,7 @@ export default function CheckoutPage() {
 
                 {/* PASO 2 */}
 
-                <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 sm:p-8">
+                <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 sm:p-8">
                   <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#82f000]">
                     Paso 2
                   </span>
@@ -1678,7 +1685,7 @@ export default function CheckoutPage() {
 
                 {/* PASO 3 */}
 
-                <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 sm:p-8">
+                <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 sm:p-8">
                   <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#82f000]">
                     Paso 3
                   </span>
@@ -1836,7 +1843,7 @@ export default function CheckoutPage() {
 
                 {/* PASO 4 */}
 
-                <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 sm:p-8">
+                <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 sm:p-8">
                   <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#82f000]">
                     Paso 4
                   </span>
@@ -2116,7 +2123,7 @@ export default function CheckoutPage() {
 
                 {/* PASO 5 */}
 
-                <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 sm:p-8">
+                <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 sm:p-8">
                   <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#82f000]">
                     Paso 5
                   </span>
@@ -2126,9 +2133,8 @@ export default function CheckoutPage() {
                   </h2>
 
                   <p className="mt-2 text-sm leading-6 text-white/40">
-                    Esta sección está preparada
-                    para la futura integración de
-                    la pasarela de pago real.
+                    El pago se procesa de forma
+                    segura mediante Wompi.
                   </p>
 
                   <div className="mt-6 flex items-start gap-4 rounded-2xl border border-[#82f000]/20 bg-[#82f000]/[0.045] p-5">
@@ -2138,16 +2144,14 @@ export default function CheckoutPage() {
 
                     <div>
                       <p className="text-sm font-semibold">
-                        Sin cobros durante el
-                        desarrollo
+                        Pago protegido por Wompi
                       </p>
 
                       <p className="mt-1 text-sm leading-6 text-white/40">
-                        No se creará un pedido
-                        definitivo hasta que un
-                        proveedor de pagos real
-                        confirme una transacción
-                        exitosa.
+                        Tu pedido se confirmará
+                        únicamente cuando Wompi
+                        informe que la transacción
+                        fue aprobada.
                       </p>
                     </div>
                   </div>
@@ -2165,7 +2169,7 @@ export default function CheckoutPage() {
                       : "border-white/10 bg-white/[0.035]")
                   }
                 >
-                  <div className="p-6">
+                  <div className="p-5 sm:p-6">
                     <div className="flex items-center justify-between gap-4">
                       <div>
                         <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#82f000]">
@@ -2294,7 +2298,7 @@ export default function CheckoutPage() {
                       )}
                     </div>
 
-                    <div className="mt-6 flex items-end justify-between gap-3">
+                    <div className="mt-6 flex flex-wrap items-end justify-between gap-3">
                       <span className="text-sm text-white/50">
                         {validacionServidor
                           ? "Total validado"
@@ -2303,12 +2307,23 @@ export default function CheckoutPage() {
                             : "Total provisional"}
                       </span>
 
-                      <span className="text-3xl font-bold text-[#82f000]">
+                      <span className="break-words text-2xl font-bold text-[#82f000] sm:text-3xl">
                         {formatoPesos(
                           totalFinal
                         )}
                       </span>
                     </div>
+
+                    {Object.keys(errores).length > 0 && (
+                      <div ref={resumenErroresRef} role="alert" className="mt-5 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] p-4">
+                        <p className="text-xs font-bold uppercase tracking-[0.14em] text-amber-300">
+                          Revisa los datos marcados
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-amber-100/80">
+                          Encontramos {Object.keys(errores).length} {Object.keys(errores).length === 1 ? "campo pendiente" : "campos pendientes"}. Corrígelos para continuar al pago.
+                        </p>
+                      </div>
+                    )}
 
                     {errorServidor && (
                       <div className="mt-5 rounded-xl border border-red-500/25 bg-red-500/[0.07] p-4">
@@ -2346,8 +2361,8 @@ export default function CheckoutPage() {
                           productos, precios,
                           disponibilidad y envío
                           directamente con el
-                          servidor. No se realizará
-                          ningún cobro.
+                          servidor. Esta revisión
+                          todavía no realiza el cobro.
                         </p>
                       </>
                     )}
@@ -2356,7 +2371,7 @@ export default function CheckoutPage() {
                   {/* REVISIÓN */}
 
                   {datosConfirmados && (
-                    <div className="border-t border-[#82f000]/15 bg-black/15 p-6">
+                    <div className="border-t border-[#82f000]/15 bg-black/15 p-5 sm:p-6">
                       <div className="flex items-start gap-3">
                         <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#82f000]/10 text-[#82f000]">
                           ✓
@@ -2524,11 +2539,10 @@ export default function CheckoutPage() {
 
                         <p className="mt-2 text-xs leading-5 text-white/35">
                           La información ya fue
-                          validada por el servidor,
-                          pero todavía no existe un
-                          pedido definitivo y no se
-                          ha realizado ningún
-                          cobro.
+                          validada. Al continuar,
+                          abrirás Wompi para completar
+                          el pago seguro y confirmar
+                          tu pedido.
                         </p>
                       </div>
 

@@ -32,7 +32,7 @@ export default function Benefits() {
   ];
 
   return (
-    <section className="relative overflow-hidden bg-[#0b0d0b] px-6 py-24 text-white">
+    <section className="relative overflow-hidden bg-[#0b0d0b] px-4 py-12 text-white sm:px-6 sm:py-16 lg:py-24">
       {/* Luces ambientales */}
       <div className="pointer-events-none absolute -left-40 top-10 h-96 w-96 rounded-full bg-[#82f000]/5 blur-[150px]" />
 

@@ -26,14 +26,14 @@ export default async function CategoriaPage({
       <>
         <Navbar />
 
-        <main className="min-h-[70vh] bg-[#080a08] px-6 py-24 text-white">
+        <main className="min-h-[70vh] bg-[#080a08] px-4 py-14 text-white sm:px-6 sm:py-24">
           <div className="mx-auto max-w-7xl">
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-10 text-center">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-center sm:p-10">
               <p className="text-sm font-bold uppercase tracking-[0.25em] text-[#82f000]">
                 NOVA
               </p>
 
-              <h1 className="mt-4 text-4xl font-bold">
+              <h1 className="mt-4 text-3xl font-bold sm:text-4xl">
                 Categoría no encontrada
               </h1>
 
@@ -64,7 +64,7 @@ export default async function CategoriaPage({
         <section className="relative overflow-hidden border-b border-white/10">
           <div className="pointer-events-none absolute right-0 top-0 h-[450px] w-[450px] rounded-full bg-[#82f000]/10 blur-[150px]" />
 
-          <div className="relative mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-24">
+          <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-24">
             <Link
               href="/"
               className="inline-flex items-center gap-2 text-sm font-semibold text-white/50 transition hover:text-[#82f000]"
@@ -73,7 +73,7 @@ export default async function CategoriaPage({
               Volver al inicio
             </Link>
 
-            <div className="mt-10 grid items-end gap-10 lg:grid-cols-[1fr_auto]">
+            <div className="mt-8 grid items-end gap-8 sm:mt-10 lg:grid-cols-[1fr_auto] lg:gap-10">
               <div className="max-w-3xl">
                 <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#82f000]/30 bg-[#82f000]/10 text-3xl">
                   {categoria.icono}
@@ -83,7 +83,7 @@ export default async function CategoriaPage({
                   Categoría NOVA
                 </p>
 
-                <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+                <h1 className="mt-4 break-words text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
                   {categoria.nombre}
                 </h1>
 

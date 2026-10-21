@@ -30,7 +30,7 @@ export default function Hero() {
       <div className="pointer-events-none absolute right-[-120px] top-0 h-[620px] w-[620px] rounded-full bg-[#82f000]/10 blur-[170px]" />
 
       {/* Hero principal */}
-      <div className="relative mx-auto grid min-h-[520px] max-w-7xl items-center gap-12 px-6 py-12 lg:grid-cols-2 lg:px-10 lg:py-14">
+      <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 py-10 sm:min-h-[520px] sm:px-6 sm:py-12 lg:grid-cols-2 lg:px-10 lg:py-14">
         {/* Contenido izquierdo */}
         <div className="relative z-20 max-w-xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#82f000]/30 bg-[#82f000]/10 px-4 py-2 text-sm font-semibold text-[#9cff35]">
@@ -38,7 +38,7 @@ export default function Hero() {
             Una forma sencilla de comprar
           </div>
 
-          <h1 className="mt-7 text-5xl font-semibold leading-[1.04] tracking-tight sm:text-6xl lg:text-7xl">
+          <h1 className="mt-6 text-4xl font-semibold leading-[1.05] tracking-tight min-[420px]:text-5xl sm:mt-7 sm:text-6xl lg:text-7xl">
             Todo lo que
             <br />
             necesitas,
@@ -51,17 +51,17 @@ export default function Hero() {
             segura y acompañada.
           </p>
 
-          <div className="mt-9 flex flex-wrap gap-4">
+          <div className="mt-8 grid gap-3 min-[440px]:flex min-[440px]:flex-wrap sm:mt-9 sm:gap-4">
             <a
               href="#productos"
-              className="rounded-lg bg-[#82f000] px-7 py-3.5 font-bold text-black shadow-[0_10px_35px_rgba(130,240,0,0.18)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#9cff35]"
+              className="min-h-12 rounded-lg bg-[#82f000] px-7 py-3.5 text-center font-bold text-black shadow-[0_10px_35px_rgba(130,240,0,0.18)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#9cff35]"
             >
               Comprar ahora
             </a>
 
             <a
               href="#categorias"
-              className="rounded-lg border border-white/20 bg-white/[0.02] px-7 py-3.5 font-semibold text-white transition duration-300 hover:border-[#82f000] hover:text-[#82f000]"
+              className="min-h-12 rounded-lg border border-white/20 bg-white/[0.02] px-7 py-3.5 text-center font-semibold text-white transition duration-300 hover:border-[#82f000] hover:text-[#82f000]"
             >
               Ver categorías
             </a>
@@ -82,11 +82,11 @@ export default function Hero() {
 
       {/* Franja de confianza */}
       <div className="relative border-y border-white/[0.07] bg-white/[0.025]">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 divide-y divide-white/[0.07] px-6 sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4 lg:px-10">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 divide-y divide-white/[0.07] px-4 sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:px-6 lg:grid-cols-4 lg:px-10">
           {beneficios.map((beneficio) => (
             <div
               key={beneficio.titulo}
-              className="group flex min-h-[110px] items-center gap-4 px-3 py-5 transition hover:bg-white/[0.025] sm:px-5"
+              className="group flex min-h-[96px] items-center gap-4 px-2 py-4 transition hover:bg-white/[0.025] sm:min-h-[110px] sm:px-5 sm:py-5"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#82f000]/25 bg-[#82f000]/10 text-sm font-bold text-[#82f000] transition group-hover:border-[#82f000]/60 group-hover:bg-[#82f000]/15">
                 {beneficio.icono}

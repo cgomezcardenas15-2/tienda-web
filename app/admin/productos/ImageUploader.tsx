@@ -83,7 +83,7 @@ export default function ImageUploader({
         >
           {!value && <div className="flex h-full items-center justify-center text-4xl text-zinc-600">📷</div>}
         </div>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <input
             ref={inputRef}
             type="file"
@@ -91,24 +91,26 @@ export default function ImageUploader({
             className="hidden"
             onChange={seleccionar}
           />
-          <button
-            type="button"
-            disabled={subiendo}
-            onClick={() => inputRef.current?.click()}
-            className="rounded-xl bg-lime-400 px-5 py-3 font-black text-black transition hover:bg-lime-300 disabled:opacity-50"
-          >
-            {subiendo ? "Subiendo fotografía..." : value ? "Cambiar fotografía" : "Elegir fotografía"}
-          </button>
-          {value && (
+          <div className="grid gap-2 min-[440px]:flex min-[440px]:flex-wrap">
             <button
               type="button"
               disabled={subiendo}
-              onClick={() => onChange("")}
-              className="ml-3 rounded-xl border border-zinc-700 px-4 py-3 font-bold text-zinc-300"
+              onClick={() => inputRef.current?.click()}
+              className="min-h-12 rounded-xl bg-lime-400 px-5 py-3 font-black text-black transition hover:bg-lime-300 disabled:opacity-50"
             >
-              Quitar
+              {subiendo ? "Subiendo fotografía..." : value ? "Cambiar fotografía" : "Elegir fotografía"}
             </button>
-          )}
+            {value && (
+              <button
+                type="button"
+                disabled={subiendo}
+                onClick={() => onChange("")}
+                className="min-h-12 rounded-xl border border-zinc-700 px-4 py-3 font-bold text-zinc-300"
+              >
+                Quitar
+              </button>
+            )}
+          </div>
           <p className="mt-3 text-xs text-zinc-500">JPG, PNG o WEBP · máximo 8 MB. La tienda la optimiza automáticamente.</p>
           {error && <p className="mt-2 text-sm text-red-300">{error}</p>}
         </div>
