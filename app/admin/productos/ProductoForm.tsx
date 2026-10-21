@@ -2,6 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ColorStockNuevo } from "@/app/lib/coloresProducto";
+import ColorStockFields from "./ColorStockFields";
 import ImageUploader from "./ImageUploader";
 
 type ProductoEditable = {
@@ -27,6 +29,8 @@ type CategoriaOpcion = { nombre: string; activo: boolean };
 
 export default function ProductoForm({ producto, categorias }: { producto?: ProductoEditable; categorias: CategoriaOpcion[] }) {
   const router = useRouter();
+  const [tieneColores, setTieneColores] = useState(false);
+  const [colores, setColores] = useState<ColorStockNuevo[]>([]);
   const [form, setForm] = useState({
     nombre: producto?.nombre ?? "",
     sku: producto?.sku ?? "",
@@ -54,12 +58,35 @@ export default function ProductoForm({ producto, categorias }: { producto?: Prod
     setMensaje("");
     setEsError(false);
 
+    if (!producto && tieneColores && colores.length === 0) {
+      setGuardando(false);
+      setEsError(true);
+      setMensaje("Selecciona al menos un color y asigna sus existencias.");
+      return;
+    }
+    if (!producto && tieneColores) {
+      const nombres = colores.map((item) => item.nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase());
+      const tonos = colores.map((item) => item.color.toLowerCase());
+      if (new Set(nombres).size !== nombres.length || new Set(tonos).size !== tonos.length) {
+        setGuardando(false);
+        setEsError(true);
+        setMensaje("No repitas nombres ni tonos dentro del mismo producto.");
+        return;
+      }
+    }
+
     const respuesta = await fetch(
       producto ? `/api/admin/productos/${producto.id}` : "/api/admin/productos",
       {
         method: producto ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          controla_stock: tieneColores ? true : form.controla_stock,
+          stock: tieneColores ? "0" : form.stock,
+          usa_variantes: !producto && tieneColores,
+          variantes: !producto && tieneColores ? colores : [],
+        }),
       },
     );
     const data = await respuesta.json().catch(() => ({}));
@@ -82,7 +109,7 @@ export default function ProductoForm({ producto, categorias }: { producto?: Prod
   const campo = "mt-2 w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-lime-400";
 
   return (
-    <form onSubmit={guardar} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+    <form onSubmit={guardar} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-black">{producto ? "Información del producto" : "Crear producto"}</h2>
@@ -111,9 +138,31 @@ export default function ProductoForm({ producto, categorias }: { producto?: Prod
         <label className="text-sm text-zinc-400">Precio anterior (opcional)
           <input min="0" step="1" type="number" className={campo} value={form.precio_anterior} onChange={(e) => setForm({ ...form, precio_anterior: e.target.value })} placeholder="39900" />
         </label>
-        <label className="text-sm text-zinc-400">Stock base
+        {!producto && <section className="sm:col-span-2 rounded-2xl border border-zinc-700 bg-black/30 p-4">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={tieneColores}
+              onChange={(event) => {
+                if (!event.target.checked && colores.length > 0 && !window.confirm("¿Quitar los colores agregados y volver a manejar un solo stock?")) return;
+                setTieneColores(event.target.checked);
+                if (event.target.checked) setForm((actual) => ({ ...actual, controla_stock: true }));
+                else setColores([]);
+              }}
+            />
+            <span>
+              <strong className="block text-sm text-white">Este producto viene en varios colores</strong>
+              <span className="mt-1 block text-xs leading-5 text-zinc-500">Podrás escoger los tonos y definir cuántas unidades hay de cada uno antes de crear el producto.</span>
+            </span>
+          </label>
+        </section>}
+        {(!tieneColores || producto) && <label className="text-sm text-zinc-400">Stock base
           <input required min="0" step="1" type="number" disabled={!form.controla_stock} className={`${campo} disabled:opacity-40`} value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
-        </label>
+        </label>}
+        {!producto && tieneColores && (
+          <ColorStockFields skuBase={form.sku} colores={colores} onChange={setColores} />
+        )}
         {form.venta_mayorista && <>
           <label className="text-sm text-zinc-400">Precio mayorista por unidad
             <input required min="0" step="1" type="number" className={campo} value={form.precio_mayorista} onChange={(e) => setForm({ ...form, precio_mayorista: e.target.value })} placeholder="Ej: 11900" />
@@ -132,7 +181,7 @@ export default function ProductoForm({ producto, categorias }: { producto?: Prod
       </div>
 
       <div className="mt-6 grid gap-3 rounded-xl border border-zinc-800 bg-black/30 p-4 sm:grid-cols-2">
-        <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" checked={form.controla_stock} onChange={(e) => setForm({ ...form, controla_stock: e.target.checked })} /> Controlar existencias</label>
+        <label className={`flex items-center gap-3 text-sm ${tieneColores ? "cursor-not-allowed text-zinc-500" : "cursor-pointer"}`}><input type="checkbox" disabled={tieneColores} checked={tieneColores || form.controla_stock} onChange={(e) => setForm({ ...form, controla_stock: e.target.checked })} /> {tieneColores ? "Controlar existencias por color" : "Controlar existencias"}</label>
         <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" checked={form.destacado} onChange={(e) => setForm({ ...form, destacado: e.target.checked })} /> Mostrar como destacado</label>
         <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" checked={form.en_oferta} onChange={(e) => setForm({ ...form, en_oferta: e.target.checked })} /> Marcar como oferta</label>
         <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" checked={form.activo} onChange={(e) => setForm({ ...form, activo: e.target.checked })} /> Mostrar producto en la tienda</label>
@@ -142,7 +191,7 @@ export default function ProductoForm({ producto, categorias }: { producto?: Prod
       {!form.activo && <p className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-200">El producto quedará suspendido: conservará sus datos, pero no aparecerá ni podrá comprarse.</p>}
       {mensaje && <p className={`mt-4 text-sm ${esError ? "text-red-300" : "text-lime-300"}`}>{mensaje}</p>}
       <button disabled={guardando} className="mt-6 cursor-pointer rounded-xl bg-lime-400 px-6 py-3 font-black text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-50">
-        {guardando ? "Guardando..." : producto ? "Guardar cambios" : "Crear producto"}
+        {guardando ? "Guardando..." : producto ? "Guardar cambios" : tieneColores ? "Crear producto con colores" : "Crear producto"}
       </button>
     </form>
   );

@@ -18,6 +18,16 @@ export default async function ProductosAdminPage() {
     actuales.push(variante);
     variantesPorProducto.set(variante.producto_id, actuales);
   }
+  const stockPorColores = new Map<string, number>();
+  for (const [productoId, opciones] of variantesPorProducto) {
+    const activas = (opciones ?? []).filter((variante) => variante.activo);
+    if (activas.length > 0) {
+      stockPorColores.set(
+        productoId,
+        activas.reduce((total, variante) => total + (variante.controla_stock ? Number(variante.stock) : 0), 0),
+      );
+    }
+  }
   const existencias = (productos ?? []).flatMap((producto) => {
     const opciones = (variantesPorProducto.get(producto.id) ?? []).filter((variante) => variante.activo);
     return opciones.length > 0
@@ -41,7 +51,7 @@ export default async function ProductosAdminPage() {
       <div className="mt-7 grid gap-4 md:grid-cols-2">{(productos ?? []).map((producto) =>
         <article key={producto.id} className="flex flex-col items-stretch gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 min-[440px]:flex-row min-[440px]:items-center">
           {producto.imagen_url ? <div className="h-16 w-16 shrink-0 rounded-xl bg-white bg-contain bg-center bg-no-repeat" style={{backgroundImage:`url(${JSON.stringify(producto.imagen_url)})`}} /> : <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-zinc-800">📦</div>}
-          <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="break-words font-black">{producto.nombre}</h2><span className={`rounded-full px-2 py-1 text-[10px] font-black ${producto.activo ? "bg-lime-400/15 text-lime-300" : "bg-amber-400/15 text-amber-300"}`}>{producto.activo ? "VISIBLE" : "SUSPENDIDO"}</span>{producto.en_oferta && <span className="rounded-full bg-orange-400/15 px-2 py-1 text-[10px] font-black text-orange-300">OFERTA</span>}</div><p className="mt-1 break-words text-xs text-zinc-500">{producto.categoria} · SKU: {producto.sku || "Sin SKU"} · Stock: {producto.stock} · ${Number(producto.precio).toLocaleString("es-CO")}</p><p className="mt-2 text-sm font-bold text-lime-400">{conteo.get(producto.id) ?? 0} variantes</p></div>
+          <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="break-words font-black">{producto.nombre}</h2><span className={`rounded-full px-2 py-1 text-[10px] font-black ${producto.activo ? "bg-lime-400/15 text-lime-300" : "bg-amber-400/15 text-amber-300"}`}>{producto.activo ? "VISIBLE" : "SUSPENDIDO"}</span>{producto.en_oferta && <span className="rounded-full bg-orange-400/15 px-2 py-1 text-[10px] font-black text-orange-300">OFERTA</span>}</div><p className="mt-1 break-words text-xs text-zinc-500">{producto.categoria} · SKU: {producto.sku || "Sin SKU"} · {stockPorColores.has(producto.id) ? "Stock total de variantes" : "Stock"}: {stockPorColores.get(producto.id) ?? producto.stock} · ${Number(producto.precio).toLocaleString("es-CO")}</p><p className="mt-2 text-sm font-bold text-lime-400">{conteo.get(producto.id) ?? 0} variantes</p></div>
           <Link href={`/admin/productos/${producto.id}`} className="min-h-11 rounded-xl bg-lime-400 px-4 py-2.5 text-center text-sm font-black text-black hover:bg-lime-300">Administrar</Link>
         </article>)}
       </div>}
