@@ -153,7 +153,7 @@ export async function POST(request: Request) {
       estado: resultado.estado,
     });
 
-    if (resultado.aprobado) {
+    if (resultado.aprobado && !resultado.duplicado) {
       await enviarAlertaWhatsAppAdmin(
         "pago_aprobado",
         idTransaccion,

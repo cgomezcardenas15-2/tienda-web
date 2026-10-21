@@ -85,15 +85,18 @@ end $$;
 create or replace function public.confirmar_pago_wompi(p_pedido_id uuid,p_transaccion_id text,
   p_referencia_pedido text,p_monto_centavos integer,p_moneda text)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare v_pago_id uuid; v_total numeric; v_moneda text; v_referencia text; v_reserva text;
+declare v_pago_id uuid; v_total numeric; v_moneda text; v_referencia text; v_reserva text; v_estado_pago text;
   v_linea record; v_lineas integer:=0; v_controla boolean; v_stock integer;
 begin
   if p_transaccion_id is null or btrim(p_transaccion_id)='' then raise exception 'Transacción inválida'; end if;
-  select total,moneda,referencia_pago,reserva_estado into v_total,v_moneda,v_referencia,v_reserva
+  select total,moneda,referencia_pago,reserva_estado,estado_pago into v_total,v_moneda,v_referencia,v_reserva,v_estado_pago
   from public.pedidos where id=p_pedido_id for update;
   if not found then raise exception 'El pedido no existe'; end if;
   if v_referencia is distinct from p_referencia_pedido or round(v_total*100)::integer<>p_monto_centavos
     or v_moneda is distinct from p_moneda or p_moneda<>'COP' then raise exception 'El pago no coincide'; end if;
+  if v_estado_pago='aprobado' then
+    return jsonb_build_object('procesado',false,'duplicado',true,'pedido_aprobado',true);
+  end if;
   insert into public.pagos_procesados(pedido_id,proveedor,referencia_externa,monto,moneda)
   values(p_pedido_id,'wompi',p_transaccion_id,p_monto_centavos,p_moneda)
   on conflict(proveedor,referencia_externa) do nothing returning id into v_pago_id;

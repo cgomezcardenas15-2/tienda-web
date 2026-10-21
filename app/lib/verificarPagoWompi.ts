@@ -41,6 +41,19 @@ export async function verificarYActualizarPagoWompi(idTransaccion: string) {
     throw new ErrorVerificacionPago("Los datos del pago no coinciden con el pedido.", 409);
   }
 
+  // Un evento atrasado o un segundo intento de pago nunca debe devolver un
+  // pedido ya aprobado a "pendiente", ni volver a consumir inventario.
+  if (data.estado_pago === "aprobado") {
+    return {
+      pedidoId: data.id,
+      numeroPedido: data.numero_pedido,
+      estado: "APPROVED" as const,
+      aprobado: true,
+      duplicado: true,
+      mensaje: null,
+    };
+  }
+
   const estados = {
     APPROVED: { estado_pago: "aprobado", estado_pedido: "pagado" },
     PENDING: { estado_pago: "procesando", estado_pedido: "pendiente_pago" },
@@ -56,7 +69,7 @@ export async function verificarYActualizarPagoWompi(idTransaccion: string) {
   }
 
   if (transaccion.status === "APPROVED") {
-    const { error: errorConfirmacion } = await supabaseAdmin.rpc(
+    const { data: confirmacion, error: errorConfirmacion } = await supabaseAdmin.rpc(
       "confirmar_pago_wompi",
       {
         p_pedido_id: data.id,
@@ -79,12 +92,27 @@ export async function verificarYActualizarPagoWompi(idTransaccion: string) {
 
       throw new Error(`[${codigo}] ${mensaje}`);
     }
+
+    const resultadoConfirmacion = confirmacion as {
+      procesado?: boolean;
+      duplicado?: boolean;
+    } | null;
+
+    return {
+      pedidoId: data.id,
+      numeroPedido: data.numero_pedido,
+      estado: transaccion.status,
+      aprobado: true,
+      duplicado: resultadoConfirmacion?.duplicado === true,
+      mensaje: transaccion.status_message || null,
+    };
   } else {
     const { error: errorActualizacion } = await supabaseAdmin
       .from("pedidos")
       .update(nuevoEstado)
       .eq("id", data.id)
-      .eq("referencia_pago", transaccion.reference);
+      .eq("referencia_pago", transaccion.reference)
+      .neq("estado_pago", "aprobado");
 
     if (errorActualizacion) {
       throw errorActualizacion;
@@ -103,7 +131,8 @@ export async function verificarYActualizarPagoWompi(idTransaccion: string) {
     pedidoId: data.id,
     numeroPedido: data.numero_pedido,
     estado: transaccion.status,
-    aprobado: transaccion.status === "APPROVED",
+    aprobado: false,
+    duplicado: false,
     mensaje: transaccion.status_message || null,
   };
 }
