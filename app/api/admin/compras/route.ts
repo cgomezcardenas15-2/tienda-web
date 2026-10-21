@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdminSession } from "@/app/lib/adminAuth";
+import { getAdminSession, isSameOriginRequest } from "@/app/lib/adminAuth";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 function texto(valor: unknown, limite = 180) { return typeof valor === "string" ? valor.trim().slice(0, limite) : ""; }
@@ -7,6 +7,7 @@ function numero(valor: unknown) { const n = Number(valor); return Number.isFinit
 type LineaCompra = { descripcion: string; sku: string | null; cantidad: number; costo_unitario: number };
 
 export async function POST(request: Request) {
+  if (!isSameOriginRequest(request)) return NextResponse.json({ error: "Solicitud no permitida." }, { status: 403 });
   if (!(await getAdminSession())) return NextResponse.json({ error: "Sesión no válida." }, { status: 401 });
   const body = await request.json();
   const proveedorId = texto(body.proveedor_id, 50);

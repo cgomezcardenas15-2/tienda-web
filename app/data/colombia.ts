@@ -1,7 +1,4 @@
-import {
-  getDepartments,
-  getCitiesByDepartment,
-} from "colombia-cities";
+import colombia from "./datasets/colombia.json";
 
 export type Departamento = {
   nombre: string;
@@ -14,25 +11,25 @@ export type Municipio = {
 };
 
 type DepartamentoLibreria = {
-  id?: number | string;
+  codigo?: number | string;
   nombre?: string;
+  municipios?: MunicipioLibreria[];
 };
 
 type MunicipioLibreria = {
-  id?: number | string;
+  codigo?: number | string;
   nombre?: string;
 };
 
 export function obtenerDepartamentos(): Departamento[] {
-  const departamentos =
-    getDepartments() as DepartamentoLibreria[];
+  const departamentos = colombia.departamentos as DepartamentoLibreria[];
 
   return departamentos
     .map((departamento) => ({
       nombre: departamento.nombre ?? "",
       codigo:
-        departamento.id !== undefined
-          ? String(departamento.id)
+        departamento.codigo !== undefined
+          ? String(departamento.codigo)
           : undefined,
     }))
     .filter(
@@ -51,17 +48,16 @@ export function obtenerMunicipios(
     return [];
   }
 
-  const municipios =
-    getCitiesByDepartment(
-      departamento
-    ) as MunicipioLibreria[];
+  const departamentoEncontrado = (colombia.departamentos as DepartamentoLibreria[])
+    .find((item) => item.nombre?.toLocaleLowerCase("es") === departamento.toLocaleLowerCase("es"));
+  const municipios = departamentoEncontrado?.municipios ?? [];
 
   return municipios
     .map((municipio) => ({
       nombre: municipio.nombre ?? "",
       codigo:
-        municipio.id !== undefined
-          ? String(municipio.id)
+        municipio.codigo !== undefined
+          ? String(municipio.codigo)
           : undefined,
     }))
     .filter(

@@ -3,9 +3,15 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import type { NextRequest } from "next/server";
 
 const COOKIE_NAME = "nova_admin_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 8;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 5;
+
+type LoginAttempt = { count: number; resetAt: number };
+const loginAttempts = new Map<string, LoginAttempt>();
 
 type AdminSession = {
   email: string;
@@ -76,6 +82,50 @@ export function validateAdminCredentials(email: string, password: string) {
     safeEqual(email.trim().toLowerCase(), config.email) &&
     safeEqual(password, config.password)
   );
+}
+
+export function isSameOriginRequest(request: Request) {
+  const origin = request.headers.get("origin");
+  if (!origin) return false;
+
+  try {
+    return new URL(origin).origin === new URL(request.url).origin;
+  } catch {
+    return false;
+  }
+}
+
+function loginAttemptKey(request: NextRequest, email: string) {
+  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const ip = forwardedFor || request.headers.get("x-real-ip") || "desconocida";
+  return `${ip}:${email.trim().toLowerCase()}`;
+}
+
+export function getLoginLimit(request: NextRequest, email: string) {
+  const key = loginAttemptKey(request, email);
+  const now = Date.now();
+  const attempt = loginAttempts.get(key);
+  if (!attempt || attempt.resetAt <= now) {
+    loginAttempts.delete(key);
+    return { blocked: false, retryAfterSeconds: 0 };
+  }
+
+  return {
+    blocked: attempt.count >= LOGIN_MAX_ATTEMPTS,
+    retryAfterSeconds: Math.max(1, Math.ceil((attempt.resetAt - now) / 1000)),
+  };
+}
+
+export function recordFailedLogin(request: NextRequest, email: string) {
+  const key = loginAttemptKey(request, email);
+  const now = Date.now();
+  const current = loginAttempts.get(key);
+  const count = current && current.resetAt > now ? current.count + 1 : 1;
+  loginAttempts.set(key, { count, resetAt: now + LOGIN_WINDOW_MS });
+}
+
+export function clearLoginAttempts(request: NextRequest, email: string) {
+  loginAttempts.delete(loginAttemptKey(request, email));
 }
 
 export async function createAdminSession() {

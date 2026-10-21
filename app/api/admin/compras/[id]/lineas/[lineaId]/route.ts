@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { getAdminSession } from "@/app/lib/adminAuth";
+import { getAdminSession, isSameOriginRequest } from "@/app/lib/adminAuth";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string; lineaId: string }> }) {
+  if (!isSameOriginRequest(request)) return NextResponse.json({ error: "Solicitud no permitida." }, { status: 403 });
   if (!(await getAdminSession())) return NextResponse.json({ error: "Sesión no válida." }, { status: 401 });
   const { id, lineaId } = await params; const body = await request.json();
   const productoId = typeof body.producto_id === "string" ? body.producto_id : "";
