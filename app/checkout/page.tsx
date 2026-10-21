@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -111,6 +112,63 @@ function formatoPesos(valor: number) {
     currency: "COP",
     maximumFractionDigits: 0,
   }).format(valor);
+}
+
+const CLAVE_INTENTO_CHECKOUT = "nova_checkout_intento_v1";
+const DURACION_INTENTO_CHECKOUT = 45 * 60 * 1000;
+
+type IntentoCheckoutGuardado = {
+  huellaCarrito: string;
+  claveIdempotencia: string;
+  pedidoId: string | null;
+  creadoEn: number;
+};
+
+function huellaDelCarrito(
+  productos: Array<{ id: string | number; varianteId?: string; cantidad: number }>
+) {
+  return productos
+    .map((producto) =>
+      `${String(producto.id)}:${producto.varianteId ?? "base"}:${producto.cantidad}`
+    )
+    .sort()
+    .join("|");
+}
+
+function leerIntentoCheckout(huellaCarrito: string): IntentoCheckoutGuardado | null {
+  try {
+    const guardado = window.sessionStorage.getItem(CLAVE_INTENTO_CHECKOUT);
+    if (!guardado) return null;
+    const intento = JSON.parse(guardado) as Partial<IntentoCheckoutGuardado>;
+    const vigente =
+      typeof intento.creadoEn === "number" &&
+      Date.now() - intento.creadoEn < DURACION_INTENTO_CHECKOUT;
+    if (
+      !vigente ||
+      intento.huellaCarrito !== huellaCarrito ||
+      typeof intento.claveIdempotencia !== "string"
+    ) {
+      window.sessionStorage.removeItem(CLAVE_INTENTO_CHECKOUT);
+      return null;
+    }
+    return {
+      huellaCarrito,
+      claveIdempotencia: intento.claveIdempotencia,
+      pedidoId: typeof intento.pedidoId === "string" ? intento.pedidoId : null,
+      creadoEn: Number(intento.creadoEn),
+    };
+  } catch {
+    window.sessionStorage.removeItem(CLAVE_INTENTO_CHECKOUT);
+    return null;
+  }
+}
+
+function guardarIntentoCheckout(intento: IntentoCheckoutGuardado) {
+  window.sessionStorage.setItem(CLAVE_INTENTO_CHECKOUT, JSON.stringify(intento));
+}
+
+function limpiarIntentoCheckout() {
+  window.sessionStorage.removeItem(CLAVE_INTENTO_CHECKOUT);
 }
 
 /*
@@ -261,6 +319,15 @@ export default function CheckoutPage() {
   const pedidoPendienteRef = useRef<string | null>(null);
   const claveIdempotenciaRef = useRef<string | null>(null);
 
+  useEffect(() => {
+    if (!carritoCargado || items.length === 0) return;
+    const huellaCarrito = huellaDelCarrito(items);
+    const intento = leerIntentoCheckout(huellaCarrito);
+    if (!intento) return;
+    claveIdempotenciaRef.current = intento.claveIdempotencia;
+    pedidoPendienteRef.current = intento.pedidoId;
+  }, [carritoCargado, items]);
+
   /*
   |--------------------------------------------------------------------------
   | PEDIDO PREPARADO
@@ -299,6 +366,7 @@ export default function CheckoutPage() {
   function invalidarRevision() {
     pedidoPendienteRef.current = null;
     claveIdempotenciaRef.current = null;
+    limpiarIntentoCheckout();
     setDatosConfirmados(false);
     setPedidoPreparado(null);
     setValidacionServidor(null);
@@ -1177,9 +1245,16 @@ export default function CheckoutPage() {
       let pedidoId = pedidoPendienteRef.current;
 
       if (!pedidoId) {
+        const huellaCarrito = huellaDelCarrito(items);
         const claveIdempotencia =
           claveIdempotenciaRef.current || crypto.randomUUID();
         claveIdempotenciaRef.current = claveIdempotencia;
+        guardarIntentoCheckout({
+          huellaCarrito,
+          claveIdempotencia,
+          pedidoId: null,
+          creadoEn: Date.now(),
+        });
 
         const respuestaPedido = await fetch("/api/pedidos", {
           method: "POST",
@@ -1227,6 +1302,12 @@ export default function CheckoutPage() {
 
         pedidoId = pedido.pedido.id;
         pedidoPendienteRef.current = pedidoId;
+        guardarIntentoCheckout({
+          huellaCarrito,
+          claveIdempotencia,
+          pedidoId,
+          creadoEn: Date.now(),
+        });
       }
 
       const respuestaPago = await fetch("/api/pagos/wompi/iniciar", {
@@ -1395,12 +1476,12 @@ export default function CheckoutPage() {
                 carrito antes de continuar.
               </p>
 
-              <a
+              <Link
                 href="/#productos"
                 className="mt-7 inline-flex cursor-pointer rounded-xl bg-[#82f000] px-6 py-3 font-bold text-black transition hover:bg-[#9cff35]"
               >
                 Ver productos
-              </a>
+              </Link>
             </section>
           ) : (
             <form

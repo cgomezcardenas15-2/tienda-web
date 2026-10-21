@@ -82,6 +82,38 @@ function esUuidValido(valor: string) {
   );
 }
 
+async function consultarPedidoIdempotente(claveIdempotencia: string) {
+  return supabaseAdmin
+    .from("pedidos")
+    .select("id,numero_pedido,reserva_estado")
+    .eq("clave_idempotencia", claveIdempotencia)
+    .maybeSingle();
+}
+
+function respuestaPedidoRepetido(pedido: {
+  id: string;
+  numero_pedido: string;
+  reserva_estado: string;
+}) {
+  if (pedido.reserva_estado === "sin_reserva") {
+    return NextResponse.json(
+      {
+        ok: false,
+        procesando: true,
+        error: "El pedido todavía se está preparando. Intenta continuar nuevamente en unos segundos.",
+      },
+      { status: 409 }
+    );
+  }
+
+  return NextResponse.json({
+    ok: true,
+    repetido: true,
+    pedido: { id: pedido.id, numero_pedido: pedido.numero_pedido },
+    productos: [],
+  });
+}
+
 /*
 |--------------------------------------------------------------------------
 | POST
@@ -498,11 +530,7 @@ export async function POST(request: Request) {
     }
 
     const { data: pedidoExistente, error: errorConsultaExistente } =
-      await supabaseAdmin
-        .from("pedidos")
-        .select("id,numero_pedido")
-        .eq("clave_idempotencia", claveIdempotencia)
-        .maybeSingle();
+      await consultarPedidoIdempotente(claveIdempotencia);
 
     if (errorConsultaExistente) {
       console.error("Error verificando pedido repetido:", errorConsultaExistente);
@@ -513,12 +541,7 @@ export async function POST(request: Request) {
     }
 
     if (pedidoExistente) {
-      return NextResponse.json({
-        ok: true,
-        repetido: true,
-        pedido: pedidoExistente,
-        productos: [],
-      });
+      return respuestaPedidoRepetido(pedidoExistente);
     }
 
     /*
@@ -736,19 +759,11 @@ export async function POST(request: Request) {
       .single();
 
     if (errorPedido?.code === "23505") {
-      const { data: pedidoConcurrente } = await supabaseAdmin
-        .from("pedidos")
-        .select("id,numero_pedido")
-        .eq("clave_idempotencia", claveIdempotencia)
-        .maybeSingle();
+      const { data: pedidoConcurrente } =
+        await consultarPedidoIdempotente(claveIdempotencia);
 
       if (pedidoConcurrente) {
-        return NextResponse.json({
-          ok: true,
-          repetido: true,
-          pedido: pedidoConcurrente,
-          productos: [],
-        });
+        return respuestaPedidoRepetido(pedidoConcurrente);
       }
     }
 
