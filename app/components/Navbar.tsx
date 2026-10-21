@@ -16,10 +16,13 @@ export default function Navbar() {
   const [searchDesktop, setSearchDesktop] = useState("");
   const [searchMobile, setSearchMobile] = useState("");
   const [categorias, setCategorias] = useState<CategoriaProducto[]>([]);
+  const [sugerencias, setSugerencias] = useState<string[]>([]);
 
   useEffect(() => {
     supabase.from("categorias_producto").select("id,nombre,slug,descripcion,icono,activo,orden").order("orden")
       .then(({ data, error }) => setCategorias((error ? CATEGORIAS_PREDETERMINADAS : (data ?? [])) as CategoriaProducto[]));
+    supabase.from("productos").select("nombre").eq("activo", true).order("nombre").limit(200)
+      .then(({ data }) => setSugerencias([...new Set((data ?? []).map((producto) => String(producto.nombre).trim()).filter(Boolean))]));
   }, []);
 
   function buscarProducto(
@@ -42,7 +45,7 @@ export default function Navbar() {
       <div className="mx-auto max-w-7xl px-5 py-4 lg:px-8">
         <div className="flex items-center gap-4 lg:gap-6">
           {/* Logo */}
-          <a
+          <Link
             href="/"
             className="flex shrink-0 cursor-pointer items-center gap-3"
             aria-label="Ir al inicio de NOVA"
@@ -62,7 +65,7 @@ export default function Navbar() {
                 TODO LO QUE NECESITAS
               </p>
             </div>
-          </a>
+          </Link>
 
           {/* Buscador escritorio */}
           <form
@@ -75,6 +78,7 @@ export default function Navbar() {
               </div>
 
               <input
+                list="nova-sugerencias-productos"
                 type="search"
                 value={searchDesktop}
                 onChange={(event) => setSearchDesktop(event.target.value)}
@@ -90,12 +94,15 @@ export default function Navbar() {
                 Buscar
               </button>
             </div>
+            <datalist id="nova-sugerencias-productos">
+              {sugerencias.map((nombre) => <option key={nombre} value={nombre} />)}
+            </datalist>
           </form>
 
           {/* Acciones */}
           <nav className="ml-auto flex items-center gap-1 sm:gap-2">
             {/* Carrito */}
-            <a
+            <Link
               href="/carrito"
               className="relative flex cursor-pointer items-center gap-2 rounded-xl bg-lime-400 px-3.5 py-3 font-bold text-zinc-950 shadow-[0_8px_28px_rgba(163,230,53,0.16)] transition hover:-translate-y-0.5 hover:bg-lime-300 sm:px-4"
               aria-label="Abrir carrito"
@@ -109,7 +116,7 @@ export default function Navbar() {
               <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-bold text-white">
                 {cantidadTotal}
               </span>
-            </a>
+            </Link>
           </nav>
         </div>
 
@@ -124,6 +131,7 @@ export default function Navbar() {
             </div>
 
             <input
+              list="nova-sugerencias-productos"
               type="search"
               value={searchMobile}
               onChange={(event) => setSearchMobile(event.target.value)}
@@ -157,7 +165,7 @@ export default function Navbar() {
             );
           })}
 
-          <a
+          <Link
             href="/?ofertas=1#productos"
             className="group ml-auto inline-flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-xl border border-orange-400/60 bg-gradient-to-r from-orange-500 to-amber-400 px-4 py-2 text-xs font-black uppercase tracking-[0.08em] text-black shadow-[0_0_18px_rgba(251,146,60,0.22)] transition duration-200 hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-[0_0_24px_rgba(251,146,60,0.38)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
@@ -168,7 +176,7 @@ export default function Navbar() {
               ⚡
             </span>
             Ofertas
-          </a>
+          </Link>
         </div>
       </div>
     </header>

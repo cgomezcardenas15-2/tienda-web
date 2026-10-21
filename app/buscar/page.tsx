@@ -37,7 +37,7 @@ export default async function SearchPage({
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-7 text-white/55">
-              {query ? "Revisa los productos que coinciden con tu búsqueda." : "Escribe lo que necesitas en el buscador para comenzar."}
+              {query ? "Buscamos por nombre, categoría, descripción, SKU, color y talla, incluso si escribes alguna letra incorrecta." : "Escribe lo que necesitas en el buscador para comenzar."}
             </p>
           </div>
         </section>

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useCart } from "../context/CartContext";
 import { supabase } from "../lib/supabase";
 import { CATEGORIAS_PREDETERMINADAS } from "../lib/categoriasProducto";
+import { ordenarProductosPorBusqueda } from "../lib/buscadorProductos";
 
 /*
 |--------------------------------------------------------------------------
@@ -303,7 +304,7 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
           .select("id, producto_id, nombre, color, talla, sku, precio, precio_mayorista, cantidad_minima_mayorista, controla_stock, stock, imagen_url, activo, orden")
           .eq("activo", true)
           .order("orden", { ascending: true }),
-        supabase.from("categorias_producto").select("nombre").order("orden"),
+        supabase.from("categorias_producto").select("nombre").eq("activo", true).order("orden"),
       ]);
 
       const { data, error } = resultadoProductos;
@@ -337,32 +338,23 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
         ? CATEGORIAS_PREDETERMINADAS
         : (resultadoCategorias.data ?? []);
       const categoriasActivas = new Set(categoriasDisponibles.map((item) => normalizarCategoria(item.nombre)));
+      const productosDisponibles = (data ?? []).filter((producto) =>
+        producto.activo && categoriasActivas.has(normalizarCategoria(producto.categoria))
+      ) as ProductoSupabase[];
+      const variantesDisponibles = resultadoVariantes.error ? [] : (resultadoVariantes.data ?? []) as VarianteProducto[];
       setProductos(
-        (data ?? []).filter(
-          (producto) => {
-            const textoProducto = normalizarCategoria([
-              producto.nombre,
-              producto.descripcion,
-              producto.sku ?? "",
-              producto.categoria,
-            ].join(" "));
-            return categoriasActivas.has(normalizarCategoria(producto.categoria)) &&
-              (busqueda
-                ? textoProducto.includes(normalizarCategoria(busqueda))
-                : categoria
-                  ? normalizarCategoria(producto.categoria) === normalizarCategoria(categoria)
-                  : soloOfertas
-                    ? producto.en_oferta
-                    : producto.destacado);
-          }
-        ) as ProductoSupabase[]
+        busqueda
+          ? ordenarProductosPorBusqueda(productosDisponibles, variantesDisponibles, busqueda)
+          : productosDisponibles.filter((producto) => categoria
+            ? normalizarCategoria(producto.categoria) === normalizarCategoria(categoria)
+            : soloOfertas ? producto.en_oferta : producto.destacado)
       );
 
       if (resultadoVariantes.error) {
         console.error("Error cargando variantes:", resultadoVariantes.error);
       } else {
         const agrupadas: Record<string, VarianteProducto[]> = {};
-        for (const variante of (resultadoVariantes.data ?? []) as VarianteProducto[]) {
+        for (const variante of variantesDisponibles) {
           (agrupadas[variante.producto_id] ??= []).push(variante);
         }
         setVariantes(agrupadas);
