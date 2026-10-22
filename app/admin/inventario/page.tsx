@@ -42,8 +42,11 @@ export default async function InventarioPage() {
   const bajos=alertas.filter(a=>a.stock>0).length;
   const opciones=productos.flatMap(producto=>{
     if(!producto.activo) return [];
-    const variantesActivas=(porProducto.get(producto.id)??[]).filter(v=>v.activo);
-    if(variantesActivas.length) return variantesActivas.filter(v=>v.controla_stock).map(v=>({valor:`${producto.id}|${v.id}`,etiqueta:`${producto.nombre} · ${v.nombre} (${v.sku||"Sin SKU"})`,stock:Number(v.stock)}));
+    const variantesProducto=porProducto.get(producto.id)??[];
+    if(variantesProducto.length) return [
+      ...(producto.controla_stock?[{valor:`${producto.id}|`,etiqueta:`${producto.nombre} · Sin asignar a color (${producto.sku||"Sin SKU"})`,stock:Number(producto.stock)}]:[]),
+      ...variantesProducto.filter(v=>v.controla_stock).map(v=>({valor:`${producto.id}|${v.id}`,etiqueta:`${producto.nombre} · ${v.nombre}${v.activo?"":" (oculta)"} (${v.sku||"Sin SKU"})`,stock:Number(v.stock)})),
+    ];
     return producto.controla_stock?[{valor:`${producto.id}|`,etiqueta:`${producto.nombre} (${producto.sku||"Sin SKU"})`,stock:Number(producto.stock)}]:[];
   });
   const ajustes=(ajustesRes.data??[]) as Ajuste[];

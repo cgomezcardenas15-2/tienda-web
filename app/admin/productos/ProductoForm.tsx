@@ -27,7 +27,7 @@ type ProductoEditable = {
 
 type CategoriaOpcion = { nombre: string; activo: boolean };
 
-export default function ProductoForm({ producto, categorias }: { producto?: ProductoEditable; categorias: CategoriaOpcion[] }) {
+export default function ProductoForm({ producto, categorias, tieneVariantes = false }: { producto?: ProductoEditable; categorias: CategoriaOpcion[]; tieneVariantes?: boolean }) {
   const router = useRouter();
   const [tieneColores, setTieneColores] = useState(false);
   const [colores, setColores] = useState<ColorStockNuevo[]>([]);
@@ -157,8 +157,9 @@ export default function ProductoForm({ producto, categorias }: { producto?: Prod
             </span>
           </label>
         </section>}
-        {(!tieneColores || producto) && <label className="text-sm text-zinc-400">Stock base
-          <input required min="0" step="1" type="number" disabled={!form.controla_stock} className={`${campo} disabled:opacity-40`} value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
+        {(!tieneColores || producto) && <label className="text-sm text-zinc-400">{tieneVariantes ? "Stock sin color" : "Stock base"}
+          <input required min="0" step="1" type="number" disabled={!form.controla_stock || tieneVariantes} className={`${campo} disabled:cursor-not-allowed disabled:opacity-60`} value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
+          {tieneVariantes && <span className="mt-2 block text-xs leading-5 text-amber-200">Estas unidades todavía no están asignadas a un color. Distribúyelas en la sección de abajo; así el total no cambia.</span>}
         </label>}
         {!producto && tieneColores && (
           <ColorStockFields skuBase={form.sku} colores={colores} onChange={setColores} />
@@ -181,7 +182,7 @@ export default function ProductoForm({ producto, categorias }: { producto?: Prod
       </div>
 
       <div className="mt-6 grid gap-3 rounded-xl border border-zinc-800 bg-black/30 p-4 sm:grid-cols-2">
-        <label className={`flex items-center gap-3 text-sm ${tieneColores ? "cursor-not-allowed text-zinc-500" : "cursor-pointer"}`}><input type="checkbox" disabled={tieneColores} checked={tieneColores || form.controla_stock} onChange={(e) => setForm({ ...form, controla_stock: e.target.checked })} /> {tieneColores ? "Controlar existencias por color" : "Controlar existencias"}</label>
+        <label className={`flex items-center gap-3 text-sm ${tieneColores || tieneVariantes ? "cursor-not-allowed text-zinc-500" : "cursor-pointer"}`}><input type="checkbox" disabled={tieneColores || tieneVariantes} checked={tieneColores || tieneVariantes || form.controla_stock} onChange={(e) => setForm({ ...form, controla_stock: e.target.checked })} /> {tieneColores || tieneVariantes ? "Controlar existencias por color" : "Controlar existencias"}</label>
         <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" checked={form.destacado} onChange={(e) => setForm({ ...form, destacado: e.target.checked })} /> Mostrar como destacado</label>
         <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" checked={form.en_oferta} onChange={(e) => setForm({ ...form, en_oferta: e.target.checked })} /> Marcar como oferta</label>
         <label className="flex cursor-pointer items-center gap-3 text-sm"><input type="checkbox" checked={form.activo} onChange={(e) => setForm({ ...form, activo: e.target.checked })} /> Mostrar producto en la tienda</label>

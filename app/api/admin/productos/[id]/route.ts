@@ -12,14 +12,35 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const datos = limpiarProducto(body);
   const validacion = errorValidacionProducto(datos);
   if (validacion) return NextResponse.json({ error: validacion }, { status: 400 });
-  const [{ data: categoria }, { data: productoActual }] = await Promise.all([
+  const [consultaCategoria, consultaProducto, consultaVariante] = await Promise.all([
     supabaseAdmin.from("categorias_producto").select("id").eq("nombre", datos.categoria).eq("activo", true).maybeSingle(),
-    supabaseAdmin.from("productos").select("categoria").eq("id", id).maybeSingle(),
+    supabaseAdmin.from("productos").select("categoria,stock").eq("id", id).maybeSingle(),
+    supabaseAdmin.from("variantes_producto").select("id").eq("producto_id", id).limit(1).maybeSingle(),
   ]);
+  if (consultaCategoria.error || consultaProducto.error || consultaVariante.error) {
+    console.error("Error preparando actualización de producto:", {
+      categoria: consultaCategoria.error?.message,
+      producto: consultaProducto.error?.message,
+      variante: consultaVariante.error?.message,
+    });
+    return NextResponse.json({ error: "No fue posible verificar el inventario del producto." }, { status: 500 });
+  }
+  const categoria = consultaCategoria.data;
+  const productoActual = consultaProducto.data;
+  const varianteExistente = consultaVariante.data;
   if (!productoActual) return NextResponse.json({ error: "Producto no encontrado." }, { status: 404 });
   if (!categoria && datos.categoria !== productoActual.categoria) return NextResponse.json({ error: "La categoría seleccionada no existe o está desactivada." }, { status: 400 });
+  // Con colores, productos.stock es únicamente la cantidad aún sin color.
+  // Esos campos se omiten para que una edición general nunca restaure un valor viejo.
+  const cambios = varianteExistente
+    ? { ...Object.fromEntries(Object.entries(datos).filter(([campo]) => campo !== "stock" && campo !== "controla_stock")), controla_stock: true }
+    : datos;
 
-  const { data, error } = await supabaseAdmin.from("productos").update(datos).eq("id", id).select("*").maybeSingle();
+  let actualizacion = supabaseAdmin.from("productos").update(cambios).eq("id", id);
+  // Si todavía no había colores, esta comparación evita que una creación
+  // simultánea de color sea sobrescrita por un formulario viejo.
+  if (!varianteExistente) actualizacion = actualizacion.eq("stock", Number(productoActual.stock));
+  const { data, error } = await actualizacion.select("*").maybeSingle();
   if (error) {
     console.error("Error actualizando producto:", { code: error.code, message: error.message });
     const mensaje = error.code === "23505"
@@ -29,6 +50,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         : "No fue posible actualizar el producto.";
     return NextResponse.json({ error: mensaje }, { status: 409 });
   }
-  if (!data) return NextResponse.json({ error: "Producto no encontrado." }, { status: 404 });
+  if (!data) return NextResponse.json({ error: "El inventario cambió mientras guardabas. Recarga la página e inténtalo nuevamente." }, { status: 409 });
   return NextResponse.json({ ok: true, producto: data });
 }
