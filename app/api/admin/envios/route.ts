@@ -15,11 +15,9 @@ export async function PATCH(request: NextRequest) {
   if (!body) return NextResponse.json({ error: "Datos no válidos." }, { status: 400 });
 
   const tarifaCali = entero(body.tarifaCali);
-  const tarifaValle = entero(body.tarifaValle);
-  const tarifaNacional = entero(body.tarifaNacional);
   const envioGratisDesde = entero(body.envioGratisDesde);
-  if ([tarifaCali, tarifaValle, tarifaNacional, envioGratisDesde].some((valor) => !Number.isInteger(valor) || valor < 0)) {
-    return NextResponse.json({ error: "Las tarifas deben ser números completos iguales o mayores a cero." }, { status: 400 });
+  if ([tarifaCali, envioGratisDesde].some((valor) => !Number.isInteger(valor) || valor < 0)) {
+    return NextResponse.json({ error: "La tarifa y el monto deben ser números completos iguales o mayores a cero." }, { status: 400 });
   }
   if (body.envioGratisActivo === true && envioGratisDesde <= 0) {
     return NextResponse.json({ error: "Indica desde qué valor se ofrecerá el envío gratis." }, { status: 400 });
@@ -28,8 +26,10 @@ export async function PATCH(request: NextRequest) {
   const { error } = await supabaseAdmin.from("configuracion_envios").upsert({
     id: true,
     tarifa_cali: tarifaCali,
-    tarifa_valle: tarifaValle,
-    tarifa_nacional: tarifaNacional,
+    // Se conservan estas columnas únicamente por compatibilidad con la tabla
+    // existente. Fuera de Cali el transporte siempre se paga al recibir.
+    tarifa_valle: 0,
+    tarifa_nacional: 0,
     envio_gratis_activo: body.envioGratisActivo === true,
     envio_gratis_desde: envioGratisDesde,
     actualizado_en: new Date().toISOString(),

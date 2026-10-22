@@ -12,35 +12,14 @@ export type ResultadoEnvio = {
   mensaje: string;
 };
 
-/*
-|--------------------------------------------------------------------------
-| TARIFAS TEMPORALES DE ENVÍO
-|--------------------------------------------------------------------------
-|
-| Estas tarifas son internas y provisionales.
-|
-| Más adelante podremos reemplazar este cálculo por la API de una
-| transportadora sin tener que reconstruir el checkout.
-|
-| IMPORTANTE:
-| Los valores actuales son únicamente valores de desarrollo.
-| Antes de publicar NOVA deberán reemplazarse por tarifas comerciales
-| reales.
-|
-*/
-
 export type ConfiguracionEnvios = {
   tarifaCali: number;
-  tarifaValle: number;
-  tarifaNacional: number;
   envioGratisActivo: boolean;
   envioGratisDesde: number;
 };
 
 export const CONFIGURACION_ENVIOS_PREDETERMINADA: ConfiguracionEnvios = {
   tarifaCali: 8000,
-  tarifaValle: 12000,
-  tarifaNacional: 16000,
   envioGratisActivo: false,
   envioGratisDesde: 0,
 };

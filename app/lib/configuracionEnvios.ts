@@ -9,7 +9,7 @@ import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 export async function obtenerConfiguracionEnvios(): Promise<ConfiguracionEnvios> {
   const { data, error } = await supabaseAdmin
     .from("configuracion_envios")
-    .select("tarifa_cali,tarifa_valle,tarifa_nacional,envio_gratis_activo,envio_gratis_desde")
+    .select("tarifa_cali,envio_gratis_activo,envio_gratis_desde")
     .eq("id", true)
     .maybeSingle();
 
@@ -20,8 +20,6 @@ export async function obtenerConfiguracionEnvios(): Promise<ConfiguracionEnvios>
 
   return {
     tarifaCali: Number(data.tarifa_cali),
-    tarifaValle: Number(data.tarifa_valle),
-    tarifaNacional: Number(data.tarifa_nacional),
     envioGratisActivo: data.envio_gratis_activo === true,
     envioGratisDesde: Number(data.envio_gratis_desde),
   };

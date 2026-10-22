@@ -6,8 +6,6 @@ import type { ConfiguracionEnvios } from "@/app/data/envios";
 export default function EnviosForm({ configuracion }: { configuracion: ConfiguracionEnvios }) {
   const [form, setForm] = useState({
     tarifaCali: String(configuracion.tarifaCali),
-    tarifaValle: String(configuracion.tarifaValle),
-    tarifaNacional: String(configuracion.tarifaNacional),
     envioGratisActivo: configuracion.envioGratisActivo,
     envioGratisDesde: String(configuracion.envioGratisDesde),
   });
