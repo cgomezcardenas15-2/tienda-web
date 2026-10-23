@@ -7,6 +7,10 @@ export async function PATCH(request: NextRequest) {
   if (!await getAdminSession()) return NextResponse.json({ error: "La sesión administrativa expiró." }, { status: 401 });
 
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+  if (typeof body?.compraMinimaActiva !== "boolean") {
+    return NextResponse.json({ error: "Debes indicar si la compra mínima está activa o desactivada." }, { status: 400 });
+  }
+
   const monto = Number(body?.montoMinimoCompra);
   if (!Number.isInteger(monto) || monto < 0) {
     return NextResponse.json({ error: "El monto mínimo debe ser un número completo igual o mayor a cero." }, { status: 400 });
@@ -17,7 +21,7 @@ export async function PATCH(request: NextRequest) {
 
   const { error } = await supabaseAdmin.from("configuracion_tienda").upsert({
     id: true,
-    compra_minima_activa: body?.compraMinimaActiva === true,
+    compra_minima_activa: body.compraMinimaActiva,
     monto_minimo_compra: monto,
     actualizado_en: new Date().toISOString(),
   });

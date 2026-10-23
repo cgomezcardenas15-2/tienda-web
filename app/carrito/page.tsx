@@ -52,18 +52,50 @@ export default function CarritoPage() {
     vaciarCarrito,
   } = useCart();
   const [compraMinima, setCompraMinima] = useState({ activa: false, monto: 0 });
+  const [estadoConfiguracion, setEstadoConfiguracion] = useState<"cargando" | "lista" | "error">("cargando");
+  const [intentoConfiguracion, setIntentoConfiguracion] = useState(0);
 
   useEffect(() => {
-    fetch("/api/configuracion-tienda", { cache: "no-store" })
-      .then((respuesta) => respuesta.ok ? respuesta.json() : null)
-      .then((data) => {
-        if (data) setCompraMinima({ activa: data.compraMinimaActiva === true, monto: Number(data.montoMinimoCompra) || 0 });
+    const controlador = new AbortController();
+
+    fetch("/api/configuracion-tienda", {
+      cache: "no-store",
+      signal: controlador.signal,
+    })
+      .then((respuesta) => {
+        if (!respuesta.ok) throw new Error("Configuración no disponible");
+        return respuesta.json();
       })
-      .catch(() => undefined);
-  }, []);
+      .then((data) => {
+        const monto = Number(data?.montoMinimoCompra);
+
+        if (
+          typeof data?.compraMinimaActiva !== "boolean" ||
+          !Number.isInteger(monto) ||
+          monto < 0 ||
+          (data.compraMinimaActiva && monto <= 0)
+        ) {
+          throw new Error("Configuración inválida");
+        }
+
+        setCompraMinima({ activa: data.compraMinimaActiva, monto });
+        setEstadoConfiguracion("lista");
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setEstadoConfiguracion("error");
+      });
+
+    return () => controlador.abort();
+  }, [intentoConfiguracion]);
 
   const faltanteCompraMinima = compraMinima.activa ? Math.max(0, compraMinima.monto - subtotal) : 0;
-  const cumpleCompraMinima = faltanteCompraMinima === 0;
+  const cumpleCompraMinima = estadoConfiguracion === "lista" && faltanteCompraMinima === 0;
+
+  function reintentarConfiguracion() {
+    setEstadoConfiguracion("cargando");
+    setIntentoConfiguracion((intento) => intento + 1);
+  }
 
   /*
   |--------------------------------------------------------------------------
@@ -564,7 +596,24 @@ export default function CarritoPage() {
                   </span>
                 </div>
 
-                {cumpleCompraMinima ? <a
+                {estadoConfiguracion === "cargando" ? (
+                  <div className="mt-7 rounded-xl border border-white/10 bg-white/[0.04] p-4 text-center" role="status">
+                    <p className="font-bold text-white/75">Verificando condiciones de compra...</p>
+                    <p className="mt-1 text-xs text-white/40">El pago se habilitará cuando terminemos la verificación.</p>
+                  </div>
+                ) : estadoConfiguracion === "error" ? (
+                  <div className="mt-7 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-center" role="alert">
+                    <p className="font-bold text-red-200">No pudimos verificar el monto mínimo</p>
+                    <p className="mt-1 text-xs leading-5 text-white/55">Por seguridad, el pago está pausado. Tu carrito se conserva.</p>
+                    <button
+                      type="button"
+                      onClick={reintentarConfiguracion}
+                      className="mt-3 min-h-10 rounded-lg border border-red-200/30 px-4 text-sm font-bold text-red-100 transition hover:bg-red-200/10"
+                    >
+                      Reintentar verificación
+                    </button>
+                  </div>
+                ) : cumpleCompraMinima ? <a
                   href="/checkout"
                   className="mt-7 flex w-full cursor-pointer items-center justify-center rounded-xl bg-[#82f000] px-5 py-3.5 font-bold text-black transition hover:bg-[#9cff35]"
                 >Continuar compra</a> : <div className="mt-7 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-center">

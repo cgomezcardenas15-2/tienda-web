@@ -13,15 +13,22 @@ export default function ConfiguracionForm({ configuracion }: { configuracion: Co
   async function guardar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setGuardando(true); setMensaje(""); setError(false);
-    const respuesta = await fetch("/api/admin/configuracion", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ compraMinimaActiva: activa, montoMinimoCompra: monto }),
-    });
-    const data = await respuesta.json().catch(() => ({}));
-    setGuardando(false);
-    if (!respuesta.ok) { setError(true); setMensaje(data.error ?? "No fue posible guardar."); return; }
-    setMensaje("Configuración guardada correctamente.");
+
+    try {
+      const respuesta = await fetch("/api/admin/configuracion", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ compraMinimaActiva: activa, montoMinimoCompra: monto }),
+      });
+      const data = await respuesta.json().catch(() => ({}));
+      if (!respuesta.ok) { setError(true); setMensaje(data.error ?? "No fue posible guardar."); return; }
+      setMensaje("Configuración guardada correctamente.");
+    } catch {
+      setError(true);
+      setMensaje("No fue posible comunicarse con el servidor. La configuración no cambió.");
+    } finally {
+      setGuardando(false);
+    }
   }
 
   const montoNumerico = Number(monto || 0);

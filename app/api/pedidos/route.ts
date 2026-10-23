@@ -4,7 +4,11 @@ import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 import { calcularEnvio } from "@/app/data/envios";
 import { obtenerConfiguracionEnvios } from "@/app/lib/configuracionEnvios";
-import { obtenerConfiguracionTienda, validarCompraMinima } from "@/app/lib/configuracionTienda";
+import {
+  ConfiguracionTiendaNoDisponibleError,
+  obtenerConfiguracionTienda,
+  validarCompraMinima,
+} from "@/app/lib/configuracionTienda";
 import { ErrorValidacionProductos, validarLineasProducto } from "@/app/lib/validarLineasProducto";
 
 /*
@@ -941,6 +945,17 @@ export async function POST(request: Request) {
       }
     );
   } catch (error) {
+    if (error instanceof ConfiguracionTiendaNoDisponibleError) {
+      return NextResponse.json(
+        {
+          ok: false,
+          codigo: "CONFIGURACION_NO_DISPONIBLE",
+          error: "No pudimos verificar las condiciones de compra. Por seguridad, el pedido no fue creado. Intenta nuevamente.",
+        },
+        { status: 503 }
+      );
+    }
+
     if (error instanceof ErrorValidacionProductos) {
       return NextResponse.json(
         { ok: false, error: error.message, codigo: error.codigo },
