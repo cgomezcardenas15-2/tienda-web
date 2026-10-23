@@ -63,6 +63,8 @@ type VarianteProducto = {
   orden: number;
 };
 
+const PRODUCTOS_POR_PAGINA = 50;
+
 /*
 |--------------------------------------------------------------------------
 | FORMATO DE PRECIO
@@ -239,6 +241,9 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
   const [productos, setProductos] =
     useState<ProductoSupabase[]>([]);
 
+  const [paginaActual, setPaginaActual] =
+    useState(1);
+
   const [modoOfertas, setModoOfertas] =
     useState(false);
 
@@ -268,6 +273,7 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
     async function cargarProductos() {
       setCargando(true);
       setErrorProductos("");
+      setPaginaActual(1);
 
       const [resultadoProductos, resultadoVariantes, resultadoCategorias] = await Promise.all([
         supabase
@@ -373,6 +379,27 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
     };
   }, [categoria, busqueda]);
 
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(productos.length / PRODUCTOS_POR_PAGINA)
+  );
+  const paginaMostrada = Math.min(paginaActual, totalPaginas);
+  const indiceInicial = (paginaMostrada - 1) * PRODUCTOS_POR_PAGINA;
+  const productosPaginados = productos.slice(
+    indiceInicial,
+    indiceInicial + PRODUCTOS_POR_PAGINA
+  );
+  const inicioBotones = Math.max(
+    1,
+    Math.min(paginaMostrada - 2, totalPaginas - 4)
+  );
+  const paginasVisibles = Array.from(
+    {
+      length: Math.min(5, totalPaginas),
+    },
+    (_, indice) => inicioBotones + indice
+  );
+
   useEffect(() => {
     if (!imagenAmpliada) return;
 
@@ -389,6 +416,26 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
       document.body.style.overflow = overflowAnterior;
     };
   }, [imagenAmpliada]);
+
+  function cambiarPagina(nuevaPagina: number) {
+    if (
+      nuevaPagina < 1 ||
+      nuevaPagina > totalPaginas ||
+      nuevaPagina === paginaMostrada
+    ) {
+      return;
+    }
+
+    setPaginaActual(nuevaPagina);
+    setImagenAmpliada(null);
+
+    window.requestAnimationFrame(() => {
+      document.getElementById("productos")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }
 
   /*
   |--------------------------------------------------------------------------
@@ -595,9 +642,9 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
         {!cargando &&
           errorProductos === "" &&
           productos.length > 0 && (
-            <div className="grid grid-cols-1 gap-4 min-[520px]:grid-cols-2 sm:gap-5 lg:grid-cols-4">
-              {productos.map(
-                (producto) => {
+            <>
+              <div className="grid grid-cols-1 gap-4 min-[520px]:grid-cols-2 sm:gap-5 lg:grid-cols-4">
+                {productosPaginados.map((producto) => {
                   const opciones = variantes[producto.id] ?? [];
                   const variante = opciones.find(
                     (opcion) => opcion.id === varianteSeleccionada[producto.id]
@@ -853,9 +900,72 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
                       </div>
                     </article>
                   );
-                }
+                })}
+              </div>
+
+              {totalPaginas > 1 && (
+                <div className="mt-10 flex flex-col items-center justify-between gap-5 rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-5 sm:flex-row sm:px-6">
+                  <p className="text-center text-sm text-white/50 sm:text-left">
+                    Mostrando{" "}
+                    <strong className="text-white/80">
+                      {indiceInicial + 1}–
+                      {Math.min(
+                        indiceInicial + PRODUCTOS_POR_PAGINA,
+                        productos.length
+                      )}
+                    </strong>{" "}
+                    de{" "}
+                    <strong className="text-white/80">
+                      {productos.length}
+                    </strong>{" "}
+                    productos
+                  </p>
+
+                  <nav
+                    aria-label="Paginación de productos"
+                    className="flex flex-wrap items-center justify-center gap-2"
+                  >
+                    <button
+                      type="button"
+                      disabled={paginaMostrada === 1}
+                      onClick={() => cambiarPagina(paginaMostrada - 1)}
+                      className="min-h-11 rounded-xl border border-white/15 px-3 text-sm font-bold text-white transition hover:border-[#82f000]/60 hover:text-[#9cff35] disabled:cursor-not-allowed disabled:opacity-30 sm:px-4"
+                    >
+                      ← Anterior
+                    </button>
+
+                    {paginasVisibles.map((pagina) => (
+                      <button
+                        key={pagina}
+                        type="button"
+                        aria-label={`Ir a la página ${pagina}`}
+                        aria-current={
+                          pagina === paginaMostrada ? "page" : undefined
+                        }
+                        onClick={() => cambiarPagina(pagina)}
+                        className={
+                          "h-11 min-w-11 rounded-xl border px-3 text-sm font-black transition " +
+                          (pagina === paginaMostrada
+                            ? "border-[#82f000] bg-[#82f000] text-black"
+                            : "border-white/15 text-white/65 hover:border-[#82f000]/60 hover:text-[#9cff35]")
+                        }
+                      >
+                        {pagina}
+                      </button>
+                    ))}
+
+                    <button
+                      type="button"
+                      disabled={paginaMostrada === totalPaginas}
+                      onClick={() => cambiarPagina(paginaMostrada + 1)}
+                      className="min-h-11 rounded-xl border border-white/15 px-3 text-sm font-bold text-white transition hover:border-[#82f000]/60 hover:text-[#9cff35] disabled:cursor-not-allowed disabled:opacity-30 sm:px-4"
+                    >
+                      Siguiente →
+                    </button>
+                  </nav>
+                </div>
               )}
-            </div>
+            </>
           )}
 
         {imagenAmpliada && (
