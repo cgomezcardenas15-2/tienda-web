@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "./context/CartContext";
 import CookieNotice from "./components/CookieNotice";
+import MiniCart from "./components/MiniCart";
 import WhatsAppButton from "./components/WhatsAppButton";
 
 const geistSans = Geist({
@@ -76,6 +77,7 @@ export default function RootLayout({
         />
         <CartProvider>
           {children}
+          <MiniCart />
           <WhatsAppButton />
           <CookieNotice />
         </CartProvider>

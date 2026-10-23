@@ -3,6 +3,7 @@
 import {
   createContext,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -50,6 +51,13 @@ type CartContextType = {
 
   cantidadTotal: number;
   subtotal: number;
+
+  miniCarritoAbierto: boolean;
+  ultimaClaveAgregada: string | null;
+  avisoMiniCarrito: "agregado" | "limite";
+
+  abrirMiniCarrito: () => void;
+  cerrarMiniCarrito: () => void;
 
   agregarProducto: (
     producto: CartProduct
@@ -126,6 +134,21 @@ export function CartProvider({
 }) {
   const [items, setItems] =
     useState<CartItem[]>([]);
+
+  const [
+    miniCarritoAbierto,
+    setMiniCarritoAbierto,
+  ] = useState(false);
+
+  const [
+    ultimaClaveAgregada,
+    setUltimaClaveAgregada,
+  ] = useState<string | null>(null);
+
+  const [
+    avisoMiniCarrito,
+    setAvisoMiniCarrito,
+  ] = useState<"agregado" | "limite">("agregado");
 
   const [
     carritoCargado,
@@ -220,32 +243,48 @@ export function CartProvider({
   |--------------------------------------------------------------------------
   */
 
+  const abrirMiniCarrito = useCallback(() => {
+    setMiniCarritoAbierto(true);
+  }, []);
+
+  const cerrarMiniCarrito = useCallback(() => {
+    setMiniCarritoAbierto(false);
+  }, []);
+
   function agregarProducto(
     producto: CartProduct
   ) {
+    const stockSeguro =
+      obtenerStockSeguro(
+        producto.stock
+      );
+
+    if (
+      producto.controlaStock ===
+        true &&
+      stockSeguro !==
+        undefined &&
+      stockSeguro <= 0
+    ) {
+      return;
+    }
+
+    const claveProducto = obtenerClaveCarrito(producto);
+    const productoExistente = items.find(
+      (item) => obtenerClaveCarrito(item) === claveProducto
+    );
+    const llegoAlLimite =
+      producto.controlaStock === true &&
+      stockSeguro !== undefined &&
+      productoExistente !== undefined &&
+      productoExistente.cantidad >= stockSeguro;
+
+    setUltimaClaveAgregada(claveProducto);
+    setAvisoMiniCarrito(llegoAlLimite ? "limite" : "agregado");
+    abrirMiniCarrito();
+
     setItems(
       (carritoActual) => {
-        const stockSeguro =
-          obtenerStockSeguro(
-            producto.stock
-          );
-
-        /*
-        |--------------------------------------------------------------------------
-        | PRODUCTO SIN STOCK
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-          producto.controlaStock ===
-            true &&
-          stockSeguro !==
-            undefined &&
-          stockSeguro <= 0
-        ) {
-          return carritoActual;
-        }
-
         const productoExistente =
           carritoActual.find(
             (item) =>
@@ -459,6 +498,7 @@ export function CartProvider({
 
   function vaciarCarrito() {
     setItems([]);
+    setUltimaClaveAgregada(null);
   }
 
   /*
@@ -504,6 +544,13 @@ export function CartProvider({
 
         cantidadTotal,
         subtotal,
+
+        miniCarritoAbierto,
+        ultimaClaveAgregada,
+        avisoMiniCarrito,
+
+        abrirMiniCarrito,
+        cerrarMiniCarrito,
 
         agregarProducto,
         quitarProducto,
