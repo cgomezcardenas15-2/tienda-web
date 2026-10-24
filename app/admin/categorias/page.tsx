@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/app/lib/adminAuth";
+import { consultarTodosSupabase } from "@/app/lib/consultarTodosSupabase";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 import CategoriasManager from "./CategoriasManager";
 
@@ -6,9 +7,13 @@ export const dynamic = "force-dynamic";
 
 export default async function CategoriasPage() {
   await requireAdmin();
-  const [{ data: categorias, error }, { data: productos }] = await Promise.all([
+  const [{ data: categorias, error }, { data: productos, error: errorProductos }] = await Promise.all([
     supabaseAdmin.from("categorias_producto").select("id,nombre,slug,descripcion,icono,activo,orden").order("orden").order("nombre"),
-    supabaseAdmin.from("productos").select("categoria"),
+    consultarTodosSupabase((desde, hasta) => supabaseAdmin
+      .from("productos")
+      .select("categoria", { count: "exact" })
+      .order("id")
+      .range(desde, hasta)),
   ]);
 
   const conteos = new Map<string, number>();
@@ -18,7 +23,7 @@ export default async function CategoriasPage() {
     <p className="text-sm font-bold uppercase tracking-[0.18em] text-lime-400">Organización de la tienda</p>
     <h1 className="mt-2 text-3xl font-black">Categorías</h1>
     <p className="mt-2 max-w-2xl text-sm text-zinc-400">Crea, edita, ordena o desactiva secciones. Al desactivar una categoría, sus productos se conservan pero dejan de mostrarse al público.</p>
-    {error ? <p className="mt-7 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-amber-200">Primero falta activar el módulo de categorías en la base de datos.</p> : <CategoriasManager iniciales={(categorias ?? []).map((categoria) => ({ ...categoria, productos: conteos.get(categoria.nombre) ?? 0 }))} />}
+    {error ? <p className="mt-7 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-amber-200">Primero falta activar el módulo de categorías en la base de datos.</p> : errorProductos ? <p className="mt-7 rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-red-200">No fue posible calcular los productos por categoría. Intenta nuevamente.</p> : <CategoriasManager iniciales={(categorias ?? []).map((categoria) => ({ ...categoria, productos: conteos.get(categoria.nombre) ?? 0 }))} />}
   </main>;
 }
 

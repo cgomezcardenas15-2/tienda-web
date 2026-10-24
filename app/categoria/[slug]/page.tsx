@@ -105,7 +105,7 @@ export default async function CategoriaPage({
           </div>
         </section>
 
-        <Products categoria={categoria.nombre} />
+        <Products key={categoria.slug} categoria={categoria.nombre} />
       </main>
 
       <Footer />

@@ -41,7 +41,7 @@ export default async function SearchPage({
             </p>
           </div>
         </section>
-        {query ? <Products busqueda={query} /> : null}
+        {query ? <Products key={query} busqueda={query} /> : null}
       </main>
 
       <Footer />

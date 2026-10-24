@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 
 import { useCart } from "../context/CartContext";
 import { supabase } from "../lib/supabase";
-import { CATEGORIAS_PREDETERMINADAS } from "../lib/categoriasProducto";
-import { ordenarProductosPorBusqueda } from "../lib/buscadorProductos";
 
 /*
 |--------------------------------------------------------------------------
@@ -63,7 +61,45 @@ type VarianteProducto = {
   orden: number;
 };
 
+type ResultadoBusqueda = {
+  producto_id: string;
+  relevancia: number;
+  total_count: number;
+};
+
+type ResultadoCatalogo = {
+  producto_id: string;
+  total_count: number;
+};
+
+type ProductsProps = {
+  categoria?: string;
+  busqueda?: string;
+  ofertas?: boolean;
+};
+
 const PRODUCTOS_POR_PAGINA = 50;
+const CAMPOS_PRODUCTO = `
+  id,
+  sku,
+  nombre,
+  slug,
+  descripcion,
+  categoria,
+  precio,
+  precio_anterior,
+  venta_mayorista,
+  precio_mayorista,
+  cantidad_minima_mayorista,
+  controla_stock,
+  stock,
+  imagen_url,
+  destacado,
+  en_oferta,
+  activo
+`;
+const CAMPOS_VARIANTE =
+  "id, producto_id, nombre, color, talla, sku, precio, precio_mayorista, cantidad_minima_mayorista, controla_stock, stock, imagen_url, activo, orden";
 
 /*
 |--------------------------------------------------------------------------
@@ -230,7 +266,7 @@ function obtenerEtiqueta(
 |--------------------------------------------------------------------------
 */
 
-export default function Products({ categoria, busqueda }: { categoria?: string; busqueda?: string }) {
+export default function Products({ categoria, busqueda, ofertas = false }: ProductsProps) {
   const [imagenAmpliada, setImagenAmpliada] = useState<{
     url: string;
     nombre: string;
@@ -241,11 +277,9 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
   const [productos, setProductos] =
     useState<ProductoSupabase[]>([]);
 
-  const [paginaActual, setPaginaActual] =
-    useState(1);
-
-  const [modoOfertas, setModoOfertas] =
-    useState(false);
+  const modoOfertas = Boolean(ofertas && !categoria && !busqueda);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [totalProductos, setTotalProductos] = useState(0);
 
   const [variantes, setVariantes] =
     useState<Record<string, VarianteProducto[]>>({});
@@ -273,103 +307,112 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
     async function cargarProductos() {
       setCargando(true);
       setErrorProductos("");
-      setPaginaActual(1);
 
-      const [resultadoProductos, resultadoVariantes, resultadoCategorias] = await Promise.all([
-        supabase
-          .from("productos")
-          .select(
-            `
-              id,
-              sku,
-              nombre,
-              slug,
-              descripcion,
-              categoria,
-              precio,
-              precio_anterior,
-              venta_mayorista,
-              precio_mayorista,
-              cantidad_minima_mayorista,
-              controla_stock,
-              stock,
-              imagen_url,
-              destacado,
-              en_oferta,
-              activo
-            `
-          )
-          .order("destacado", {
-            ascending: false,
-          })
-          .order("creado_en", {
-            ascending: false,
-          }),
-        supabase
-          .from("variantes_producto")
-          .select("id, producto_id, nombre, color, talla, sku, precio, precio_mayorista, cantidad_minima_mayorista, controla_stock, stock, imagen_url, activo, orden")
-          .eq("activo", true)
-          .order("orden", { ascending: true }),
-        supabase.from("categorias_producto").select("nombre").eq("activo", true).order("orden"),
-      ]);
+      try {
+        const desde = (paginaActual - 1) * PRODUCTOS_POR_PAGINA;
+        let productosPagina: ProductoSupabase[] = [];
+        let total = 0;
+        let idsOrdenados: string[] = [];
 
-      const { data, error } = resultadoProductos;
+        if (busqueda) {
+          const { data: coincidencias, error: errorBusqueda } = await supabase.rpc(
+            "buscar_productos_publicos",
+            {
+              p_consulta: busqueda,
+              p_desde: desde,
+              p_limite: PRODUCTOS_POR_PAGINA,
+            }
+          );
 
-      if (!componenteActivo) {
-        return;
-      }
+          if (errorBusqueda) throw errorBusqueda;
 
-      if (error) {
-        console.error(
-          "Error cargando productos:",
-          error
-        );
+          const resultados = (coincidencias ?? []) as ResultadoBusqueda[];
+          idsOrdenados = resultados.map((item) => item.producto_id);
+          total = Number(resultados[0]?.total_count ?? 0);
+        } else {
+          const { data: coincidencias, error: errorCatalogo } = await supabase.rpc(
+            "listar_productos_publicos",
+            {
+              p_categoria: categoria ?? null,
+              p_modo: categoria ? "categoria" : modoOfertas ? "ofertas" : "destacados",
+              p_desde: desde,
+              p_limite: PRODUCTOS_POR_PAGINA,
+            }
+          );
 
+          if (errorCatalogo) throw errorCatalogo;
+
+          const resultados = (coincidencias ?? []) as ResultadoCatalogo[];
+          idsOrdenados = resultados.map((item) => item.producto_id);
+          total = Number(resultados[0]?.total_count ?? 0);
+        }
+
+        if (paginaActual > 1 && idsOrdenados.length === 0) {
+          setPaginaActual(1);
+          return;
+        }
+
+        if (idsOrdenados.length > 0) {
+          const { data, error } = await supabase
+            .from("productos")
+            .select(CAMPOS_PRODUCTO)
+            .eq("activo", true)
+            .in("id", idsOrdenados);
+
+          if (error) throw error;
+
+          const productosPorId = new Map(
+            ((data ?? []) as ProductoSupabase[]).map((producto) => [
+              producto.id,
+              producto,
+            ])
+          );
+          productosPagina = idsOrdenados
+            .map((id) => productosPorId.get(id))
+            .filter((producto): producto is ProductoSupabase => Boolean(producto));
+        }
+
+        const idsPagina = productosPagina.map((producto) => producto.id);
+        let variantesPagina: VarianteProducto[] = [];
+
+        if (idsPagina.length > 0) {
+          const { data, error } = await supabase
+            .from("variantes_producto")
+            .select(CAMPOS_VARIANTE)
+            .in("producto_id", idsPagina)
+            .eq("activo", true)
+            .order("orden", { ascending: true });
+
+          if (error) {
+            console.error("Error cargando variantes:", error);
+          } else {
+            variantesPagina = (data ?? []) as VarianteProducto[];
+          }
+        }
+
+        if (!componenteActivo) return;
+
+        const agrupadas: Record<string, VarianteProducto[]> = {};
+        for (const variante of variantesPagina) {
+          (agrupadas[variante.producto_id] ??= []).push(variante);
+        }
+
+        setProductos(productosPagina);
+        setTotalProductos(total);
+        setVariantes(agrupadas);
+        setVarianteSeleccionada({});
+      } catch (error) {
+        if (!componenteActivo) return;
+        console.error("Error cargando productos:", error);
         setProductos([]);
-
+        setVariantes({});
+        setTotalProductos(0);
         setErrorProductos(
           "No fue posible cargar los productos en este momento."
         );
-
-        setCargando(false);
-        return;
+      } finally {
+        if (componenteActivo) setCargando(false);
       }
-
-      const soloOfertas =
-        !categoria && !busqueda &&
-        new URLSearchParams(window.location.search).get("ofertas") === "1";
-
-      setModoOfertas(soloOfertas);
-      const categoriasDisponibles = resultadoCategorias.error
-        ? CATEGORIAS_PREDETERMINADAS
-        : (resultadoCategorias.data ?? []);
-      const categoriasActivas = new Set(categoriasDisponibles.map((item) => normalizarCategoria(item.nombre)));
-      const productosDisponibles = (data ?? []).filter((producto) =>
-        producto.activo && categoriasActivas.has(normalizarCategoria(producto.categoria))
-      ) as ProductoSupabase[];
-      const variantesDisponibles = resultadoVariantes.error ? [] : (resultadoVariantes.data ?? []) as VarianteProducto[];
-      setProductos(
-        busqueda
-          ? ordenarProductosPorBusqueda(productosDisponibles, variantesDisponibles, busqueda)
-          : productosDisponibles.filter((producto) => categoria
-            ? normalizarCategoria(producto.categoria) === normalizarCategoria(categoria)
-            : soloOfertas ? producto.en_oferta : producto.destacado)
-      );
-
-      if (resultadoVariantes.error) {
-        console.error("Error cargando variantes:", resultadoVariantes.error);
-      } else {
-        const agrupadas: Record<string, VarianteProducto[]> = {};
-        for (const variante of variantesDisponibles) {
-          (agrupadas[variante.producto_id] ??= []).push(variante);
-        }
-        setVariantes(agrupadas);
-        // El cliente debe escoger de forma consciente el color u opción.
-        // No seleccionamos automáticamente la primera alternativa.
-        setVarianteSeleccionada({});
-      }
-
-      setCargando(false);
     }
 
     cargarProductos();
@@ -377,18 +420,14 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
     return () => {
       componenteActivo = false;
     };
-  }, [categoria, busqueda]);
+  }, [categoria, busqueda, modoOfertas, paginaActual]);
 
   const totalPaginas = Math.max(
     1,
-    Math.ceil(productos.length / PRODUCTOS_POR_PAGINA)
+    Math.ceil(totalProductos / PRODUCTOS_POR_PAGINA)
   );
   const paginaMostrada = Math.min(paginaActual, totalPaginas);
   const indiceInicial = (paginaMostrada - 1) * PRODUCTOS_POR_PAGINA;
-  const productosPaginados = productos.slice(
-    indiceInicial,
-    indiceInicial + PRODUCTOS_POR_PAGINA
-  );
   const inicioBotones = Math.max(
     1,
     Math.min(paginaMostrada - 2, totalPaginas - 4)
@@ -644,7 +683,7 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
           productos.length > 0 && (
             <>
               <div className="grid grid-cols-1 gap-4 min-[520px]:grid-cols-2 sm:gap-5 lg:grid-cols-4">
-                {productosPaginados.map((producto) => {
+                {productos.map((producto) => {
                   const opciones = variantes[producto.id] ?? [];
                   const variante = opciones.find(
                     (opcion) => opcion.id === varianteSeleccionada[producto.id]
@@ -911,12 +950,12 @@ export default function Products({ categoria, busqueda }: { categoria?: string; 
                       {indiceInicial + 1}–
                       {Math.min(
                         indiceInicial + PRODUCTOS_POR_PAGINA,
-                        productos.length
+                      totalProductos
                       )}
                     </strong>{" "}
                     de{" "}
                     <strong className="text-white/80">
-                      {productos.length}
+                      {totalProductos}
                     </strong>{" "}
                     productos
                   </p>

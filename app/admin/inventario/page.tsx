@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/app/lib/adminAuth";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
+import { consultarTodosSupabase } from "@/app/lib/consultarTodosSupabase";
 import AjusteInventarioForm from "./AjusteInventarioForm";
 
 export const dynamic = "force-dynamic";
@@ -20,8 +21,18 @@ export default async function InventarioPage() {
   await requireAdmin();
   const [movimientosRes, productosRes, variantesRes, ajustesRes] = await Promise.all([
     supabaseAdmin.from("movimientos_inventario").select("id,producto_nombre,variante_nombre,sku,tipo,cantidad_anterior,cantidad_nueva,diferencia,creado_en").order("creado_en",{ascending:false}).limit(200),
-    supabaseAdmin.from("productos").select("id,nombre,sku,stock,controla_stock,activo").order("nombre"),
-    supabaseAdmin.from("variantes_producto").select("id,producto_id,nombre,sku,stock,controla_stock,activo").order("nombre"),
+    consultarTodosSupabase((desde, hasta) => supabaseAdmin
+      .from("productos")
+      .select("id,nombre,sku,stock,controla_stock,activo", { count: "exact" })
+      .order("nombre")
+      .order("id")
+      .range(desde, hasta)),
+    consultarTodosSupabase((desde, hasta) => supabaseAdmin
+      .from("variantes_producto")
+      .select("id,producto_id,nombre,sku,stock,controla_stock,activo", { count: "exact" })
+      .order("nombre")
+      .order("id")
+      .range(desde, hasta)),
     supabaseAdmin.from("ajustes_inventario").select("id,producto_id,variante_id,tipo,cantidad,diferencia,cantidad_anterior,cantidad_nueva,motivo,creado_en").order("creado_en",{ascending:false}).limit(30),
   ]);
   const movimientos=movimientosRes.data??[];

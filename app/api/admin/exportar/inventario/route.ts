@@ -2,12 +2,24 @@ import { NextResponse } from "next/server";
 import { getAdminSession } from "@/app/lib/adminAuth";
 import { crearCsv, respuestaCsv } from "@/app/lib/csv";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
+import { consultarTodosSupabase } from "@/app/lib/consultarTodosSupabase";
 
 export async function GET() {
   if (!await getAdminSession()) return NextResponse.json({ error: "La sesión administrativa expiró." }, { status: 401 });
   const [{ data: productos, error }, { data: variantes, error: errorVariantes }] = await Promise.all([
-    supabaseAdmin.from("productos").select("id,nombre,sku,categoria,precio,precio_anterior,stock,controla_stock,activo,en_oferta,destacado,imagen_url").order("nombre"),
-    supabaseAdmin.from("variantes_producto").select("producto_id,nombre,color,talla,sku,precio,stock,controla_stock,activo,imagen_url").order("producto_id").order("orden"),
+    consultarTodosSupabase((desde, hasta) => supabaseAdmin
+      .from("productos")
+      .select("id,nombre,sku,categoria,precio,precio_anterior,stock,controla_stock,activo,en_oferta,destacado,imagen_url", { count: "exact" })
+      .order("nombre")
+      .order("id")
+      .range(desde, hasta)),
+    consultarTodosSupabase((desde, hasta) => supabaseAdmin
+      .from("variantes_producto")
+      .select("producto_id,nombre,color,talla,sku,precio,stock,controla_stock,activo,imagen_url", { count: "exact" })
+      .order("producto_id")
+      .order("orden")
+      .order("id")
+      .range(desde, hasta)),
   ]);
   if (error || errorVariantes) {
     console.error("Error exportando inventario:", error?.message || errorVariantes?.message);

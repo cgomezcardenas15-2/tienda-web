@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/app/lib/adminAuth";
+import { consultarTodosSupabase } from "@/app/lib/consultarTodosSupabase";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 import EstadoCompra from "./EstadoCompra";
 import VincularLinea from "./VincularLinea";
@@ -15,10 +16,25 @@ export default async function CompraPage({ params }: { params: Promise<{ id: str
   if (error || !compra) notFound();
   const { data } = await supabaseAdmin.from("productos_compra").select("*").eq("compra_id", id).order("descripcion");
   const lineas = (data || []) as Linea[];
-  const [{ data: productos }, { data: variantes }] = await Promise.all([
-    supabaseAdmin.from("productos").select("id,nombre,sku,activo").eq("activo", true).order("nombre"),
-    supabaseAdmin.from("variantes_producto").select("id,producto_id,nombre,sku,activo").eq("activo", true).order("nombre"),
+  const [productosRes, variantesRes] = await Promise.all([
+    consultarTodosSupabase((desde, hasta) => supabaseAdmin
+      .from("productos")
+      .select("id,nombre,sku,activo", { count: "exact" })
+      .eq("activo", true)
+      .order("nombre")
+      .order("id")
+      .range(desde, hasta)),
+    consultarTodosSupabase((desde, hasta) => supabaseAdmin
+      .from("variantes_producto")
+      .select("id,producto_id,nombre,sku,activo", { count: "exact" })
+      .eq("activo", true)
+      .order("nombre")
+      .order("id")
+      .range(desde, hasta)),
   ]);
+  const productos = productosRes.data;
+  const variantes = variantesRes.data;
+  const errorCatalogo = productosRes.error ?? variantesRes.error;
   const variantesPorProducto = new Map<string, NonNullable<typeof variantes>>();
   for (const variante of variantes || []) variantesPorProducto.set(variante.producto_id, [...(variantesPorProducto.get(variante.producto_id) || []), variante]);
   const opciones = (productos || []).flatMap(producto => {
@@ -35,6 +51,7 @@ export default async function CompraPage({ params }: { params: Promise<{ id: str
       <div className="mt-7 grid gap-4 sm:grid-cols-3"><div><p className="text-xs uppercase text-zinc-500">Factura</p><p className="mt-1 font-bold">{compra.factura_proveedor || "Sin número"}</p></div><div><p className="text-xs uppercase text-zinc-500">Fecha</p><p className="mt-1 font-bold">{compra.fecha_compra}</p></div><div><p className="text-xs uppercase text-zinc-500">Total</p><p className="mt-1 text-xl font-black text-lime-300">{compra.moneda} {Number(compra.total).toLocaleString("es-CO")}</p></div></div>
       <EstadoCompra compraId={compra.id} estado={compra.estado} puedeRecibir={puedeRecibir} />
     </section>
+    {errorCatalogo && <p className="mt-6 rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-red-200">No fue posible cargar el catálogo completo para vincular esta compra. Intenta nuevamente antes de recibirla.</p>}
     <section className="mt-6 overflow-hidden rounded-2xl border border-zinc-800"><div className="bg-zinc-900 p-6"><h2 className="text-xl font-black">Productos comprados</h2><p className="mt-1 text-sm text-zinc-400">Vincula cada línea con el producto exacto del inventario.</p></div><div className="overflow-x-auto"><table className="w-full min-w-[950px] text-left"><thead className="bg-zinc-950 text-xs uppercase text-zinc-500"><tr><th className="p-4">Producto</th><th className="p-4">SKU</th><th className="p-4">Producto del inventario</th><th className="p-4 text-right">Cantidad</th><th className="p-4 text-right">Costo unitario</th><th className="p-4 text-right">Subtotal</th></tr></thead><tbody className="divide-y divide-zinc-800 bg-black">{lineas.map(linea => <tr key={linea.id}><td className="p-4 font-bold">{linea.descripcion}</td><td className="p-4 text-zinc-400">{linea.sku || "—"}</td><td className="p-4"><VincularLinea compraId={compra.id} lineaId={linea.id} opciones={opciones} valorActual={linea.producto_id ? `${linea.producto_id}|${linea.variante_id || ""}` : ""} bloqueado={["recibida", "anulada"].includes(compra.estado)} /></td><td className="p-4 text-right">{linea.cantidad}</td><td className="p-4 text-right">{compra.moneda} {Number(linea.costo_unitario).toLocaleString("es-CO")}</td><td className="p-4 text-right font-black">{compra.moneda} {Number(linea.subtotal).toLocaleString("es-CO")}</td></tr>)}</tbody></table></div>
       <div className="grid gap-3 bg-zinc-950 p-6 text-sm sm:grid-cols-4"><p>Subtotal: <b>{Number(compra.subtotal).toLocaleString("es-CO")}</b></p><p>Impuestos: <b>{Number(compra.impuestos).toLocaleString("es-CO")}</b></p><p>Envío y otros: <b>{(Number(compra.costo_envio) + Number(compra.otros_costos)).toLocaleString("es-CO")}</b></p><p>Total: <b className="text-lime-300">{Number(compra.total).toLocaleString("es-CO")}</b></p></div>
     </section>
