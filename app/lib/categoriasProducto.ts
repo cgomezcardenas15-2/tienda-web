@@ -8,6 +8,16 @@ export type CategoriaProducto = {
   orden: number;
 };
 
+export type SubcategoriaProducto = {
+  id: string;
+  categoria_id: string;
+  nombre: string;
+  slug: string;
+  descripcion: string;
+  activo: boolean;
+  orden: number;
+};
+
 export const CATEGORIAS_PREDETERMINADAS = [
   { id: "predeterminada-pinateria", nombre: "Piñatería", slug: "pinateria", descripcion: "Todo para celebrar momentos especiales.", icono: "🎉", activo: true, orden: 10 },
   { id: "predeterminada-hogar", nombre: "Hogar", slug: "hogar", descripcion: "Productos prácticos para cada espacio de tu hogar.", icono: "🏠", activo: true, orden: 20 },

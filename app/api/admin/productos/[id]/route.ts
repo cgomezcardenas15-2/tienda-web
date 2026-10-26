@@ -13,8 +13,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const validacion = errorValidacionProducto(datos);
   if (validacion) return NextResponse.json({ error: validacion }, { status: 400 });
   const [consultaCategoria, consultaProducto, consultaVariante] = await Promise.all([
-    supabaseAdmin.from("categorias_producto").select("id").eq("nombre", datos.categoria).eq("activo", true).maybeSingle(),
-    supabaseAdmin.from("productos").select("categoria,stock").eq("id", id).maybeSingle(),
+    supabaseAdmin.from("categorias_producto").select("id,activo").eq("nombre", datos.categoria).maybeSingle(),
+    supabaseAdmin.from("productos").select("categoria,subcategoria_id,stock").eq("id", id).maybeSingle(),
     supabaseAdmin.from("variantes_producto").select("id").eq("producto_id", id).limit(1).maybeSingle(),
   ]);
   if (consultaCategoria.error || consultaProducto.error || consultaVariante.error) {
@@ -29,7 +29,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const productoActual = consultaProducto.data;
   const varianteExistente = consultaVariante.data;
   if (!productoActual) return NextResponse.json({ error: "Producto no encontrado." }, { status: 404 });
-  if (!categoria && datos.categoria !== productoActual.categoria) return NextResponse.json({ error: "La categoría seleccionada no existe o está desactivada." }, { status: 400 });
+  if (!categoria || (!categoria.activo && datos.categoria !== productoActual.categoria)) {
+    return NextResponse.json({ error: "La categoría seleccionada no existe o está desactivada." }, { status: 400 });
+  }
+  if (datos.subcategoria_id) {
+    const { data: subcategoria, error: errorSubcategoria } = await supabaseAdmin
+      .from("subcategorias_producto")
+      .select("id,categoria_id,activo")
+      .eq("id", datos.subcategoria_id)
+      .maybeSingle();
+    if (errorSubcategoria) return NextResponse.json({ error: "No fue posible verificar la subcategoría." }, { status: 500 });
+    const conservaSubcategoria = datos.subcategoria_id === productoActual.subcategoria_id;
+    if (!subcategoria || subcategoria.categoria_id !== categoria.id || (!subcategoria.activo && !conservaSubcategoria)) {
+      return NextResponse.json({ error: "La subcategoría no pertenece a la categoría seleccionada o está oculta." }, { status: 400 });
+    }
+  }
   // Con colores, productos.stock es únicamente la cantidad aún sin color.
   // Esos campos se omiten para que una edición general nunca restaure un valor viejo.
   const cambios = varianteExistente

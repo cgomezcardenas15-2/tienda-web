@@ -9,16 +9,24 @@ type CategoriaPageProps = {
   params: Promise<{
     slug: string;
   }>;
+  searchParams: Promise<{
+    subcategoria?: string | string[];
+  }>;
 };
 
 export const dynamic = "force-dynamic";
 
 export default async function CategoriaPage({
   params,
+  searchParams,
 }: CategoriaPageProps) {
   const { slug } = await params;
+  const parametros = await searchParams;
+  const slugSubcategoria = Array.isArray(parametros.subcategoria)
+    ? parametros.subcategoria[0]
+    : parametros.subcategoria;
 
-  const { data, error } = await supabaseAdmin.from("categorias_producto").select("nombre,slug,descripcion,icono").eq("slug", slug).eq("activo", true).maybeSingle();
+  const { data, error } = await supabaseAdmin.from("categorias_producto").select("id,nombre,slug,descripcion,icono").eq("slug", slug).eq("activo", true).maybeSingle();
   const categoria = data ?? (error ? CATEGORIAS_PREDETERMINADAS.find((item) => item.slug === slug) : null);
 
   if (!categoria) {
@@ -55,6 +63,18 @@ export default async function CategoriaPage({
       </>
     );
   }
+
+  const { data: subcategorias } = data
+    ? await supabaseAdmin
+      .from("subcategorias_producto")
+      .select("id,nombre,slug,descripcion")
+      .eq("categoria_id", data.id)
+      .eq("activo", true)
+      .order("orden")
+      .order("nombre")
+    : { data: [] };
+  const subcategoriasDisponibles = subcategorias ?? [];
+  const subcategoriaSeleccionada = subcategoriasDisponibles.find((item) => item.slug === slugSubcategoria) ?? null;
 
   return (
     <>
@@ -105,7 +125,43 @@ export default async function CategoriaPage({
           </div>
         </section>
 
-        <Products key={categoria.slug} categoria={categoria.nombre} />
+        {subcategoriasDisponibles.length > 0 && (
+          <section className="border-b border-white/10 bg-white/[0.02]">
+            <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-10">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/45">Explorar dentro de {categoria.nombre}</p>
+              <nav aria-label={`Subcategorías de ${categoria.nombre}`} className="mt-3 flex snap-x gap-2 overflow-x-auto pb-2">
+                <Link
+                  href={`/categoria/${categoria.slug}`}
+                  aria-current={!subcategoriaSeleccionada ? "page" : undefined}
+                  className={`min-h-11 shrink-0 snap-start rounded-xl border px-4 py-2.5 text-sm font-black transition ${!subcategoriaSeleccionada ? "border-[#82f000] bg-[#82f000] text-black" : "border-white/15 text-white/70 hover:border-[#82f000]/60 hover:text-[#9cff35]"}`}
+                >
+                  Todos
+                </Link>
+                {subcategoriasDisponibles.map((subcategoria) => {
+                  const activa = subcategoria.id === subcategoriaSeleccionada?.id;
+                  return (
+                    <Link
+                      key={subcategoria.id}
+                      href={`/categoria/${categoria.slug}?subcategoria=${encodeURIComponent(subcategoria.slug)}`}
+                      aria-current={activa ? "page" : undefined}
+                      title={subcategoria.descripcion || undefined}
+                      className={`min-h-11 shrink-0 snap-start rounded-xl border px-4 py-2.5 text-sm font-black transition ${activa ? "border-[#82f000] bg-[#82f000] text-black" : "border-white/15 text-white/70 hover:border-[#82f000]/60 hover:text-[#9cff35]"}`}
+                    >
+                      {subcategoria.nombre}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          </section>
+        )}
+
+        <Products
+          key={`${categoria.slug}:${subcategoriaSeleccionada?.id ?? "todas"}`}
+          categoria={categoria.nombre}
+          subcategoriaId={subcategoriaSeleccionada?.id}
+          subcategoriaNombre={subcategoriaSeleccionada?.nombre}
+        />
       </main>
 
       <Footer />

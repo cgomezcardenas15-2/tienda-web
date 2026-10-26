@@ -67,8 +67,26 @@ export async function POST(request: NextRequest) {
     datos.controla_stock = true;
     datos.stock = 0;
   }
-  const { data: categoria } = await supabaseAdmin.from("categorias_producto").select("id").eq("nombre", datos.categoria).eq("activo", true).maybeSingle();
+  const { data: categoria, error: errorCategoria } = await supabaseAdmin
+    .from("categorias_producto")
+    .select("id")
+    .eq("nombre", datos.categoria)
+    .eq("activo", true)
+    .maybeSingle();
+  if (errorCategoria) return NextResponse.json({ error: "No fue posible verificar la categoría." }, { status: 500 });
   if (!categoria) return NextResponse.json({ error: "La categoría seleccionada no existe o está desactivada." }, { status: 400 });
+
+  if (datos.subcategoria_id) {
+    const { data: subcategoria, error: errorSubcategoria } = await supabaseAdmin
+      .from("subcategorias_producto")
+      .select("id,categoria_id,activo")
+      .eq("id", datos.subcategoria_id)
+      .maybeSingle();
+    if (errorSubcategoria) return NextResponse.json({ error: "No fue posible verificar la subcategoría." }, { status: 500 });
+    if (!subcategoria || !subcategoria.activo || subcategoria.categoria_id !== categoria.id) {
+      return NextResponse.json({ error: "La subcategoría no pertenece a la categoría seleccionada o está oculta." }, { status: 400 });
+    }
+  }
 
   const skusSolicitados = [datos.sku, ...resultadoVariantes.variantes.map((variante) => variante.sku)];
   const [{ data: productosConSku, error: errorSkusProductos }, { data: variantesConSku, error: errorSkusVariantes }] = await Promise.all([

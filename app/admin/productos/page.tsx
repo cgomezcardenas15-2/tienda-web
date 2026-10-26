@@ -63,24 +63,31 @@ export default async function ProductosAdminPage({
   const hasta = desde + PRODUCTOS_POR_PAGINA - 1;
   const resultadoProductos = await supabaseAdmin
     .from("productos")
-    .select("id,nombre,sku,stock,activo,imagen_url,categoria,precio,en_oferta")
+    .select("id,nombre,sku,stock,activo,imagen_url,categoria,subcategoria_id,precio,en_oferta")
     .order("nombre")
     .order("id")
     .range(desde, hasta);
   const productos = resultadoProductos.data ?? [];
 
   const productosIds = productos.map((producto) => producto.id);
-  const resultadoVariantes = productosIds.length > 0
-    ? await consultarTodosSupabase((desdeVariantes, hastaVariantes) => supabaseAdmin
+  const subcategoriasIds = [...new Set(productos.map((producto) => producto.subcategoria_id).filter((id): id is string => Boolean(id)))];
+  const [resultadoVariantes, resultadoSubcategorias] = await Promise.all([
+    productosIds.length > 0
+      ? consultarTodosSupabase((desdeVariantes, hastaVariantes) => supabaseAdmin
         .from("variantes_producto")
         .select("producto_id,id,activo,stock,controla_stock", { count: "exact" })
         .in("producto_id", productosIds)
         .order("producto_id")
         .order("id")
         .range(desdeVariantes, hastaVariantes))
-    : { data: [], error: null, count: 0 };
+      : Promise.resolve({ data: [], error: null, count: 0 }),
+    subcategoriasIds.length > 0
+      ? supabaseAdmin.from("subcategorias_producto").select("id,nombre").in("id", subcategoriasIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
   const variantes = resultadoVariantes.data ?? [];
-  const error = resultadoConteo.error ?? resultadoProductos.error ?? resultadoVariantes.error;
+  const error = resultadoConteo.error ?? resultadoProductos.error ?? resultadoVariantes.error ?? resultadoSubcategorias.error;
+  const subcategoriaPorId = new Map((resultadoSubcategorias.data ?? []).map((subcategoria) => [subcategoria.id, subcategoria.nombre]));
 
   const conteo = new Map<string, number>();
   for (const variante of variantes) conteo.set(variante.producto_id, (conteo.get(variante.producto_id) ?? 0) + 1);
@@ -134,7 +141,7 @@ export default async function ProductosAdminPage({
       <div className="mt-7 grid gap-4 md:grid-cols-2">{(productos ?? []).map((producto) =>
         <article key={producto.id} className="flex flex-col items-stretch gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-5 min-[440px]:flex-row min-[440px]:items-center">
           {producto.imagen_url ? <div className="h-16 w-16 shrink-0 rounded-xl bg-white bg-contain bg-center bg-no-repeat" style={{backgroundImage:`url(${JSON.stringify(producto.imagen_url)})`}} /> : <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-zinc-800">📦</div>}
-          <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="break-words font-black">{producto.nombre}</h2><span className={`rounded-full px-2 py-1 text-[10px] font-black ${producto.activo ? "bg-lime-400/15 text-lime-300" : "bg-amber-400/15 text-amber-300"}`}>{producto.activo ? "VISIBLE" : "SUSPENDIDO"}</span>{producto.en_oferta && <span className="rounded-full bg-orange-400/15 px-2 py-1 text-[10px] font-black text-orange-300">OFERTA</span>}</div><p className="mt-1 break-words text-xs text-zinc-500">{producto.categoria} · SKU: {producto.sku || "Sin SKU"} · {stockPorColores.has(producto.id) ? `Stock físico: ${Number(producto.stock) + Number(stockPorColores.get(producto.id) ?? 0)} · Sin color: ${producto.stock}` : `Stock: ${producto.stock}`} · ${Number(producto.precio).toLocaleString("es-CO")}</p><p className="mt-2 text-sm font-bold text-lime-400">{conteo.get(producto.id) ?? 0} variantes</p></div>
+          <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="break-words font-black">{producto.nombre}</h2><span className={`rounded-full px-2 py-1 text-[10px] font-black ${producto.activo ? "bg-lime-400/15 text-lime-300" : "bg-amber-400/15 text-amber-300"}`}>{producto.activo ? "VISIBLE" : "SUSPENDIDO"}</span>{producto.en_oferta && <span className="rounded-full bg-orange-400/15 px-2 py-1 text-[10px] font-black text-orange-300">OFERTA</span>}</div><p className="mt-1 break-words text-xs text-zinc-500">{producto.categoria}{producto.subcategoria_id && subcategoriaPorId.get(producto.subcategoria_id) ? ` / ${subcategoriaPorId.get(producto.subcategoria_id)}` : ""} · SKU: {producto.sku || "Sin SKU"} · {stockPorColores.has(producto.id) ? `Stock físico: ${Number(producto.stock) + Number(stockPorColores.get(producto.id) ?? 0)} · Sin color: ${producto.stock}` : `Stock: ${producto.stock}`} · ${Number(producto.precio).toLocaleString("es-CO")}</p><p className="mt-2 text-sm font-bold text-lime-400">{conteo.get(producto.id) ?? 0} variantes</p></div>
           <Link href={`/admin/productos/${producto.id}`} className="min-h-11 rounded-xl bg-lime-400 px-4 py-2.5 text-center text-sm font-black text-black hover:bg-lime-300">Administrar</Link>
         </article>)}
       </div>}

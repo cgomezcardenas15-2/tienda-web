@@ -12,6 +12,7 @@ type ProductoEditable = {
   sku: string | null;
   descripcion: string | null;
   categoria: string;
+  subcategoria_id: string | null;
   precio: number;
   precio_anterior: number | null;
   venta_mayorista: boolean;
@@ -25,9 +26,20 @@ type ProductoEditable = {
   activo: boolean;
 };
 
-type CategoriaOpcion = { nombre: string; activo: boolean };
+type CategoriaOpcion = { id: string; nombre: string; activo: boolean };
+type SubcategoriaOpcion = { id: string; categoria_id: string; nombre: string; activo: boolean };
 
-export default function ProductoForm({ producto, categorias, tieneVariantes = false }: { producto?: ProductoEditable; categorias: CategoriaOpcion[]; tieneVariantes?: boolean }) {
+export default function ProductoForm({
+  producto,
+  categorias,
+  subcategorias,
+  tieneVariantes = false,
+}: {
+  producto?: ProductoEditable;
+  categorias: CategoriaOpcion[];
+  subcategorias: SubcategoriaOpcion[];
+  tieneVariantes?: boolean;
+}) {
   const router = useRouter();
   const [tieneColores, setTieneColores] = useState(false);
   const [colores, setColores] = useState<ColorStockNuevo[]>([]);
@@ -35,7 +47,8 @@ export default function ProductoForm({ producto, categorias, tieneVariantes = fa
     nombre: producto?.nombre ?? "",
     sku: producto?.sku ?? "",
     descripcion: producto?.descripcion ?? "",
-    categoria: producto?.categoria ?? "Hogar",
+    categoria: producto?.categoria ?? categorias[0]?.nombre ?? "",
+    subcategoria_id: producto?.subcategoria_id ?? "",
     precio: producto ? String(producto.precio) : "",
     precio_anterior: producto?.precio_anterior === null || producto?.precio_anterior === undefined ? "" : String(producto.precio_anterior),
     venta_mayorista: producto?.venta_mayorista ?? false,
@@ -51,6 +64,11 @@ export default function ProductoForm({ producto, categorias, tieneVariantes = fa
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [esError, setEsError] = useState(false);
+  const categoriaSeleccionada = categorias.find((categoria) => categoria.nombre === form.categoria);
+  const subcategoriasDisponibles = subcategorias.filter((subcategoria) => (
+    subcategoria.categoria_id === categoriaSeleccionada?.id
+    && (subcategoria.activo || subcategoria.id === form.subcategoria_id)
+  ));
 
   async function guardar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -128,9 +146,25 @@ export default function ProductoForm({ producto, categorias, tieneVariantes = fa
           <input required className={campo} value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value.toUpperCase() })} placeholder="HOG-ORG-001" />
         </label>
         <label className="text-sm text-zinc-400">Categoría
-          <select className={`${campo} cursor-pointer`} value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })}>
+          <select className={`${campo} cursor-pointer`} value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value, subcategoria_id: "" })}>
             {categorias.map((categoria) => <option key={categoria.nombre} value={categoria.nombre}>{categoria.nombre}{categoria.activo ? "" : " (inactiva)"}</option>)}
           </select>
+        </label>
+        <label className="text-sm text-zinc-400">Subcategoría (opcional)
+          <select
+            className={`${campo} cursor-pointer disabled:cursor-not-allowed disabled:opacity-60`}
+            value={form.subcategoria_id}
+            disabled={subcategoriasDisponibles.length === 0}
+            onChange={(e) => setForm({ ...form, subcategoria_id: e.target.value })}
+          >
+            <option value="">{subcategoriasDisponibles.length === 0 ? "Sin subcategorías disponibles" : "Sin subcategoría"}</option>
+            {subcategoriasDisponibles.map((subcategoria) => (
+              <option key={subcategoria.id} value={subcategoria.id}>
+                {subcategoria.nombre}{subcategoria.activo ? "" : " (inactiva)"}
+              </option>
+            ))}
+          </select>
+          <span className="mt-2 block text-xs leading-5 text-zinc-500">Sirve para filtrar dentro de {form.categoria}; no cambia las existencias.</span>
         </label>
         <label className="text-sm text-zinc-400">Precio de venta
           <input required min="0" step="1" type="number" className={campo} value={form.precio} onChange={(e) => setForm({ ...form, precio: e.target.value })} placeholder="29900" />

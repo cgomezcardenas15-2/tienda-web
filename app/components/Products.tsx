@@ -74,6 +74,8 @@ type ResultadoCatalogo = {
 
 type ProductsProps = {
   categoria?: string;
+  subcategoriaId?: string;
+  subcategoriaNombre?: string;
   busqueda?: string;
   ofertas?: boolean;
 };
@@ -266,7 +268,7 @@ function obtenerEtiqueta(
 |--------------------------------------------------------------------------
 */
 
-export default function Products({ categoria, busqueda, ofertas = false }: ProductsProps) {
+export default function Products({ categoria, subcategoriaId, subcategoriaNombre, busqueda, ofertas = false }: ProductsProps) {
   const [imagenAmpliada, setImagenAmpliada] = useState<{
     url: string;
     nombre: string;
@@ -330,15 +332,21 @@ export default function Products({ categoria, busqueda, ofertas = false }: Produ
           idsOrdenados = resultados.map((item) => item.producto_id);
           total = Number(resultados[0]?.total_count ?? 0);
         } else {
-          const { data: coincidencias, error: errorCatalogo } = await supabase.rpc(
-            "listar_productos_publicos",
-            {
+          const consultaCatalogo = subcategoriaId
+            ? supabase.rpc("listar_productos_publicos_v2", {
+              p_categoria: categoria ?? null,
+              p_subcategoria_id: subcategoriaId,
+              p_modo: "categoria",
+              p_desde: desde,
+              p_limite: PRODUCTOS_POR_PAGINA,
+            })
+            : supabase.rpc("listar_productos_publicos", {
               p_categoria: categoria ?? null,
               p_modo: categoria ? "categoria" : modoOfertas ? "ofertas" : "destacados",
               p_desde: desde,
               p_limite: PRODUCTOS_POR_PAGINA,
-            }
-          );
+            });
+          const { data: coincidencias, error: errorCatalogo } = await consultaCatalogo;
 
           if (errorCatalogo) throw errorCatalogo;
 
@@ -420,7 +428,7 @@ export default function Products({ categoria, busqueda, ofertas = false }: Produ
     return () => {
       componenteActivo = false;
     };
-  }, [categoria, busqueda, modoOfertas, paginaActual]);
+  }, [categoria, subcategoriaId, busqueda, modoOfertas, paginaActual]);
 
   const totalPaginas = Math.max(
     1,
@@ -585,6 +593,8 @@ export default function Products({ categoria, busqueda, ofertas = false }: Produ
             <span className="text-sm font-bold uppercase tracking-[0.2em] text-[#82f000]">
               {busqueda
                 ? "Resultados de búsqueda"
+                : subcategoriaNombre
+                ? `Subcategoría ${subcategoriaNombre}`
                 : categoria
                 ? `Categoría ${categoria}`
                 : modoOfertas
@@ -595,6 +605,8 @@ export default function Products({ categoria, busqueda, ofertas = false }: Produ
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
               {busqueda
                 ? `Resultados para “${busqueda}”`
+                : subcategoriaNombre && categoria
+                ? `${subcategoriaNombre} en ${categoria}`
                 : categoria
                 ? `Productos de ${categoria}`
                 : modoOfertas
@@ -605,6 +617,8 @@ export default function Products({ categoria, busqueda, ofertas = false }: Produ
             <p className="mt-3 max-w-2xl text-sm leading-6 text-white/50 sm:text-base">
               {busqueda
                 ? "Productos visibles que coinciden con tu búsqueda."
+                : subcategoriaNombre && categoria
+                ? `Explora los productos disponibles en ${subcategoriaNombre}, dentro de ${categoria}.`
                 : categoria
                 ? `Explora todos los productos disponibles de ${categoria}.`
                 : modoOfertas
@@ -657,6 +671,8 @@ export default function Products({ categoria, busqueda, ofertas = false }: Produ
               <p className="mt-4 font-semibold">
                 {busqueda
                   ? `No encontramos productos para “${busqueda}”.`
+                  : subcategoriaNombre
+                  ? `Todavía no hay productos disponibles en ${subcategoriaNombre}.`
                   : categoria
                   ? `Todavía no hay productos disponibles en ${categoria}.`
                   : modoOfertas
@@ -667,6 +683,8 @@ export default function Products({ categoria, busqueda, ofertas = false }: Produ
               <p className="mt-2 text-sm text-white/40">
                 {busqueda
                   ? "Prueba con otro nombre, referencia o categoría."
+                  : subcategoriaNombre
+                  ? "Puedes volver a “Todos” o elegir otra subcategoría."
                   : categoria
                   ? "Los productos visibles de esta categoría aparecerán aquí automáticamente."
                   : modoOfertas
