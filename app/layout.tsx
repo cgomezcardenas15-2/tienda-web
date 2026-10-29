@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import { CartProvider } from "./context/CartContext";
 import CookieNotice from "./components/CookieNotice";
 import MiniCart from "./components/MiniCart";
 import WhatsAppButton from "./components/WhatsAppButton";
+import MetaPixel from "./components/MetaPixel";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -81,6 +83,9 @@ export default function RootLayout({
           <WhatsAppButton />
           <CookieNotice />
         </CartProvider>
+        <Suspense fallback={null}>
+          <MetaPixel />
+        </Suspense>
       </body>
     </html>
   );

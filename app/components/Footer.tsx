@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { CATEGORIAS_PREDETERMINADAS, type CategoriaProducto } from "../lib/categoriasProducto";
+import { COOKIE_PREFERENCES_OPEN_EVENT } from "../lib/cookieConsent";
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -104,6 +105,13 @@ export default function Footer() {
             <Link href="/cookies" className="transition hover:text-white/60">
               Cookies
             </Link>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event(COOKIE_PREFERENCES_OPEN_EVENT))}
+              className="text-left transition hover:text-white/60"
+            >
+              Preferencias de cookies
+            </button>
           </div>
         </div>
       </div>
