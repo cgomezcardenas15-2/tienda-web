@@ -24,6 +24,7 @@ import {
   prepararPedido,
   type PedidoPreparado,
 } from "../data/prepararPedido";
+import { getMetaContentId, trackMetaEvent } from "../lib/metaPixel";
 
 /*
 |--------------------------------------------------------------------------
@@ -1331,6 +1332,36 @@ export default function CheckoutPage() {
 
       if (!respuestaPago.ok || !pago.ok || !pago.checkoutUrl) {
         throw new Error(pago.error || "No fue posible iniciar el pago.");
+      }
+
+      const metaStorageKey = `nova_meta_initiate_checkout_${pedidoId}`;
+      if (!window.sessionStorage.getItem(metaStorageKey)) {
+        const contents = pedidoPreparado.productos.map((producto) => ({
+          id: getMetaContentId({
+            id: producto.productoId,
+            varianteId: producto.varianteId,
+            sku: producto.sku,
+          }),
+          quantity: producto.cantidad,
+          item_price: producto.precioUnitario,
+        }));
+        const tracked = trackMetaEvent(
+          "InitiateCheckout",
+          {
+            content_ids: contents.map((producto) => producto.id),
+            content_type: "product",
+            contents,
+            currency: "COP",
+            value: pedidoPreparado.total,
+            num_items: contents.reduce(
+              (total, producto) => total + producto.quantity,
+              0
+            ),
+          },
+          `initiate_checkout:${pedidoId}`
+        );
+
+        if (tracked) window.sessionStorage.setItem(metaStorageKey, "1");
       }
 
       window.location.assign(pago.checkoutUrl);

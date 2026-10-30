@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCart } from "../../context/CartContext";
+import { trackMetaEvent } from "../../lib/metaPixel";
 
 const CLAVE_INTENTO_CHECKOUT = "nova_checkout_intento_v1";
 
@@ -15,6 +16,15 @@ type Resultado = {
   error?: string;
   pedidoId?: string;
   numeroPedido?: string;
+  compraMeta?: {
+    pedidoId: string;
+    numeroPedido: string;
+    value: number;
+    currency: "COP";
+    contentIds: string[];
+    contents: Array<{ id: string; quantity: number; item_price: number }>;
+    numItems: number;
+  } | null;
 };
 
 export default function ResultadoPago() {
@@ -22,6 +32,7 @@ export default function ResultadoPago() {
   const id = parametros.get("id");
   const { vaciarCarrito } = useCart();
   const carritoVaciado = useRef(false);
+  const compraMetaRegistrada = useRef(false);
   const [revision, setRevision] = useState(0);
   const [resultado, setResultado] = useState<Resultado | null>(() =>
     id ? null : { ok: false, error: "Wompi no envió un identificador de transacción." }
@@ -70,6 +81,35 @@ export default function ResultadoPago() {
       vaciarCarrito();
     }
   }, [resultado?.aprobado, vaciarCarrito]);
+
+  useEffect(() => {
+    const compra = resultado?.compraMeta;
+    if (!resultado?.aprobado || !compra || compraMetaRegistrada.current) return;
+
+    const storageKey = `nova_meta_purchase_${compra.pedidoId}`;
+    if (window.localStorage.getItem(storageKey)) {
+      compraMetaRegistrada.current = true;
+      return;
+    }
+
+    const tracked = trackMetaEvent(
+      "Purchase",
+      {
+        content_ids: compra.contentIds,
+        content_type: "product",
+        contents: compra.contents,
+        currency: "COP",
+        value: compra.value,
+        num_items: compra.numItems,
+      },
+      `purchase:${compra.pedidoId}`
+    );
+
+    if (tracked) {
+      window.localStorage.setItem(storageKey, "1");
+      compraMetaRegistrada.current = true;
+    }
+  }, [resultado]);
 
   const titulo = !resultado
     ? "Estamos verificando tu pago"

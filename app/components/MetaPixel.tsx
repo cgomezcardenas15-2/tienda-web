@@ -8,19 +8,12 @@ import {
   type CookieConsent,
   getCookieConsent,
 } from "../lib/cookieConsent";
-
-const META_PIXEL_ID = "4729062324035766";
-const PRODUCTION_HOSTS = new Set(["senornova.com.co", "www.senornova.com.co"]);
-
-declare global {
-  interface Window {
-    fbq?: (...args: unknown[]) => void;
-  }
-}
-
-function canUseMetaPixel(pathname: string) {
-  return !pathname.startsWith("/admin") && PRODUCTION_HOSTS.has(window.location.hostname);
-}
+import {
+  META_PIXEL_ID,
+  canUseMetaPixel,
+  clearPendingMetaEvents,
+  flushPendingMetaEvents,
+} from "../lib/metaPixel";
 
 export default function MetaPixel() {
   const pathname = usePathname();
@@ -30,7 +23,9 @@ export default function MetaPixel() {
 
   useEffect(() => {
     const syncConsent = (consent = getCookieConsent()) => {
-      setEnabled(consent === "marketing" && canUseMetaPixel(pathname));
+      const nextEnabled = consent === "marketing" && canUseMetaPixel(pathname);
+      if (!nextEnabled) clearPendingMetaEvents();
+      setEnabled(nextEnabled);
     };
 
     syncConsent();
@@ -49,14 +44,19 @@ export default function MetaPixel() {
       return;
     }
 
-    if (!loaded || lastTrackedPath.current === null) return;
+    if (!loaded) return;
+    if (lastTrackedPath.current === null) {
+      window.fbq?.("track", "PageView");
+      lastTrackedPath.current = pathname;
+      return;
+    }
     if (lastTrackedPath.current === pathname) return;
 
     window.fbq?.("track", "PageView");
     lastTrackedPath.current = pathname;
   }, [enabled, loaded, pathname]);
 
-  if (!enabled) return null;
+  if (!enabled || loaded) return null;
 
   return (
     <Script
@@ -65,6 +65,7 @@ export default function MetaPixel() {
       onReady={() => {
         lastTrackedPath.current = pathname;
         setLoaded(true);
+        flushPendingMetaEvents();
       }}
     >
       {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${META_PIXEL_ID}');fbq('track','PageView');`}

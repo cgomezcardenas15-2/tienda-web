@@ -13,6 +13,48 @@ export class ErrorVerificacionPago extends Error {
   }
 }
 
+async function obtenerCompraMeta(pedido: {
+  id: string;
+  numero_pedido: string;
+  total: number;
+  moneda: string;
+}) {
+  const { data: productos, error } = await supabaseAdmin
+    .from("productos_pedido")
+    .select("producto_id,variante_id,variante_sku,precio_unitario,cantidad")
+    .eq("pedido_id", pedido.id);
+
+  if (error || !productos?.length) {
+    console.error("No fue posible preparar los datos de compra para Meta", {
+      pedidoId: pedido.id,
+      error: error?.message,
+    });
+    return null;
+  }
+
+  const contents = productos.map((producto) => ({
+    id:
+      producto.variante_sku?.trim() ||
+      producto.variante_id ||
+      producto.producto_id,
+    quantity: Number(producto.cantidad),
+    item_price: Number(producto.precio_unitario),
+  }));
+
+  return {
+    pedidoId: pedido.id,
+    numeroPedido: pedido.numero_pedido,
+    value: Number(pedido.total),
+    currency: "COP" as const,
+    contentIds: contents.map((producto) => producto.id),
+    contents,
+    numItems: contents.reduce(
+      (total, producto) => total + producto.quantity,
+      0
+    ),
+  };
+}
+
 export async function verificarYActualizarPagoWompi(idTransaccion: string) {
   const transaccion = await consultarTransaccionWompi(idTransaccion);
   const { data, error } = await supabaseAdmin
@@ -44,6 +86,7 @@ export async function verificarYActualizarPagoWompi(idTransaccion: string) {
   // Un evento atrasado o un segundo intento de pago nunca debe devolver un
   // pedido ya aprobado a "pendiente", ni volver a consumir inventario.
   if (data.estado_pago === "aprobado") {
+    const compraMeta = await obtenerCompraMeta(data);
     return {
       pedidoId: data.id,
       numeroPedido: data.numero_pedido,
@@ -51,6 +94,7 @@ export async function verificarYActualizarPagoWompi(idTransaccion: string) {
       aprobado: true,
       duplicado: true,
       mensaje: null,
+      compraMeta,
     };
   }
 
@@ -98,6 +142,8 @@ export async function verificarYActualizarPagoWompi(idTransaccion: string) {
       duplicado?: boolean;
     } | null;
 
+    const compraMeta = await obtenerCompraMeta(data);
+
     return {
       pedidoId: data.id,
       numeroPedido: data.numero_pedido,
@@ -105,6 +151,7 @@ export async function verificarYActualizarPagoWompi(idTransaccion: string) {
       aprobado: true,
       duplicado: resultadoConfirmacion?.duplicado === true,
       mensaje: transaccion.status_message || null,
+      compraMeta,
     };
   } else {
     const { error: errorActualizacion } = await supabaseAdmin

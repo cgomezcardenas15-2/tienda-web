@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { useCart } from "../context/CartContext";
+import { getMetaContentId, trackMetaEvent } from "../lib/metaPixel";
 import { supabase } from "../lib/supabase";
 
 /*
@@ -546,6 +547,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
 
     agregarProducto({
       id: producto.id,
+      sku: producto.sku ?? undefined,
 
       nombre:
         producto.nombre,
@@ -566,6 +568,31 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
       stock:
         producto.stock,
     });
+  }
+
+  function abrirVistaProducto(
+    producto: ProductoSupabase,
+    variante: VarianteProducto | undefined,
+    imagen: string
+  ) {
+    const precio = variante?.precio ?? producto.precio;
+    const contentId = getMetaContentId({
+      id: producto.id,
+      varianteId: variante?.id,
+      sku: variante?.sku ?? producto.sku,
+    });
+
+    trackMetaEvent("ViewContent", {
+      content_ids: [contentId],
+      content_type: "product",
+      contents: [{ id: contentId, quantity: 1, item_price: precio }],
+      currency: "COP",
+      value: precio,
+      content_name: producto.nombre,
+      num_items: 1,
+    });
+
+    setImagenAmpliada({ url: imagen, nombre: producto.nombre });
   }
 
   /*
@@ -765,10 +792,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
                             <button
                               type="button"
                               onClick={() =>
-                                setImagenAmpliada({
-                                  url: imagenVisible,
-                                  nombre: producto.nombre,
-                                })
+                                abrirVistaProducto(producto, variante, imagenVisible)
                               }
                               aria-label={`Ver imagen ampliada de ${producto.nombre}`}
                               title="Ver imagen"

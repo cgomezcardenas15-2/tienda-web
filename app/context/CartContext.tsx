@@ -6,8 +6,10 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
+import { getMetaContentId, trackMetaEvent } from "../lib/metaPixel";
 
 /*
 |--------------------------------------------------------------------------
@@ -134,6 +136,7 @@ export function CartProvider({
 }) {
   const [items, setItems] =
     useState<CartItem[]>([]);
+  const itemsRef = useRef<CartItem[]>([]);
 
   const [
     miniCarritoAbierto,
@@ -193,11 +196,10 @@ export function CartProvider({
                 item.cantidad > 0
             );
 
+          itemsRef.current = carritoRecuperado;
           // Restaurar el estado persistido es la sincronización intencional de este efecto.
           // eslint-disable-next-line react-hooks/set-state-in-effect
-          setItems(
-            carritoRecuperado
-          );
+          setItems(carritoRecuperado);
         }
       }
     } catch (error) {
@@ -270,7 +272,8 @@ export function CartProvider({
     }
 
     const claveProducto = obtenerClaveCarrito(producto);
-    const productoExistente = items.find(
+    const carritoActual = itemsRef.current;
+    const productoExistente = carritoActual.find(
       (item) => obtenerClaveCarrito(item) === claveProducto
     );
     const llegoAlLimite =
@@ -283,117 +286,58 @@ export function CartProvider({
     setAvisoMiniCarrito(llegoAlLimite ? "limite" : "agregado");
     abrirMiniCarrito();
 
-    setItems(
-      (carritoActual) => {
-        const productoExistente =
-          carritoActual.find(
-            (item) =>
-              obtenerClaveCarrito(item) ===
-              obtenerClaveCarrito(producto)
-          );
+    let itemAgregado: CartItem;
+    let siguienteCarrito: CartItem[];
 
-        /*
-        |--------------------------------------------------------------------------
-        | PRODUCTO YA EXISTE
-        |--------------------------------------------------------------------------
-        */
+    if (productoExistente) {
+      const itemActualizado: CartItem = {
+        ...productoExistente,
+        nombre: producto.nombre,
+        precio: producto.precio,
+        precioMayorista: producto.precioMayorista,
+        cantidadMinimaMayorista: producto.cantidadMinimaMayorista,
+        imagen: producto.imagen,
+        varianteId: producto.varianteId,
+        varianteNombre: producto.varianteNombre,
+        varianteColor: producto.varianteColor,
+        varianteTalla: producto.varianteTalla,
+        sku: producto.sku,
+        controlaStock: producto.controlaStock,
+        stock: stockSeguro,
+      };
 
-        if (
-          productoExistente
-        ) {
-          return carritoActual.map(
-            (item) => {
-              if (
-                obtenerClaveCarrito(item) !==
-                obtenerClaveCarrito(producto)
-              ) {
-                return item;
-              }
-
-              /*
-              |--------------------------------------------------------------------------
-              | ACTUALIZAR INFORMACIÓN
-              |--------------------------------------------------------------------------
-              |
-              | Si el producto venía de un carrito antiguo,
-              | actualizamos su stock y configuración con
-              | la información más reciente del catálogo.
-              |
-              */
-
-              const itemActualizado = {
-                ...item,
-
-                nombre:
-                  producto.nombre,
-
-                precio:
-                  producto.precio,
-
-                precioMayorista: producto.precioMayorista,
-                cantidadMinimaMayorista: producto.cantidadMinimaMayorista,
-
-                imagen:
-                  producto.imagen,
-
-                varianteId: producto.varianteId,
-                varianteNombre: producto.varianteNombre,
-                varianteColor: producto.varianteColor,
-                varianteTalla: producto.varianteTalla,
-                sku: producto.sku,
-
-                controlaStock:
-                  producto.controlaStock,
-
-                stock:
-                  stockSeguro,
-              };
-
-              /*
-              |--------------------------------------------------------------------------
-              | LÍMITE DE STOCK
-              |--------------------------------------------------------------------------
-              */
-
-              if (
-                producto.controlaStock ===
-                  true &&
-                stockSeguro !==
-                  undefined &&
-                item.cantidad >=
-                  stockSeguro
-              ) {
-                return itemActualizado;
-              }
-
-              return {
-                ...itemActualizado,
-                cantidad:
-                  item.cantidad + 1,
-              };
-            }
-          );
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | PRODUCTO NUEVO
-        |--------------------------------------------------------------------------
-        */
-
-        return [
-          ...carritoActual,
-          {
-            ...producto,
-
-            stock:
-              stockSeguro,
-
-            cantidad: 1,
-          },
-        ];
+      if (llegoAlLimite) {
+        siguienteCarrito = carritoActual.map((item) =>
+          obtenerClaveCarrito(item) === claveProducto ? itemActualizado : item
+        );
+        itemsRef.current = siguienteCarrito;
+        setItems(siguienteCarrito);
+        return;
       }
-    );
+
+      itemAgregado = { ...itemActualizado, cantidad: productoExistente.cantidad + 1 };
+      siguienteCarrito = carritoActual.map((item) =>
+        obtenerClaveCarrito(item) === claveProducto ? itemAgregado : item
+      );
+    } else {
+      itemAgregado = { ...producto, stock: stockSeguro, cantidad: 1 };
+      siguienteCarrito = [...carritoActual, itemAgregado];
+    }
+
+    itemsRef.current = siguienteCarrito;
+    setItems(siguienteCarrito);
+
+    const contentId = getMetaContentId(producto);
+    const precioUnitario = obtenerPrecioUnitario(itemAgregado);
+    trackMetaEvent("AddToCart", {
+      content_ids: [contentId],
+      content_type: "product",
+      contents: [{ id: contentId, quantity: 1, item_price: precioUnitario }],
+      currency: "COP",
+      value: precioUnitario,
+      content_name: producto.nombre,
+      num_items: 1,
+    });
   }
 
   /*
@@ -405,13 +349,11 @@ export function CartProvider({
   function quitarProducto(
     id: string
   ) {
-    setItems(
-      (carritoActual) =>
-        carritoActual.filter(
-          (item) =>
-            obtenerClaveCarrito(item) !== id
-        )
+    const siguienteCarrito = itemsRef.current.filter(
+      (item) => obtenerClaveCarrito(item) !== id
     );
+    itemsRef.current = siguienteCarrito;
+    setItems(siguienteCarrito);
   }
 
   /*
@@ -423,9 +365,7 @@ export function CartProvider({
   function aumentarCantidad(
     id: string
   ) {
-    setItems(
-      (carritoActual) =>
-        carritoActual.map(
+    const siguienteCarrito = itemsRef.current.map(
           (item) => {
             if (
               obtenerClaveCarrito(item) !== id
@@ -455,8 +395,9 @@ export function CartProvider({
                 item.cantidad + 1,
             };
           }
-        )
-    );
+        );
+    itemsRef.current = siguienteCarrito;
+    setItems(siguienteCarrito);
   }
 
   /*
@@ -468,9 +409,7 @@ export function CartProvider({
   function disminuirCantidad(
     id: string
   ) {
-    setItems(
-      (carritoActual) =>
-        carritoActual
+    const siguienteCarrito = itemsRef.current
           .map(
             (item) =>
               obtenerClaveCarrito(item) === id
@@ -486,8 +425,9 @@ export function CartProvider({
           .filter(
             (item) =>
               item.cantidad > 0
-          )
-    );
+          );
+    itemsRef.current = siguienteCarrito;
+    setItems(siguienteCarrito);
   }
 
   /*
@@ -497,6 +437,7 @@ export function CartProvider({
   */
 
   function vaciarCarrito() {
+    itemsRef.current = [];
     setItems([]);
     setUltimaClaveAgregada(null);
   }
