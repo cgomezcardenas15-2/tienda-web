@@ -18,7 +18,7 @@ export type MetaContent = {
 
 export type MetaEventParameters = {
   content_ids: string[];
-  content_type: "product";
+  content_type: "product" | "product_group";
   contents: MetaContent[];
   currency: "COP";
   value: number;

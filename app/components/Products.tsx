@@ -576,6 +576,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
     imagen: string
   ) {
     const precio = variante?.precio ?? producto.precio;
+    const esGrupo = !variante && (variantes[producto.id]?.length ?? 0) > 0;
     const contentId = getMetaContentId({
       id: producto.id,
       varianteId: variante?.id,
@@ -584,7 +585,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
 
     trackMetaEvent("ViewContent", {
       content_ids: [contentId],
-      content_type: "product",
+      content_type: esGrupo ? "product_group" : "product",
       contents: [{ id: contentId, quantity: 1, item_price: precio }],
       currency: "COP",
       value: precio,
