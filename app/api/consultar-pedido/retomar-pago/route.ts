@@ -27,10 +27,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Revisa el número del pedido y el correo." }, { status: 400 });
     }
     const { data, error } = await supabaseAdmin.from("pedidos")
-      .select("id,numero_pedido,total,moneda,estado_pago,estado_pedido,referencia_pago,comprador_nombre,comprador_correo,comprador_telefono,comprador_tipo_documento,comprador_numero_documento")
+      .select("id,numero_pedido,total,moneda,estado_pago,estado_pedido,referencia_pago,metodo_pago,comprador_nombre,comprador_correo,comprador_telefono,comprador_tipo_documento,comprador_numero_documento")
       .eq("numero_pedido", numero).ilike("comprador_correo", correo).maybeSingle();
     if (error || !data) return NextResponse.json({ error: "No encontramos el pedido." }, { status: 404 });
     if (data.estado_pedido === "cancelado") return NextResponse.json({ error: "Este pedido está cancelado." }, { status: 409 });
+    if (data.metodo_pago === "contraentrega") {
+      return NextResponse.json({ error: "Este pedido se paga en efectivo al recibirlo y no necesita abrir Wompi." }, { status: 409 });
+    }
     const checkoutUrl = await crearCheckoutWompi(data as PedidoParaPago, request.url);
     return NextResponse.json({ checkoutUrl });
   } catch (error) {

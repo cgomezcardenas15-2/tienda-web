@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
   const { data: pedido, error } = await supabaseAdmin
     .from("pedidos")
-    .select("id,numero_pedido,creado_en,total,moneda,estado_pago,estado_pedido,envio_transportadora,envio_servicio,envio_numero_guia,envio_url_seguimiento")
+    .select("id,numero_pedido,creado_en,total,moneda,estado_pago,estado_pedido,metodo_pago,envio_transportadora,envio_servicio,envio_numero_guia,envio_url_seguimiento")
     .eq("numero_pedido", numeroPedido)
     .ilike("comprador_correo", correo)
     .maybeSingle();
@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
       moneda: pedido.moneda,
       estadoPago: pedido.estado_pago,
       estadoPedido: pedido.estado_pedido,
-      puedeRetomarPago: pedido.estado_pago !== "aprobado" && pedido.estado_pedido !== "cancelado",
+      metodoPago: pedido.metodo_pago,
+      puedeRetomarPago: pedido.metodo_pago !== "contraentrega" && pedido.estado_pago !== "aprobado" && pedido.estado_pedido !== "cancelado",
       envio: {
         transportadora: pedido.envio_transportadora || null,
         servicio: pedido.envio_servicio || null,

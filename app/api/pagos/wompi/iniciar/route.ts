@@ -15,13 +15,20 @@ export async function POST(request: Request) {
     const { data, error } = await supabaseAdmin
       .from("pedidos")
       .select(
-        "id,numero_pedido,total,moneda,estado_pago,referencia_pago,comprador_nombre,comprador_correo,comprador_telefono,comprador_tipo_documento,comprador_numero_documento"
+        "id,numero_pedido,total,moneda,estado_pago,referencia_pago,metodo_pago,comprador_nombre,comprador_correo,comprador_telefono,comprador_tipo_documento,comprador_numero_documento"
       )
       .eq("id", pedidoId)
       .single();
 
     if (error || !data) {
       return NextResponse.json({ ok: false, error: "No encontramos el pedido." }, { status: 404 });
+    }
+
+    if (data.metodo_pago === "contraentrega") {
+      return NextResponse.json(
+        { ok: false, error: "Este pedido fue confirmado para pago en efectivo contraentrega." },
+        { status: 409 }
+      );
     }
 
     const pedido = data as PedidoParaPago;

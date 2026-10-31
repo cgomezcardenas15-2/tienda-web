@@ -14,6 +14,7 @@ type PedidoResumen = {
   moneda: string;
   estado_pedido: string;
   estado_pago: string;
+  metodo_pago: string;
   creado_en?: string;
 };
 
@@ -31,7 +32,7 @@ function estadoTexto(estado: string) {
     pendiente: "Pendiente", procesando: "Procesando", aprobado: "Aprobado",
     rechazado: "Rechazado", cancelado: "Cancelado", vencido: "Pago vencido",
     pendiente_pago: "Pendiente de pago", pagado: "Pagado", preparando: "Preparando",
-    enviado: "Enviado", entregado: "Entregado",
+    confirmado: "Confirmado", enviado: "Enviado", entregado: "Entregado",
   };
   return textos[estado] || estado.replaceAll("_", " ");
 }
@@ -42,7 +43,7 @@ async function cargarPedidosConReintentos() {
   for (let intento = 1; intento <= intentos; intento += 1) {
     const resultado = await supabaseAdmin
       .from("pedidos")
-      .select("id,numero_pedido,comprador_nombre,comprador_correo,entrega_ciudad,total,moneda,estado_pedido,estado_pago,creado_en")
+      .select("id,numero_pedido,comprador_nombre,comprador_correo,entrega_ciudad,total,moneda,estado_pedido,estado_pago,metodo_pago,creado_en")
       .order("creado_en", { ascending: false })
       .limit(100);
 
@@ -107,7 +108,7 @@ export default async function PedidosAdminPage() {
                   <td className="px-5 py-4 text-zinc-400">{pedido.creado_en ? new Date(pedido.creado_en).toLocaleString("es-CO") : "—"}</td>
                   <td className="px-5 py-4"><p className="font-bold text-white">{pedido.comprador_nombre}</p><p className="mt-1 text-xs font-bold text-lime-400">{pedido.numero_pedido}</p><p className="mt-1 text-xs text-zinc-500">{pedido.comprador_correo}</p></td>
                   <td className="px-5 py-4 text-zinc-300">{pedido.entrega_ciudad}</td>
-                  <td className="px-5 py-4"><span className={`rounded-full px-3 py-1 text-xs font-bold ${estadoClase(pedido.estado_pago)}`}>{estadoTexto(pedido.estado_pago)}</span></td>
+                  <td className="px-5 py-4"><span className={`rounded-full px-3 py-1 text-xs font-bold ${estadoClase(pedido.estado_pago)}`}>{pedido.metodo_pago === "contraentrega" && pedido.estado_pago !== "aprobado" ? "Efectivo pendiente" : estadoTexto(pedido.estado_pago)}</span>{pedido.metodo_pago === "contraentrega" ? <p className="mt-2 text-xs font-semibold text-amber-300">Contraentrega Cali</p> : null}</td>
                   <td className="px-5 py-4"><span className={`rounded-full px-3 py-1 text-xs font-bold ${estadoClase(pedido.estado_pedido)}`}>{estadoTexto(pedido.estado_pedido)}</span></td>
                   <td className="px-5 py-4 text-right font-black text-white">{dinero.format(Number(pedido.total))}</td>
                   <td className="px-5 py-4 text-right">

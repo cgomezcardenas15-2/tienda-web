@@ -9,6 +9,7 @@ type PedidoConsultado = {
   moneda: string;
   estadoPago: string;
   estadoPedido: string;
+  metodoPago: string;
   puedeRetomarPago: boolean;
   envio: { transportadora: string | null; servicio: string | null; numeroGuia: string | null; urlSeguimiento: string | null };
   productos: { id: string; nombre: string; cantidad: number; variante: string | null }[];
@@ -16,6 +17,7 @@ type PedidoConsultado = {
 
 const ESTADOS: Record<string, { titulo: string; descripcion: string; paso: number }> = {
   pendiente_pago: { titulo: "Esperando confirmación del pago", descripcion: "El pedido todavía no tiene un pago aprobado.", paso: 0 },
+  confirmado: { titulo: "Pedido contraentrega confirmado", descripcion: "Reservamos tus productos. Pagarás en efectivo al domiciliario cuando recibas el pedido en Cali.", paso: 1 },
   pagado: { titulo: "Pago aprobado", descripcion: "Recibimos el pago y pronto comenzaremos la preparación.", paso: 1 },
   preparando: { titulo: "Preparando tu pedido", descripcion: "Estamos organizando los productos para entregarlos a la transportadora.", paso: 2 },
   enviado: { titulo: "Pedido enviado", descripcion: "Tu pedido ya está en camino.", paso: 3 },
@@ -72,7 +74,7 @@ export default function ConsultaPedido() {
     {pedido && estado && <section className="mt-6 space-y-5">
       <article className="rounded-3xl border border-[#82f000]/25 bg-[#82f000]/[0.045] p-5 sm:p-8">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-[#82f000]">Estado actual</p><h2 className="mt-3 text-2xl font-black">{estado.titulo}</h2><p className="mt-2 text-sm leading-6 text-white/50">{estado.descripcion}</p>
-        <div className="mt-7 grid grid-cols-2 gap-3 min-[480px]:grid-cols-4">{["Pagado", "Preparando", "Enviado", "Entregado"].map((paso, indice) => <div key={paso}><div className={`h-2 rounded-full ${estado.paso >= indice + 1 ? "bg-[#82f000]" : "bg-white/10"}`} /><p className="mt-2 text-[11px] font-bold text-white/45 sm:text-xs">{paso}</p></div>)}</div>
+        <div className="mt-7 grid grid-cols-2 gap-3 min-[480px]:grid-cols-4">{[(pedido.metodoPago === "contraentrega" ? "Confirmado" : "Pagado"), "Preparando", (pedido.metodoPago === "contraentrega" ? "En reparto" : "Enviado"), "Entregado"].map((paso, indice) => <div key={paso}><div className={`h-2 rounded-full ${estado.paso >= indice + 1 ? "bg-[#82f000]" : "bg-white/10"}`} /><p className="mt-2 text-[11px] font-bold text-white/45 sm:text-xs">{paso}</p></div>)}</div>
         {pedido.puedeRetomarPago && <button type="button" disabled={retomando} onClick={retomarPago} className="mt-6 min-h-12 w-full rounded-xl bg-[#82f000] px-5 py-3 font-black text-black disabled:opacity-50 sm:w-auto">{retomando ? "Abriendo pago..." : "Retomar pago seguro"}</button>}
       </article>
       <div className="grid gap-5 md:grid-cols-2">

@@ -89,7 +89,7 @@ function esUuidValido(valor: string) {
 async function consultarPedidoIdempotente(claveIdempotencia: string) {
   return supabaseAdmin
     .from("pedidos")
-    .select("id,numero_pedido,reserva_estado")
+    .select("id,numero_pedido,reserva_estado,metodo_pago,total")
     .eq("clave_idempotencia", claveIdempotencia)
     .maybeSingle();
 }
@@ -98,6 +98,8 @@ function respuestaPedidoRepetido(pedido: {
   id: string;
   numero_pedido: string;
   reserva_estado: string;
+  metodo_pago: string;
+  total: number;
 }) {
   if (pedido.reserva_estado === "sin_reserva") {
     return NextResponse.json(
@@ -113,7 +115,12 @@ function respuestaPedidoRepetido(pedido: {
   return NextResponse.json({
     ok: true,
     repetido: true,
-    pedido: { id: pedido.id, numero_pedido: pedido.numero_pedido },
+    pedido: {
+      id: pedido.id,
+      numero_pedido: pedido.numero_pedido,
+      metodo_pago: pedido.metodo_pago,
+      total: Number(pedido.total),
+    },
     productos: [],
   });
 }
@@ -533,6 +540,20 @@ export async function POST(request: Request) {
       );
     }
 
+    const metodoPago =
+      body.metodo_pago === undefined || body.metodo_pago === "wompi"
+        ? "wompi"
+        : body.metodo_pago === "contraentrega"
+          ? "contraentrega"
+          : null;
+
+    if (!metodoPago) {
+      return NextResponse.json(
+        { ok: false, error: "El método de pago seleccionado no es válido." },
+        { status: 400 }
+      );
+    }
+
     const { data: pedidoExistente, error: errorConsultaExistente } =
       await consultarPedidoIdempotente(claveIdempotencia);
 
@@ -545,6 +566,12 @@ export async function POST(request: Request) {
     }
 
     if (pedidoExistente) {
+      if (pedidoExistente.metodo_pago !== metodoPago) {
+        return NextResponse.json(
+          { ok: false, error: "El método de pago cambió. Revisa nuevamente el pedido." },
+          { status: 409 }
+        );
+      }
       return respuestaPedidoRepetido(pedidoExistente);
     }
 
@@ -576,6 +603,16 @@ export async function POST(request: Request) {
         {
           status: 400,
         }
+      );
+    }
+
+    if (metodoPago === "contraentrega" && resultadoEnvio.zona !== "CALI") {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "El pago en efectivo contraentrega está disponible únicamente para entregas en Cali.",
+        },
+        { status: 409 }
       );
     }
 
@@ -723,6 +760,9 @@ export async function POST(request: Request) {
       moneda:
         "COP",
 
+      metodo_pago:
+        metodoPago,
+
       estado_pedido:
         "pendiente_pago",
 
@@ -730,7 +770,7 @@ export async function POST(request: Request) {
         "pendiente",
 
       proveedor_pago:
-        null,
+        metodoPago === "contraentrega" ? "contraentrega" : null,
 
       referencia_pago:
         null,
@@ -894,10 +934,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const { error: errorReserva } = await supabaseAdmin.rpc(
-      "reservar_inventario_pedido",
-      { p_pedido_id: pedidoCreado.id, p_minutos: 30 }
-    );
+    const { error: errorReserva } = metodoPago === "contraentrega"
+      ? await supabaseAdmin.rpc("preparar_pedido_contraentrega", {
+          p_pedido_id: pedidoCreado.id,
+        })
+      : await supabaseAdmin.rpc("reservar_inventario_pedido", {
+          p_pedido_id: pedidoCreado.id,
+          p_minutos: 30,
+        });
 
     if (errorReserva) {
       console.error("No fue posible reservar el inventario:", errorReserva);

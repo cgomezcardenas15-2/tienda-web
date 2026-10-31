@@ -4,6 +4,7 @@ import { notificarEnvioPorCorreo } from "@/app/lib/notificacionesPedido";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 const TRANSICIONES: Record<string, string> = {
+  confirmado: "preparando",
   pagado: "preparando",
   preparando: "enviado",
   enviado: "entregado",
@@ -25,7 +26,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const { data: pedido, error: consultaError } = await supabaseAdmin
     .from("pedidos")
-    .select("id,comprador_nombre,comprador_correo,estado_pedido,estado_pago,envio_transportadora,envio_servicio,envio_numero_guia,envio_url_seguimiento,envio_notificado_email_en")
+    .select("id,comprador_nombre,comprador_correo,estado_pedido,estado_pago,metodo_pago,envio_zona,envio_transportadora,envio_servicio,envio_numero_guia,envio_url_seguimiento,envio_notificado_email_en")
     .eq("id", id)
     .maybeSingle();
 
@@ -34,15 +35,23 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "No fue posible consultar el pedido." }, { status: 500 });
   }
   if (!pedido) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
-  if (pedido.estado_pago !== "aprobado") {
+  const esContraentregaCali = pedido.metodo_pago === "contraentrega" && pedido.envio_zona === "CALI";
+  if (pedido.estado_pago !== "aprobado" && !esContraentregaCali) {
     return NextResponse.json({ error: "Solo los pedidos con pago aprobado pueden avanzar." }, { status: 409 });
+  }
+
+  if (esContraentregaCali && estadoSolicitado === "entregado") {
+    return NextResponse.json(
+      { error: "Confirma el efectivo recibido para completar esta contraentrega." },
+      { status: 409 }
+    );
   }
 
   const siguientePermitido = TRANSICIONES[pedido.estado_pedido];
   if (!siguientePermitido || estadoSolicitado !== siguientePermitido) {
     return NextResponse.json({ error: "Ese cambio de estado no está permitido." }, { status: 409 });
   }
-  if (estadoSolicitado === "enviado" && (!pedido.envio_transportadora || !pedido.envio_numero_guia)) {
+  if (estadoSolicitado === "enviado" && !esContraentregaCali && (!pedido.envio_transportadora || !pedido.envio_numero_guia)) {
     return NextResponse.json({ error: "Guarda primero la transportadora y el número de guía." }, { status: 409 });
   }
 
@@ -62,7 +71,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "El pedido cambió mientras lo estabas revisando. Actualiza la página." }, { status: 409 });
   }
 
-  const notificacion = estadoSolicitado === "enviado"
+  const notificacion = estadoSolicitado === "enviado" && !esContraentregaCali
     ? await notificarEnvioPorCorreo(pedido)
     : null;
 

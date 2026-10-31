@@ -56,6 +56,7 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
   }
 
   const catalogoPorId = new Map((catalogo || []).map((producto) => [String(producto.id), producto]));
+  const esContraentregaCali = pedido.metodo_pago === "contraentrega" && pedido.envio_zona === "CALI";
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-8">
@@ -75,21 +76,29 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
         <article className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6"><h2 className="font-black">Entrega</h2><dl className="mt-4 space-y-3 text-sm"><div><dt className="text-zinc-500">Destino</dt><dd className="mt-1">{pedido.entrega_ciudad}, {pedido.entrega_departamento}</dd></div><div><dt className="text-zinc-500">Dirección</dt><dd className="mt-1">{pedido.entrega_direccion}{pedido.entrega_complemento ? `, ${pedido.entrega_complemento}` : ""}</dd></div><div><dt className="text-zinc-500">Instrucciones</dt><dd className="mt-1">{pedido.entrega_instrucciones || "Sin instrucciones"}</dd></div></dl></article>
       </section>
 
-      <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6"><div className="flex flex-wrap justify-between gap-4"><div><p className="text-sm text-zinc-500">Estado del pago</p><p className={`mt-1 font-black ${pedido.estado_pago === "vencido" ? "text-orange-300" : "text-lime-400"}`}>{pedido.estado_pago === "vencido" ? "Pago vencido" : pedido.estado_pago}</p></div><div><p className="text-sm text-zinc-500">Estado del pedido</p><p className="mt-1 font-black">{pedido.estado_pedido}</p></div><div><p className="text-sm text-zinc-500">Proveedor</p><p className="mt-1 font-black">{pedido.proveedor_pago || "—"}</p></div></div></section>
+      <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6"><div className="flex flex-wrap justify-between gap-4"><div><p className="text-sm text-zinc-500">Estado del pago</p><p className={`mt-1 font-black ${pedido.estado_pago === "vencido" ? "text-orange-300" : pedido.estado_pago === "aprobado" ? "text-lime-400" : "text-amber-300"}`}>{pedido.estado_pago === "vencido" ? "Pago vencido" : esContraentregaCali && pedido.estado_pago !== "aprobado" ? "Efectivo pendiente" : pedido.estado_pago}</p></div><div><p className="text-sm text-zinc-500">Estado del pedido</p><p className="mt-1 font-black">{pedido.estado_pedido}</p></div><div><p className="text-sm text-zinc-500">Método de pago</p><p className="mt-1 font-black">{esContraentregaCali ? "Efectivo contraentrega" : "Wompi"}</p></div></div></section>
 
       <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-lime-400">Gestión del pedido</p>
         <h2 className="mt-2 text-xl font-black">Siguiente paso</h2>
-        <div className="mt-4"><EstadoPedidoControl pedidoId={pedido.id} estadoActual={pedido.estado_pedido} pagoAprobado={pedido.estado_pago === "aprobado"} /></div>
+        <div className="mt-4"><EstadoPedidoControl pedidoId={pedido.id} estadoActual={pedido.estado_pedido} pagoAprobado={pedido.estado_pago === "aprobado"} metodoPago={pedido.metodo_pago || "wompi"} envioZona={pedido.envio_zona || ""} /></div>
       </section>
 
-      <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-lime-400">Logística</p>
-        <h2 className="mt-2 text-xl font-black">Información de envío</h2>
-        <p className="mt-2 text-sm text-zinc-400">Guarda la guía antes de marcar el pedido como enviado.</p>
-        <EnvioPedidoForm pedidoId={pedido.id} estadoPedido={pedido.estado_pedido} inicial={{ transportadora: pedido.envio_transportadora || "", servicio: pedido.envio_servicio || "", numeroGuia: pedido.envio_numero_guia || "", urlSeguimiento: pedido.envio_url_seguimiento || "" }} />
-        <NotificacionEnvioControl pedidoId={pedido.id} estadoPedido={pedido.estado_pedido} notificadoEn={pedido.envio_notificado_email_en || null} />
-      </section>
+      {esContraentregaCali ? (
+        <section className="mt-5 rounded-2xl border border-lime-500/25 bg-lime-500/[0.055] p-6">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-lime-400">Entrega local en Cali</p>
+          <h2 className="mt-2 text-xl font-black">Domiciliario NOVA · cobro en efectivo</h2>
+          <p className="mt-2 text-sm leading-6 text-zinc-300">Este pedido no necesita guía de transportadora. Cuando salga, márcalo como <strong>en reparto</strong>; al finalizar confirma conjuntamente la entrega y el efectivo recibido.</p>
+        </section>
+      ) : (
+        <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-lime-400">Logística</p>
+          <h2 className="mt-2 text-xl font-black">Información de envío</h2>
+          <p className="mt-2 text-sm text-zinc-400">Guarda la guía antes de marcar el pedido como enviado.</p>
+          <EnvioPedidoForm pedidoId={pedido.id} estadoPedido={pedido.estado_pedido} inicial={{ transportadora: pedido.envio_transportadora || "", servicio: pedido.envio_servicio || "", numeroGuia: pedido.envio_numero_guia || "", urlSeguimiento: pedido.envio_url_seguimiento || "" }} />
+          <NotificacionEnvioControl pedidoId={pedido.id} estadoPedido={pedido.estado_pedido} notificadoEn={pedido.envio_notificado_email_en || null} />
+        </section>
+      )}
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-zinc-800">
         <div className="bg-zinc-900 px-6 py-4"><h2 className="font-black">Productos</h2></div>
@@ -116,7 +125,7 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
         </div>
       </section>
 
-      <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6"><h2 className="font-black">Resumen</h2><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between"><dt className="text-zinc-500">Subtotal</dt><dd>{dinero.format(Number(pedido.subtotal))}</dd></div><div className="flex justify-between gap-4"><dt className="text-zinc-500">Envío</dt><dd className="text-right">{costoEnvioRemision(pedido)}</dd></div><div className="flex justify-between"><dt className="text-zinc-500">Descuento</dt><dd>{dinero.format(Number(pedido.descuento))}</dd></div><div className="flex justify-between border-t border-zinc-700 pt-3 text-lg font-black"><dt>Total pagado en la tienda</dt><dd>{dinero.format(Number(pedido.total))}</dd></div></dl></section>
+      <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6"><h2 className="font-black">Resumen</h2><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between"><dt className="text-zinc-500">Subtotal</dt><dd>{dinero.format(Number(pedido.subtotal))}</dd></div><div className="flex justify-between gap-4"><dt className="text-zinc-500">Envío</dt><dd className="text-right">{costoEnvioRemision(pedido)}</dd></div><div className="flex justify-between"><dt className="text-zinc-500">Descuento</dt><dd>{dinero.format(Number(pedido.descuento))}</dd></div><div className="flex justify-between border-t border-zinc-700 pt-3 text-lg font-black"><dt>{esContraentregaCali && pedido.estado_pago !== "aprobado" ? "Total a cobrar en efectivo" : "Total cobrado"}</dt><dd>{dinero.format(Number(pedido.total))}</dd></div></dl></section>
 
       <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-lime-400">Posventa</p><h2 className="mt-2 text-xl font-black">Devoluciones, garantías y reembolsos</h2><p className="mt-2 text-sm text-zinc-400">Registra cada novedad sin perder su historial ni devolver existencias dos veces.</p>

@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -122,6 +123,8 @@ type IntentoCheckoutGuardado = {
   huellaCarrito: string;
   claveIdempotencia: string;
   pedidoId: string | null;
+  pedidoNumero: string | null;
+  metodoPago: "wompi" | "contraentrega";
   creadoEn: number;
 };
 
@@ -156,6 +159,8 @@ function leerIntentoCheckout(huellaCarrito: string): IntentoCheckoutGuardado | n
       huellaCarrito,
       claveIdempotencia: intento.claveIdempotencia,
       pedidoId: typeof intento.pedidoId === "string" ? intento.pedidoId : null,
+      pedidoNumero: typeof intento.pedidoNumero === "string" ? intento.pedidoNumero : null,
+      metodoPago: intento.metodoPago === "contraentrega" ? "contraentrega" : "wompi",
       creadoEn: Number(intento.creadoEn),
     };
   } catch {
@@ -213,7 +218,8 @@ function calcularDigitoVerificacion(nit: string) {
 */
 
 export default function CheckoutPage() {
-  const { items, subtotal, carritoCargado } = useCart();
+  const router = useRouter();
+  const { items, subtotal, carritoCargado, vaciarCarrito } = useCart();
   const [configuracionEnvios, setConfiguracionEnvios] = useState<ConfiguracionEnvios>(CONFIGURACION_ENVIOS_PREDETERMINADA);
 
   useEffect(() => {
@@ -313,6 +319,9 @@ export default function CheckoutPage() {
   const [iniciandoPago, setIniciandoPago] =
     useState(false);
 
+  const [metodoPago, setMetodoPago] =
+    useState<"wompi" | "contraentrega">("wompi");
+
   const [errorServidor, setErrorServidor] =
     useState("");
 
@@ -373,6 +382,15 @@ export default function CheckoutPage() {
     setPedidoPreparado(null);
     setValidacionServidor(null);
     setErrorServidor("");
+  }
+
+  function cambiarMetodoPago(nuevoMetodo: "wompi" | "contraentrega") {
+    if (nuevoMetodo === metodoPago) return;
+    pedidoPendienteRef.current = null;
+    claveIdempotenciaRef.current = null;
+    limpiarIntentoCheckout();
+    setErrorServidor("");
+    setMetodoPago(nuevoMetodo);
   }
 
   /*
@@ -471,6 +489,9 @@ export default function CheckoutPage() {
     validacionServidor?.totales?.total ??
     subtotal + valorEnvio;
 
+  const contraentregaDisponible =
+    (validacionServidor?.envio?.zona ?? resultadoEnvio.zona) === "CALI";
+
   /*
   |--------------------------------------------------------------------------
   | DOCUMENTO PRINCIPAL
@@ -531,6 +552,7 @@ export default function CheckoutPage() {
   ) {
     setDepartamento(nuevoDepartamento);
     setCiudad("");
+    setMetodoPago("wompi");
 
     invalidarRevision();
 
@@ -545,6 +567,7 @@ export default function CheckoutPage() {
     nuevaCiudad: string
   ) {
     setCiudad(nuevaCiudad);
+    setMetodoPago("wompi");
 
     invalidarRevision();
 
@@ -1208,6 +1231,10 @@ export default function CheckoutPage() {
           resultado
         );
 
+      if (resultado.envio.zona !== "CALI" && metodoPago === "contraentrega") {
+        setMetodoPago("wompi");
+      }
+
       setValidacionServidor(
         resultado
       );
@@ -1251,6 +1278,7 @@ export default function CheckoutPage() {
 
     try {
       let pedidoId = pedidoPendienteRef.current;
+      let pedidoNumero: string | null = null;
 
       if (!pedidoId) {
         const huellaCarrito = huellaDelCarrito(items);
@@ -1261,6 +1289,8 @@ export default function CheckoutPage() {
           huellaCarrito,
           claveIdempotencia,
           pedidoId: null,
+          pedidoNumero: null,
+          metodoPago,
           creadoEn: Date.now(),
         });
 
@@ -1269,6 +1299,7 @@ export default function CheckoutPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             clave_idempotencia: claveIdempotencia,
+            metodo_pago: metodoPago,
             productos: pedidoPreparado.productos.map((producto) => ({
               id: producto.productoId,
               varianteId: producto.varianteId,
@@ -1301,7 +1332,12 @@ export default function CheckoutPage() {
         const pedido = (await respuestaPedido.json()) as {
           ok: boolean;
           error?: string;
-          pedido?: { id: string };
+          pedido?: {
+            id: string;
+            numero_pedido?: string;
+            metodo_pago?: string;
+            total?: number;
+          };
         };
 
         if (!respuestaPedido.ok || !pedido.ok || !pedido.pedido?.id) {
@@ -1309,29 +1345,19 @@ export default function CheckoutPage() {
         }
 
         pedidoId = pedido.pedido.id;
+        pedidoNumero = pedido.pedido.numero_pedido ?? null;
         pedidoPendienteRef.current = pedidoId;
         guardarIntentoCheckout({
           huellaCarrito,
           claveIdempotencia,
           pedidoId,
+          pedidoNumero,
+          metodoPago,
           creadoEn: Date.now(),
         });
-      }
-
-      const respuestaPago = await fetch("/api/pagos/wompi/iniciar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pedidoId }),
-      });
-
-      const pago = (await respuestaPago.json()) as {
-        ok: boolean;
-        error?: string;
-        checkoutUrl?: string;
-      };
-
-      if (!respuestaPago.ok || !pago.ok || !pago.checkoutUrl) {
-        throw new Error(pago.error || "No fue posible iniciar el pago.");
+      } else {
+        const intento = leerIntentoCheckout(huellaDelCarrito(items));
+        pedidoNumero = intento?.pedidoNumero ?? null;
       }
 
       const metaStorageKey = `nova_meta_initiate_checkout_${pedidoId}`;
@@ -1362,6 +1388,42 @@ export default function CheckoutPage() {
         );
 
         if (tracked) window.sessionStorage.setItem(metaStorageKey, "1");
+      }
+
+      if (metodoPago === "contraentrega") {
+        if (!pedidoNumero) {
+          throw new Error("El pedido quedó confirmado, pero no pudimos mostrar su número. Intenta continuar nuevamente.");
+        }
+
+        window.sessionStorage.setItem(
+          "nova_confirmacion_contraentrega",
+          JSON.stringify({
+            numeroPedido: pedidoNumero,
+            total: pedidoPreparado.total,
+          })
+        );
+        limpiarIntentoCheckout();
+        vaciarCarrito();
+        router.push(
+          `/confirmacion-contraentrega?pedido=${encodeURIComponent(pedidoNumero)}&total=${encodeURIComponent(String(pedidoPreparado.total))}`
+        );
+        return;
+      }
+
+      const respuestaPago = await fetch("/api/pagos/wompi/iniciar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pedidoId }),
+      });
+
+      const pago = (await respuestaPago.json()) as {
+        ok: boolean;
+        error?: string;
+        checkoutUrl?: string;
+      };
+
+      if (!respuestaPago.ok || !pago.ok || !pago.checkoutUrl) {
+        throw new Error(pago.error || "No fue posible iniciar el pago.");
       }
 
       window.location.assign(pago.checkoutUrl);
@@ -2164,27 +2226,43 @@ export default function CheckoutPage() {
                   </h2>
 
                   <p className="mt-2 text-sm leading-6 text-white/40">
-                    El pago se procesa de forma
-                    segura mediante Wompi.
+                    {contraentregaDisponible
+                      ? "Para entregas en Cali puedes pagar en efectivo al domiciliario o pagar en línea con Wompi."
+                      : "El pago se procesa de forma segura mediante Wompi."}
                   </p>
 
-                  <div className="mt-6 flex items-start gap-4 rounded-2xl border border-[#82f000]/20 bg-[#82f000]/[0.045] p-5">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#82f000]/10 text-[#82f000]">
-                      ✓
-                    </div>
+                  <div className="mt-6 grid gap-3">
+                    <label className={`flex cursor-pointer items-start gap-4 rounded-2xl border p-5 transition ${metodoPago === "wompi" ? "border-[#82f000]/45 bg-[#82f000]/[0.07]" : "border-white/10 bg-black/20 hover:border-white/20"}`}>
+                      <input
+                        type="radio"
+                        name="metodoPago"
+                        value="wompi"
+                        checked={metodoPago === "wompi"}
+                        onChange={() => cambiarMetodoPago("wompi")}
+                        className="mt-1 accent-[#82f000]"
+                      />
+                      <span>
+                        <span className="block text-sm font-semibold">Pagar en línea con Wompi</span>
+                        <span className="mt-1 block text-sm leading-6 text-white/40">Pago seguro con tarjeta, PSE u otros medios disponibles en Wompi.</span>
+                      </span>
+                    </label>
 
-                    <div>
-                      <p className="text-sm font-semibold">
-                        Pago protegido por Wompi
-                      </p>
-
-                      <p className="mt-1 text-sm leading-6 text-white/40">
-                        Tu pedido se confirmará
-                        únicamente cuando Wompi
-                        informe que la transacción
-                        fue aprobada.
-                      </p>
-                    </div>
+                    {contraentregaDisponible ? (
+                      <label className={`flex cursor-pointer items-start gap-4 rounded-2xl border p-5 transition ${metodoPago === "contraentrega" ? "border-[#82f000]/45 bg-[#82f000]/[0.07]" : "border-white/10 bg-black/20 hover:border-white/20"}`}>
+                        <input
+                          type="radio"
+                          name="metodoPago"
+                          value="contraentrega"
+                          checked={metodoPago === "contraentrega"}
+                          onChange={() => cambiarMetodoPago("contraentrega")}
+                          className="mt-1 accent-[#82f000]"
+                        />
+                        <span>
+                          <span className="block text-sm font-semibold">Pagar en efectivo contraentrega</span>
+                          <span className="mt-1 block text-sm leading-6 text-white/40">Entrega el total en efectivo al domiciliario cuando recibas tu pedido en Cali.</span>
+                        </span>
+                      </label>
+                    ) : null}
                   </div>
                 </div>
               </section>
@@ -2569,11 +2647,9 @@ export default function CheckoutPage() {
                         </p>
 
                         <p className="mt-2 text-xs leading-5 text-white/35">
-                          La información ya fue
-                          validada. Al continuar,
-                          abrirás Wompi para completar
-                          el pago seguro y confirmar
-                          tu pedido.
+                          {metodoPago === "contraentrega"
+                            ? "La información ya fue validada. Al confirmar, reservaremos los productos y pagarás el total en efectivo al domiciliario cuando recibas el pedido en Cali."
+                            : "La información ya fue validada. Al continuar, abrirás Wompi para completar el pago seguro y confirmar tu pedido."}
                         </p>
                       </div>
 
@@ -2583,7 +2659,13 @@ export default function CheckoutPage() {
                         disabled={iniciandoPago || !pedidoPreparado}
                         className="mt-5 w-full cursor-pointer rounded-xl bg-[#82f000] px-5 py-3.5 font-bold text-black transition hover:bg-[#9cff35] disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        {iniciandoPago ? "Preparando pago seguro..." : "Continuar al pago"}
+                        {iniciandoPago
+                          ? metodoPago === "contraentrega"
+                            ? "Confirmando pedido..."
+                            : "Preparando pago seguro..."
+                          : metodoPago === "contraentrega"
+                            ? "Confirmar pedido contraentrega"
+                            : "Continuar a Wompi"}
                       </button>
 
                       <button
