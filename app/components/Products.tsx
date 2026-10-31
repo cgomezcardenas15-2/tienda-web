@@ -270,6 +270,7 @@ function obtenerEtiqueta(
 */
 
 export default function Products({ categoria, subcategoriaId, subcategoriaNombre, busqueda, ofertas = false }: ProductsProps) {
+  const [productoEnVista, setProductoEnVista] = useState<string | null>(null);
   const [imagenAmpliada, setImagenAmpliada] = useState<{
     url: string;
     nombre: string;
@@ -448,11 +449,56 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
     (_, indice) => inicioBotones + indice
   );
 
+  const productoVista = productoEnVista
+    ? productos.find((producto) => producto.id === productoEnVista) ?? null
+    : null;
+  const opcionesVista = productoVista ? variantes[productoVista.id] ?? [] : [];
+  const varianteVista = productoVista
+    ? opcionesVista.find(
+        (opcion) => opcion.id === varianteSeleccionada[productoVista.id]
+      )
+    : undefined;
+  const requiereSeleccionVista = opcionesVista.length > 0 && !varianteVista;
+  const tieneColoresVista = opcionesVista.some((opcion) => Boolean(opcion.color));
+  const sinStockVista = productoVista
+    ? varianteVista
+      ? varianteVista.controla_stock && varianteVista.stock <= 0
+      : opcionesVista.length > 0
+        ? opcionesVista.every(
+            (opcion) => opcion.controla_stock && opcion.stock <= 0
+          )
+        : productoVista.controla_stock && productoVista.stock <= 0
+    : false;
+  const precioVista = productoVista
+    ? varianteVista?.precio ?? productoVista.precio
+    : 0;
+  const precioMayoristaVista = productoVista
+    ? varianteVista?.precio_mayorista ?? productoVista.precio_mayorista
+    : null;
+  const minimoMayoristaVista = productoVista
+    ? varianteVista?.cantidad_minima_mayorista ??
+      productoVista.cantidad_minima_mayorista
+    : null;
+  const imagenVista = productoVista
+    ? varianteVista?.imagen_url ?? productoVista.imagen_url
+    : null;
+  const stockVista = productoVista
+    ? varianteVista?.stock ?? productoVista.stock
+    : 0;
+  const controlaStockVista = productoVista
+    ? varianteVista?.controla_stock ?? productoVista.controla_stock
+    : false;
+
   useEffect(() => {
-    if (!imagenAmpliada) return;
+    if (!imagenAmpliada && !productoEnVista) return;
 
     const cerrarConEscape = (evento: KeyboardEvent) => {
-      if (evento.key === "Escape") setImagenAmpliada(null);
+      if (evento.key !== "Escape") return;
+      if (imagenAmpliada) {
+        setImagenAmpliada(null);
+        return;
+      }
+      setProductoEnVista(null);
     };
 
     document.addEventListener("keydown", cerrarConEscape);
@@ -463,7 +509,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
       document.removeEventListener("keydown", cerrarConEscape);
       document.body.style.overflow = overflowAnterior;
     };
-  }, [imagenAmpliada]);
+  }, [imagenAmpliada, productoEnVista]);
 
   function cambiarPagina(nuevaPagina: number) {
     if (
@@ -475,6 +521,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
     }
 
     setPaginaActual(nuevaPagina);
+    setProductoEnVista(null);
     setImagenAmpliada(null);
 
     window.requestAnimationFrame(() => {
@@ -570,10 +617,9 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
     });
   }
 
-  function abrirVistaProducto(
+  function abrirVistaRapida(
     producto: ProductoSupabase,
-    variante: VarianteProducto | undefined,
-    imagen: string
+    variante: VarianteProducto | undefined
   ) {
     const precio = variante?.precio ?? producto.precio;
     const esGrupo = !variante && (variantes[producto.id]?.length ?? 0) > 0;
@@ -593,7 +639,11 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
       num_items: 1,
     });
 
-    setImagenAmpliada({ url: imagen, nombre: producto.nombre });
+    setProductoEnVista(producto.id);
+  }
+
+  function abrirImagenAmpliada(url: string, nombre: string) {
+    setImagenAmpliada({ url, nombre });
   }
 
   /*
@@ -757,7 +807,24 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
                   return (
                     <article
                       key={producto.id}
-                      className="group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] transition-all duration-300 hover:-translate-y-1 hover:border-[#82f000]/45 hover:bg-white/[0.05]"
+                      tabIndex={0}
+                      aria-label={`Ver detalles de ${producto.nombre}`}
+                      onClick={(evento) => {
+                        const objetivo = evento.target as HTMLElement;
+                        if (objetivo.closest("button, a, input, select, textarea")) return;
+                        abrirVistaRapida(producto, variante);
+                      }}
+                      onKeyDown={(evento) => {
+                        if (
+                          evento.target !== evento.currentTarget ||
+                          (evento.key !== "Enter" && evento.key !== " ")
+                        ) {
+                          return;
+                        }
+                        evento.preventDefault();
+                        abrirVistaRapida(producto, variante);
+                      }}
+                      className="group cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] transition-all duration-300 hover:-translate-y-1 hover:border-[#82f000]/45 hover:bg-white/[0.05] focus:outline-none focus:ring-2 focus:ring-[#82f000]/70"
                     >
                       {/* Imagen */}
 
@@ -792,11 +859,12 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
                             />
                             <button
                               type="button"
-                              onClick={() =>
-                                abrirVistaProducto(producto, variante, imagenVisible)
-                              }
-                              aria-label={`Ver imagen ampliada de ${producto.nombre}`}
-                              title="Ver imagen"
+                              onClick={(evento) => {
+                                evento.stopPropagation();
+                                abrirVistaRapida(producto, variante);
+                              }}
+                              aria-label={`Abrir vista rápida de ${producto.nombre}`}
+                              title="Vista rápida"
                               className="absolute right-4 top-4 z-10 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/70 text-white shadow-lg backdrop-blur transition hover:border-[#82f000] hover:bg-[#82f000] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#82f000]"
                             >
                               <EyeIcon />
@@ -1049,6 +1117,230 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
               )}
             </>
           )}
+
+        {productoVista && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="vista-rapida-titulo"
+            className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm sm:p-6"
+            onClick={() => setProductoEnVista(null)}
+          >
+            <div
+              className="relative grid max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-white/15 bg-[#111411] shadow-2xl md:grid-cols-[0.9fr_1.1fr]"
+              onClick={(evento) => evento.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setProductoEnVista(null)}
+                aria-label="Cerrar vista rápida"
+                title="Cerrar"
+                className="absolute right-3 top-3 z-20 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/75 text-2xl text-white transition hover:border-[#82f000] hover:bg-[#82f000] hover:text-black focus:outline-none focus:ring-2 focus:ring-[#82f000]"
+              >
+                ×
+              </button>
+
+              <div className="relative flex min-h-64 items-center justify-center border-b border-white/10 bg-gradient-to-br from-white/[0.07] to-transparent p-6 md:min-h-[430px] md:border-b-0 md:border-r">
+                {imagenVista ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      abrirImagenAmpliada(imagenVista, productoVista.nombre)
+                    }
+                    aria-label={`Ampliar fotografía de ${productoVista.nombre}`}
+                    className="group/imagen relative flex h-full w-full cursor-zoom-in items-center justify-center rounded-xl focus:outline-none focus:ring-2 focus:ring-[#82f000]"
+                  >
+                    <img
+                      src={imagenVista}
+                      alt={productoVista.nombre}
+                      className="max-h-[330px] w-full object-contain transition duration-300 group-hover/imagen:scale-[1.03]"
+                    />
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full border border-white/15 bg-black/75 px-3 py-1.5 text-xs font-bold text-white/80 opacity-0 transition group-hover/imagen:opacity-100 group-focus-visible/imagen:opacity-100">
+                      Ampliar foto
+                    </span>
+                  </button>
+                ) : (
+                  <div className="flex h-36 w-36 items-center justify-center rounded-full bg-[#82f000]/[0.07] text-7xl">
+                    {obtenerIconoCategoria(productoVista.categoria)}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-5 sm:p-7 md:p-8">
+                <div className="flex flex-wrap items-center gap-2 pr-12">
+                  <span className="rounded-full bg-[#82f000]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-[#9cff35]">
+                    Vista rápida
+                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.13em] text-white/40">
+                    {productoVista.categoria}
+                  </span>
+                </div>
+
+                <h2
+                  id="vista-rapida-titulo"
+                  className="mt-4 text-2xl font-black leading-tight sm:text-3xl"
+                >
+                  {productoVista.nombre}
+                </h2>
+
+                {productoVista.descripcion && (
+                  <p className="mt-3 line-clamp-4 text-sm leading-6 text-white/55">
+                    {productoVista.descripcion}
+                  </p>
+                )}
+
+                <div className="mt-5 flex flex-wrap items-end gap-3">
+                  <span className="text-3xl font-black text-white">
+                    {formatoPesos(precioVista)}
+                  </span>
+                  {productoVista.precio_anterior !== null &&
+                    productoVista.precio_anterior > precioVista && (
+                      <span className="pb-1 text-sm text-white/30 line-through">
+                        {formatoPesos(productoVista.precio_anterior)}
+                      </span>
+                    )}
+                </div>
+
+                {productoVista.venta_mayorista &&
+                  precioMayoristaVista !== null &&
+                  minimoMayoristaVista !== null && (
+                    <div className="mt-4 rounded-xl border border-[#82f000]/20 bg-[#82f000]/[0.06] px-3 py-2.5">
+                      <p className="text-xs font-bold text-[#9cff35]">
+                        Mayorista: {formatoPesos(precioMayoristaVista)} c/u
+                      </p>
+                      <p className="mt-1 text-[11px] text-white/40">
+                        Desde {minimoMayoristaVista} unidades de esta opción
+                      </p>
+                    </div>
+                  )}
+
+                {opcionesVista.length > 0 && (
+                  <div className="mt-5">
+                    <p className="mb-2 text-xs font-semibold text-white/55">
+                      {tieneColoresVista ? "Elige un color" : "Elige una opción"}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {opcionesVista.map((opcion) => {
+                        const agotada = opcion.controla_stock && opcion.stock <= 0;
+                        const activa = opcion.id === varianteVista?.id;
+                        const etiquetaOpcion = opcion.color
+                          ? opcion.nombre
+                          : `${opcion.nombre}${opcion.talla ? ` · ${opcion.talla}` : ""}`;
+
+                        if (opcion.color) {
+                          return (
+                            <button
+                              key={opcion.id}
+                              type="button"
+                              disabled={agotada}
+                              aria-label={`${etiquetaOpcion}${agotada ? ", agotado" : ""}`}
+                              title={`${etiquetaOpcion}${agotada ? " · Agotado" : ""}`}
+                              onClick={() =>
+                                setVarianteSeleccionada((actual) => ({
+                                  ...actual,
+                                  [productoVista.id]: opcion.id,
+                                }))
+                              }
+                              className={
+                                "relative h-11 w-11 rounded-full border-2 p-1 transition " +
+                                (agotada
+                                  ? "cursor-not-allowed border-white/10 opacity-35"
+                                  : activa
+                                    ? "scale-110 border-[#82f000] shadow-[0_0_0_3px_rgba(130,240,0,0.2)]"
+                                    : "cursor-pointer border-white/30 hover:scale-105 hover:border-white/70")
+                              }
+                            >
+                              <span
+                                className="block h-full w-full rounded-full border border-black/20"
+                                style={{ backgroundColor: muestraColor(opcion.color) }}
+                              />
+                              {agotada && (
+                                <span className="absolute left-1/2 top-1/2 h-0.5 w-10 -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-red-400" />
+                              )}
+                              {activa && !agotada && (
+                                <span className="absolute -bottom-2 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#82f000]" />
+                              )}
+                            </button>
+                          );
+                        }
+
+                        return (
+                          <button
+                            key={opcion.id}
+                            type="button"
+                            disabled={agotada}
+                            onClick={() =>
+                              setVarianteSeleccionada((actual) => ({
+                                ...actual,
+                                [productoVista.id]: opcion.id,
+                              }))
+                            }
+                            className={
+                              "rounded-lg border px-3 py-2 text-xs font-semibold transition " +
+                              (agotada
+                                ? "cursor-not-allowed border-white/5 text-white/20 line-through"
+                                : activa
+                                  ? "border-[#82f000] bg-[#82f000]/10 text-[#9cff35]"
+                                  : "cursor-pointer border-white/15 text-white/65 hover:border-[#82f000]/50")
+                            }
+                          >
+                            {etiquetaOpcion}
+                            {agotada && " · Agotado"}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {requiereSeleccionVista ? (
+                  <p className="mt-4 text-xs font-semibold text-[#9cff35]">
+                    Selecciona {tieneColoresVista ? "un color" : "una opción"} para continuar.
+                  </p>
+                ) : controlaStockVista ? (
+                  <p
+                    className={
+                      "mt-4 text-xs font-semibold " +
+                      (sinStockVista
+                        ? "text-red-300"
+                        : stockVista <= 5
+                          ? "text-orange-300"
+                          : "text-white/45")
+                    }
+                  >
+                    {sinStockVista
+                      ? "Producto agotado"
+                      : stockVista <= 5
+                        ? `Solo quedan ${stockVista} unidades`
+                        : `Stock disponible: ${stockVista} unidades`}
+                  </p>
+                ) : null}
+
+                <button
+                  type="button"
+                  disabled={sinStockVista || requiereSeleccionVista}
+                  onClick={() => {
+                    agregarAlCarrito(productoVista);
+                    setProductoEnVista(null);
+                  }}
+                  className={
+                    "mt-6 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-black transition " +
+                    (sinStockVista || requiereSeleccionVista
+                      ? "cursor-not-allowed bg-white/10 text-white/30"
+                      : "cursor-pointer bg-[#82f000] text-black hover:bg-[#9cff35]")
+                  }
+                >
+                  <CartIcon />
+                  {sinStockVista
+                    ? "Sin disponibilidad"
+                    : requiereSeleccionVista
+                      ? `Elige ${tieneColoresVista ? "un color" : "una opción"}`
+                      : "Agregar al carrito"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {imagenAmpliada && (
           <div
