@@ -1,5 +1,7 @@
 import { getCookieConsent } from "./cookieConsent";
 
+export { getMetaContentId } from "./metaContentId";
+
 export const META_PIXEL_ID = "4729062324035766";
 
 const PRODUCTION_HOSTS = new Set(["senornova.com.co", "www.senornova.com.co"]);
@@ -88,13 +90,4 @@ export function flushPendingMetaEvents() {
 
 export function clearPendingMetaEvents() {
   if (typeof window !== "undefined") window.__novaPendingMetaEvents = [];
-}
-
-export function getMetaContentId(item: {
-  id: string;
-  varianteId?: string | null;
-  sku?: string | null;
-}) {
-  const sku = item.sku?.trim();
-  return sku || item.varianteId || item.id;
 }

@@ -2,6 +2,7 @@ import "server-only";
 
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 import { consultarTransaccionWompi, convertirPesosACentavos } from "@/app/lib/wompi";
+import { getMetaContentId } from "@/app/lib/metaContentId";
 
 export class ErrorVerificacionPago extends Error {
   constructor(
@@ -33,10 +34,11 @@ async function obtenerCompraMeta(pedido: {
   }
 
   const contents = productos.map((producto) => ({
-    id:
-      producto.variante_sku?.trim() ||
-      producto.variante_id ||
-      producto.producto_id,
+    id: getMetaContentId({
+      id: producto.producto_id,
+      varianteId: producto.variante_id,
+      sku: producto.variante_sku,
+    }),
     quantity: Number(producto.cantidad),
     item_price: Number(producto.precio_unitario),
   }));
@@ -86,6 +88,23 @@ export async function verificarYActualizarPagoWompi(idTransaccion: string) {
   // Un evento atrasado o un segundo intento de pago nunca debe devolver un
   // pedido ya aprobado a "pendiente", ni volver a consumir inventario.
   if (data.estado_pago === "aprobado") {
+    // Un pedido puede tener intentos anteriores o posteriores con la misma
+    // referencia. Solo la transacción que Wompi confirma como APPROVED puede
+    // producir el evento Purchase.
+    if (transaccion.status !== "APPROVED") {
+      return {
+        pedidoId: data.id,
+        numeroPedido: data.numero_pedido,
+        estado: transaccion.status,
+        aprobado: false,
+        duplicado: false,
+        mensaje:
+          transaccion.status_message ||
+          "Esta transacción no fue aprobada; el pedido ya registra otro pago aprobado.",
+        compraMeta: null,
+      };
+    }
+
     const compraMeta = await obtenerCompraMeta(data);
     return {
       pedidoId: data.id,

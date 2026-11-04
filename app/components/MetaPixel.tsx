@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   COOKIE_CONSENT_EVENT,
@@ -17,6 +17,10 @@ import {
 
 export default function MetaPixel() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const routeKey = searchParams.size > 0
+    ? `${pathname}?${searchParams.toString()}`
+    : pathname;
   const [enabled, setEnabled] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const lastTrackedPath = useRef<string | null>(null);
@@ -47,14 +51,14 @@ export default function MetaPixel() {
     if (!loaded) return;
     if (lastTrackedPath.current === null) {
       window.fbq?.("track", "PageView");
-      lastTrackedPath.current = pathname;
+      lastTrackedPath.current = routeKey;
       return;
     }
-    if (lastTrackedPath.current === pathname) return;
+    if (lastTrackedPath.current === routeKey) return;
 
     window.fbq?.("track", "PageView");
-    lastTrackedPath.current = pathname;
-  }, [enabled, loaded, pathname]);
+    lastTrackedPath.current = routeKey;
+  }, [enabled, loaded, pathname, routeKey]);
 
   if (!enabled || loaded) return null;
 
@@ -63,7 +67,7 @@ export default function MetaPixel() {
       id="meta-pixel"
       strategy="afterInteractive"
       onReady={() => {
-        lastTrackedPath.current = pathname;
+        lastTrackedPath.current = routeKey;
         setLoaded(true);
         flushPendingMetaEvents();
       }}

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getMetaContentId } from "./metaContentId";
+
 const DOMINIO_PUBLICO = "https://www.senornova.com.co";
 
 export type ProductoCatalogoMeta = {
@@ -88,10 +90,6 @@ function esUrlHttpsPublica(valor: string | null | undefined) {
   }
 }
 
-function identificador(item: { id: string; sku?: string | null }) {
-  return limpiarTexto(item.sku) || item.id;
-}
-
 function disponibilidad(controlaStock: boolean, stock: number): FilaCatalogoMeta["availability"] {
   return !controlaStock || Number(stock) > 0 ? "in stock" : "out of stock";
 }
@@ -146,7 +144,7 @@ export function construirCatalogoMeta({
     }
 
     const opciones = variantesPorProducto.get(producto.id) ?? [];
-    const idGrupo = identificador(producto);
+    const idGrupo = getMetaContentId(producto);
 
     if (opciones.length > 0) {
       for (const variante of opciones) {
@@ -162,7 +160,11 @@ export function construirCatalogoMeta({
           continue;
         }
 
-        const id = identificador(variante);
+        const id = getMetaContentId({
+          id: variante.id,
+          varianteId: variante.id,
+          sku: variante.sku,
+        });
         filas.push({
           id,
           title: limpiarTexto(`${producto.nombre} - ${variante.nombre}`).slice(0, 200),
@@ -193,7 +195,7 @@ export function construirCatalogoMeta({
       continue;
     }
 
-    const id = identificador(producto);
+    const id = getMetaContentId(producto);
     filas.push({
       id,
       title: limpiarTexto(producto.nombre).slice(0, 200),

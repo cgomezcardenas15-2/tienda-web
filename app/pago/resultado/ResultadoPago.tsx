@@ -7,6 +7,7 @@ import { useCart } from "../../context/CartContext";
 import { trackMetaEvent } from "../../lib/metaPixel";
 
 const CLAVE_INTENTO_CHECKOUT = "nova_checkout_intento_v1";
+const CLAVE_META_INICIO_CHECKOUT = "nova_meta_initiate_checkout_v2";
 
 type Resultado = {
   ok: boolean;
@@ -78,6 +79,7 @@ export default function ResultadoPago() {
     if (resultado?.aprobado && !carritoVaciado.current) {
       carritoVaciado.current = true;
       window.sessionStorage.removeItem(CLAVE_INTENTO_CHECKOUT);
+      window.sessionStorage.removeItem(CLAVE_META_INICIO_CHECKOUT);
       vaciarCarrito();
     }
   }, [resultado?.aprobado, vaciarCarrito]);

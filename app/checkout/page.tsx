@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-import { useCart } from "../context/CartContext";
+import { obtenerPrecioUnitario, useCart } from "../context/CartContext";
 
 import {
   obtenerDepartamentos,
@@ -26,6 +26,7 @@ import {
   type PedidoPreparado,
 } from "../data/prepararPedido";
 import { getMetaContentId, trackMetaEvent } from "../lib/metaPixel";
+import { COOKIE_CONSENT_EVENT } from "../lib/cookieConsent";
 
 /*
 |--------------------------------------------------------------------------
@@ -117,6 +118,7 @@ function formatoPesos(valor: number) {
 }
 
 const CLAVE_INTENTO_CHECKOUT = "nova_checkout_intento_v1";
+const CLAVE_META_INICIO_CHECKOUT = "nova_meta_initiate_checkout_v2";
 const DURACION_INTENTO_CHECKOUT = 45 * 60 * 1000;
 
 type IntentoCheckoutGuardado = {
@@ -126,6 +128,11 @@ type IntentoCheckoutGuardado = {
   pedidoNumero: string | null;
   metodoPago: "wompi" | "contraentrega";
   creadoEn: number;
+};
+
+type InicioCheckoutMetaGuardado = {
+  huellaCarrito: string;
+  registradoEn: number;
 };
 
 function huellaDelCarrito(
@@ -175,6 +182,10 @@ function guardarIntentoCheckout(intento: IntentoCheckoutGuardado) {
 
 function limpiarIntentoCheckout() {
   window.sessionStorage.removeItem(CLAVE_INTENTO_CHECKOUT);
+}
+
+function limpiarInicioCheckoutMeta() {
+  window.sessionStorage.removeItem(CLAVE_META_INICIO_CHECKOUT);
 }
 
 /*
@@ -338,6 +349,61 @@ export default function CheckoutPage() {
     claveIdempotenciaRef.current = intento.claveIdempotencia;
     pedidoPendienteRef.current = intento.pedidoId;
   }, [carritoCargado, items]);
+
+  useEffect(() => {
+    if (!carritoCargado || items.length === 0) return;
+
+    const registrarInicioCheckout = () => {
+      const huellaCarrito = huellaDelCarrito(items);
+
+      try {
+        const guardado = window.sessionStorage.getItem(CLAVE_META_INICIO_CHECKOUT);
+        if (guardado) {
+          const registro = JSON.parse(guardado) as Partial<InicioCheckoutMetaGuardado>;
+          const vigente =
+            typeof registro.registradoEn === "number" &&
+            Date.now() - registro.registradoEn < DURACION_INTENTO_CHECKOUT;
+
+          if (vigente && registro.huellaCarrito === huellaCarrito) return;
+        }
+      } catch {
+        limpiarInicioCheckoutMeta();
+      }
+
+      const contents = items.map((producto) => ({
+        id: getMetaContentId(producto),
+        quantity: producto.cantidad,
+        item_price: obtenerPrecioUnitario(producto),
+      }));
+      const tracked = trackMetaEvent(
+        "InitiateCheckout",
+        {
+          content_ids: contents.map((producto) => producto.id),
+          content_type: "product",
+          contents,
+          currency: "COP",
+          value: subtotal,
+          num_items: contents.reduce(
+            (total, producto) => total + producto.quantity,
+            0
+          ),
+        },
+        `initiate_checkout:${crypto.randomUUID()}`
+      );
+
+      if (tracked) {
+        window.sessionStorage.setItem(
+          CLAVE_META_INICIO_CHECKOUT,
+          JSON.stringify({ huellaCarrito, registradoEn: Date.now() })
+        );
+      }
+    };
+
+    registrarInicioCheckout();
+    window.addEventListener(COOKIE_CONSENT_EVENT, registrarInicioCheckout);
+    return () =>
+      window.removeEventListener(COOKIE_CONSENT_EVENT, registrarInicioCheckout);
+  }, [carritoCargado, items, subtotal]);
 
   /*
   |--------------------------------------------------------------------------
@@ -1360,36 +1426,6 @@ export default function CheckoutPage() {
         pedidoNumero = intento?.pedidoNumero ?? null;
       }
 
-      const metaStorageKey = `nova_meta_initiate_checkout_${pedidoId}`;
-      if (!window.sessionStorage.getItem(metaStorageKey)) {
-        const contents = pedidoPreparado.productos.map((producto) => ({
-          id: getMetaContentId({
-            id: producto.productoId,
-            varianteId: producto.varianteId,
-            sku: producto.sku,
-          }),
-          quantity: producto.cantidad,
-          item_price: producto.precioUnitario,
-        }));
-        const tracked = trackMetaEvent(
-          "InitiateCheckout",
-          {
-            content_ids: contents.map((producto) => producto.id),
-            content_type: "product",
-            contents,
-            currency: "COP",
-            value: pedidoPreparado.total,
-            num_items: contents.reduce(
-              (total, producto) => total + producto.quantity,
-              0
-            ),
-          },
-          `initiate_checkout:${pedidoId}`
-        );
-
-        if (tracked) window.sessionStorage.setItem(metaStorageKey, "1");
-      }
-
       if (metodoPago === "contraentrega") {
         if (!pedidoNumero) {
           throw new Error("El pedido quedó confirmado, pero no pudimos mostrar su número. Intenta continuar nuevamente.");
@@ -1403,6 +1439,7 @@ export default function CheckoutPage() {
           })
         );
         limpiarIntentoCheckout();
+        limpiarInicioCheckoutMeta();
         vaciarCarrito();
         router.push(
           `/confirmacion-contraentrega?pedido=${encodeURIComponent(pedidoNumero)}&total=${encodeURIComponent(String(pedidoPreparado.total))}`
