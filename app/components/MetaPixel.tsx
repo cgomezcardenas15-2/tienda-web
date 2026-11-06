@@ -2,7 +2,7 @@
 
 import Script from "next/script";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   COOKIE_CONSENT_EVENT,
   type CookieConsent,
@@ -25,6 +25,12 @@ export default function MetaPixel() {
   const [loaded, setLoaded] = useState(false);
   const lastTrackedPath = useRef<string | null>(null);
 
+  const markPixelReady = useCallback(() => {
+    lastTrackedPath.current = routeKey;
+    flushPendingMetaEvents();
+    setLoaded(true);
+  }, [routeKey]);
+
   useEffect(() => {
     const syncConsent = (consent = getCookieConsent()) => {
       const nextEnabled = consent === "marketing" && canUseMetaPixel(pathname);
@@ -41,6 +47,30 @@ export default function MetaPixel() {
     window.addEventListener(COOKIE_CONSENT_EVENT, handleConsent);
     return () => window.removeEventListener(COOKIE_CONSENT_EVENT, handleConsent);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!enabled || loaded) return;
+
+    let attempts = 0;
+    const interval = window.setInterval(() => {
+      attempts += 1;
+      const fbq = window.fbq as
+        | (((...args: unknown[]) => void) & {
+            callMethod?: (...args: unknown[]) => void;
+          })
+        | undefined;
+
+      if (typeof fbq?.callMethod === "function") {
+        window.clearInterval(interval);
+        markPixelReady();
+        return;
+      }
+
+      if (attempts >= 150) window.clearInterval(interval);
+    }, 100);
+
+    return () => window.clearInterval(interval);
+  }, [enabled, loaded, markPixelReady]);
 
   useEffect(() => {
     if (!enabled || pathname.startsWith("/admin")) {
@@ -66,11 +96,7 @@ export default function MetaPixel() {
     <Script
       id="meta-pixel"
       strategy="afterInteractive"
-      onReady={() => {
-        lastTrackedPath.current = routeKey;
-        setLoaded(true);
-        flushPendingMetaEvents();
-      }}
+      onReady={markPixelReady}
     >
       {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${META_PIXEL_ID}');fbq('track','PageView');`}
     </Script>
