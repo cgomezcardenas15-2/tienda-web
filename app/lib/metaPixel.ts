@@ -41,6 +41,35 @@ declare global {
   }
 }
 
+let pendingFlushTimer: number | undefined;
+
+function stopPendingFlushTimer() {
+  if (typeof window === "undefined" || pendingFlushTimer === undefined) return;
+  window.clearInterval(pendingFlushTimer);
+  pendingFlushTimer = undefined;
+}
+
+function schedulePendingMetaEventsFlush() {
+  if (typeof window === "undefined" || pendingFlushTimer !== undefined) return;
+
+  let attempts = 0;
+  pendingFlushTimer = window.setInterval(() => {
+    attempts += 1;
+
+    if (!canUseMetaPixel()) {
+      clearPendingMetaEvents();
+      return;
+    }
+
+    if (typeof window.fbq === "function") {
+      flushPendingMetaEvents();
+      return;
+    }
+
+    if (attempts >= 150) stopPendingFlushTimer();
+  }, 100);
+}
+
 export function canUseMetaPixel(pathname?: string) {
   if (typeof window === "undefined") return false;
 
@@ -77,17 +106,20 @@ export function trackMetaEvent(
 
   window.__novaPendingMetaEvents ??= [];
   window.__novaPendingMetaEvents.push(event);
+  schedulePendingMetaEventsFlush();
   return true;
 }
 
 export function flushPendingMetaEvents() {
   if (typeof window === "undefined" || !canUseMetaPixel() || !window.fbq) return;
 
+  stopPendingFlushTimer();
   const pending = window.__novaPendingMetaEvents ?? [];
   window.__novaPendingMetaEvents = [];
   pending.forEach(sendMetaEvent);
 }
 
 export function clearPendingMetaEvents() {
+  stopPendingFlushTimer();
   if (typeof window !== "undefined") window.__novaPendingMetaEvents = [];
 }
