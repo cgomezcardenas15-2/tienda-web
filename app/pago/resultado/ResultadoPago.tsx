@@ -94,6 +94,7 @@ export default function ResultadoPago() {
       return;
     }
 
+    compraMetaRegistrada.current = true;
     const tracked = trackMetaEvent(
       "Purchase",
       {
@@ -104,13 +105,18 @@ export default function ResultadoPago() {
         value: compra.value,
         num_items: compra.numItems,
       },
-      `purchase:${compra.pedidoId}`
+      `purchase:${compra.pedidoId}`,
+      {
+        onSent: () => {
+          window.localStorage.setItem(storageKey, "1");
+        },
+        onDropped: () => {
+          compraMetaRegistrada.current = false;
+        },
+      }
     );
 
-    if (tracked) {
-      window.localStorage.setItem(storageKey, "1");
-      compraMetaRegistrada.current = true;
-    }
+    if (!tracked) compraMetaRegistrada.current = false;
   }, [resultado]);
 
   const titulo = !resultado

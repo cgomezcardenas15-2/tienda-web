@@ -12,6 +12,8 @@ import {
 } from "@/app/lib/verificarPagoWompi";
 import { obtenerConfiguracionWompi } from "@/app/lib/wompi";
 
+export const maxDuration = 15;
+
 type EventoWompi = {
   event?: unknown;
   environment?: unknown;

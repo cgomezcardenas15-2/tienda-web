@@ -26,7 +26,8 @@ import {
   type PedidoPreparado,
 } from "../data/prepararPedido";
 import { getMetaContentId, trackMetaEvent } from "../lib/metaPixel";
-import { COOKIE_CONSENT_EVENT } from "../lib/cookieConsent";
+import { COOKIE_CONSENT_EVENT, getCookieConsent } from "../lib/cookieConsent";
+import { getMetaBrowserIdentifiers } from "../lib/metaBrowserIdentifiers";
 
 /*
 |--------------------------------------------------------------------------
@@ -340,6 +341,10 @@ export default function CheckoutPage() {
   const resumenErroresRef = useRef<HTMLDivElement>(null);
   const pedidoPendienteRef = useRef<string | null>(null);
   const claveIdempotenciaRef = useRef<string | null>(null);
+  const inicioCheckoutMetaPendienteRef = useRef<{
+    huellaCarrito: string;
+    eventId: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!carritoCargado || items.length === 0) return;
@@ -375,6 +380,15 @@ export default function CheckoutPage() {
         quantity: producto.cantidad,
         item_price: obtenerPrecioUnitario(producto),
       }));
+
+      if (
+        inicioCheckoutMetaPendienteRef.current?.huellaCarrito === huellaCarrito
+      ) {
+        return;
+      }
+
+      const eventId = `initiate_checkout:${crypto.randomUUID()}`;
+      inicioCheckoutMetaPendienteRef.current = { huellaCarrito, eventId };
       const tracked = trackMetaEvent(
         "InitiateCheckout",
         {
@@ -388,14 +402,27 @@ export default function CheckoutPage() {
             0
           ),
         },
-        `initiate_checkout:${crypto.randomUUID()}`
+        eventId,
+        {
+          onSent: () => {
+            window.sessionStorage.setItem(
+              CLAVE_META_INICIO_CHECKOUT,
+              JSON.stringify({ huellaCarrito, registradoEn: Date.now() })
+            );
+            if (inicioCheckoutMetaPendienteRef.current?.eventId === eventId) {
+              inicioCheckoutMetaPendienteRef.current = null;
+            }
+          },
+          onDropped: () => {
+            if (inicioCheckoutMetaPendienteRef.current?.eventId === eventId) {
+              inicioCheckoutMetaPendienteRef.current = null;
+            }
+          },
+        }
       );
 
-      if (tracked) {
-        window.sessionStorage.setItem(
-          CLAVE_META_INICIO_CHECKOUT,
-          JSON.stringify({ huellaCarrito, registradoEn: Date.now() })
-        );
+      if (!tracked && inicioCheckoutMetaPendienteRef.current?.eventId === eventId) {
+        inicioCheckoutMetaPendienteRef.current = null;
       }
     };
 
@@ -1360,12 +1387,20 @@ export default function CheckoutPage() {
           creadoEn: Date.now(),
         });
 
+        const metaMarketingConsent = getCookieConsent() === "marketing";
+        const metaBrowserIdentifiers = metaMarketingConsent
+          ? getMetaBrowserIdentifiers()
+          : { fbp: null, fbc: null };
+
         const respuestaPedido = await fetch("/api/pedidos", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             clave_idempotencia: claveIdempotencia,
             metodo_pago: metodoPago,
+            meta_marketing_consent: metaMarketingConsent,
+            meta_fbp: metaBrowserIdentifiers.fbp,
+            meta_fbc: metaBrowserIdentifiers.fbc,
             productos: pedidoPreparado.productos.map((producto) => ({
               id: producto.productoId,
               varianteId: producto.varianteId,
@@ -1447,10 +1482,20 @@ export default function CheckoutPage() {
         return;
       }
 
+      const metaMarketingConsent = getCookieConsent() === "marketing";
+      const metaBrowserIdentifiers = metaMarketingConsent
+        ? getMetaBrowserIdentifiers()
+        : { fbp: null, fbc: null };
+
       const respuestaPago = await fetch("/api/pagos/wompi/iniciar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pedidoId }),
+        body: JSON.stringify({
+          pedidoId,
+          meta_marketing_consent: metaMarketingConsent,
+          meta_fbp: metaBrowserIdentifiers.fbp,
+          meta_fbc: metaBrowserIdentifiers.fbc,
+        }),
       });
 
       const pago = (await respuestaPago.json()) as {

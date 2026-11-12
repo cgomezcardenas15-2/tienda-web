@@ -2,10 +2,16 @@ import { NextResponse } from "next/server";
 
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 import { crearCheckoutWompi, type PedidoParaPago } from "@/app/lib/iniciarPagoPedido";
+import { sanitizeMetaBrowserIdentifier } from "@/app/lib/metaBrowserIdentifiers";
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { pedidoId?: unknown };
+    const body = (await request.json()) as {
+      pedidoId?: unknown;
+      meta_marketing_consent?: unknown;
+      meta_fbp?: unknown;
+      meta_fbc?: unknown;
+    };
     const pedidoId = typeof body.pedidoId === "string" ? body.pedidoId.trim() : "";
 
     if (!pedidoId) {
@@ -28,6 +34,32 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { ok: false, error: "Este pedido fue confirmado para pago en efectivo contraentrega." },
         { status: 409 }
+      );
+    }
+
+    const metaMarketingConsent = body.meta_marketing_consent === true;
+    const { error: errorConsentimiento } = await supabaseAdmin
+      .from("pedidos")
+      .update({
+        meta_marketing_consent: metaMarketingConsent,
+        meta_fbp: metaMarketingConsent
+          ? sanitizeMetaBrowserIdentifier(body.meta_fbp)
+          : null,
+        meta_fbc: metaMarketingConsent
+          ? sanitizeMetaBrowserIdentifier(body.meta_fbc)
+          : null,
+      })
+      .eq("id", pedidoId)
+      .neq("estado_pago", "aprobado");
+
+    if (errorConsentimiento) {
+      console.error("No fue posible actualizar el consentimiento de Meta del pedido", {
+        pedidoId,
+        code: errorConsentimiento.code,
+      });
+      return NextResponse.json(
+        { ok: false, error: "No fue posible preparar de forma segura el seguimiento del pago." },
+        { status: 500 }
       );
     }
 

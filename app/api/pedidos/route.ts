@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 import { calcularEnvio } from "@/app/data/envios";
+import { sanitizeMetaBrowserIdentifier } from "@/app/lib/metaBrowserIdentifiers";
 import { obtenerConfiguracionEnvios } from "@/app/lib/configuracionEnvios";
 import {
   ConfiguracionTiendaNoDisponibleError,
@@ -648,6 +649,14 @@ export async function POST(request: Request) {
       costoEnvio -
       descuento;
 
+    const metaMarketingConsent = body.meta_marketing_consent === true;
+    const metaFbp = metaMarketingConsent
+      ? sanitizeMetaBrowserIdentifier(body.meta_fbp)
+      : null;
+    const metaFbc = metaMarketingConsent
+      ? sanitizeMetaBrowserIdentifier(body.meta_fbc)
+      : null;
+
     /*
     |--------------------------------------------------------------------------
     | CONSTRUIR PEDIDO OFICIAL
@@ -777,6 +786,15 @@ export async function POST(request: Request) {
 
       clave_idempotencia:
         claveIdempotencia,
+
+      meta_marketing_consent:
+        metaMarketingConsent,
+
+      meta_fbp:
+        metaFbp,
+
+      meta_fbc:
+        metaFbc,
     };
 
     /*

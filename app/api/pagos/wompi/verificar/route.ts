@@ -5,6 +5,8 @@ import {
   verificarYActualizarPagoWompi,
 } from "@/app/lib/verificarPagoWompi";
 
+export const maxDuration = 15;
+
 export async function GET(request: Request) {
   try {
     const id = new URL(request.url).searchParams.get("id")?.trim();

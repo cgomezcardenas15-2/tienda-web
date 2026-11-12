@@ -1,8 +1,7 @@
 import { getCookieConsent } from "./cookieConsent";
 
 export { getMetaContentId } from "./metaContentId";
-
-export const META_PIXEL_ID = "4729062324035766";
+export { META_PIXEL_ID } from "./metaConfig";
 
 const PRODUCTION_HOSTS = new Set(["senornova.com.co", "www.senornova.com.co"]);
 
@@ -32,6 +31,8 @@ type PendingMetaEvent = {
   name: MetaCommerceEvent;
   parameters: MetaEventParameters;
   eventId?: string;
+  onSent?: () => void;
+  onDropped?: () => void;
 };
 
 declare global {
@@ -61,13 +62,33 @@ function schedulePendingMetaEventsFlush() {
       return;
     }
 
-    if (typeof window.fbq === "function") {
+    if (isMetaPixelReady()) {
       flushPendingMetaEvents();
       return;
     }
 
-    if (attempts >= 150) stopPendingFlushTimer();
+    if (attempts >= 150) clearPendingMetaEvents();
   }, 100);
+}
+
+function isMetaPixelReady() {
+  if (typeof window === "undefined") return false;
+
+  const fbq = window.fbq as
+    | (((...args: unknown[]) => void) & {
+        callMethod?: (...args: unknown[]) => void;
+      })
+    | undefined;
+
+  return typeof fbq?.callMethod === "function";
+}
+
+function notify(callback?: () => void) {
+  try {
+    callback?.();
+  } catch (error) {
+    console.error("No fue posible actualizar el estado local del evento Meta.", error);
+  }
 }
 
 export function canUseMetaPixel(pathname?: string) {
@@ -82,7 +103,7 @@ export function canUseMetaPixel(pathname?: string) {
 }
 
 function sendMetaEvent(event: PendingMetaEvent) {
-  if (!window.fbq) return false;
+  if (!window.fbq || !isMetaPixelReady()) return false;
 
   if (event.eventId) {
     window.fbq("track", event.name, event.parameters, { eventID: event.eventId });
@@ -90,17 +111,19 @@ function sendMetaEvent(event: PendingMetaEvent) {
     window.fbq("track", event.name, event.parameters);
   }
 
+  notify(event.onSent);
   return true;
 }
 
 export function trackMetaEvent(
   name: MetaCommerceEvent,
   parameters: MetaEventParameters,
-  eventId?: string
+  eventId?: string,
+  callbacks?: Pick<PendingMetaEvent, "onSent" | "onDropped">
 ) {
   if (typeof window === "undefined" || !canUseMetaPixel()) return false;
 
-  const event: PendingMetaEvent = { name, parameters, eventId };
+  const event: PendingMetaEvent = { name, parameters, eventId, ...callbacks };
 
   if (sendMetaEvent(event)) return true;
 
@@ -111,7 +134,7 @@ export function trackMetaEvent(
 }
 
 export function flushPendingMetaEvents() {
-  if (typeof window === "undefined" || !canUseMetaPixel() || !window.fbq) return;
+  if (typeof window === "undefined" || !canUseMetaPixel() || !isMetaPixelReady()) return;
 
   stopPendingFlushTimer();
   const pending = window.__novaPendingMetaEvents ?? [];
@@ -121,5 +144,9 @@ export function flushPendingMetaEvents() {
 
 export function clearPendingMetaEvents() {
   stopPendingFlushTimer();
-  if (typeof window !== "undefined") window.__novaPendingMetaEvents = [];
+  if (typeof window === "undefined") return;
+
+  const pending = window.__novaPendingMetaEvents ?? [];
+  window.__novaPendingMetaEvents = [];
+  pending.forEach((event) => notify(event.onDropped));
 }
