@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:meta": "node --test --experimental-strip-types tests/metaConversionsApi.test.ts"
+    "test:meta": "node --test --experimental-strip-types tests/metaConversionsApi.test.ts tests/metaViewContent.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",

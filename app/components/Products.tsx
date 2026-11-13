@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useCart } from "../context/CartContext";
-import { getMetaContentId, trackMetaEvent } from "../lib/metaPixel";
+import { trackMetaEvent } from "../lib/metaPixel";
+import { buildMetaViewContent } from "../lib/metaViewContent";
 import { supabase } from "../lib/supabase";
 
 /*
@@ -290,6 +291,8 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
 
   const [varianteSeleccionada, setVarianteSeleccionada] =
     useState<Record<string, string>>({});
+
+  const viewContentEnVista = useRef<Set<string>>(new Set());
 
   const [cargando, setCargando] =
     useState(true);
@@ -617,29 +620,51 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
     });
   }
 
+  function registrarViewContent(
+    producto: ProductoSupabase,
+    variante: VarianteProducto | undefined
+  ) {
+    const evento = buildMetaViewContent({
+      producto,
+      variante,
+      tieneVariantes: (variantes[producto.id]?.length ?? 0) > 0,
+    });
+
+    const sesionDeVista = viewContentEnVista.current;
+
+    if (!evento || sesionDeVista.has(evento.eventKey)) return;
+
+    const aceptado = trackMetaEvent(
+      "ViewContent",
+      evento.parameters,
+      undefined,
+      {
+        onDropped: () => sesionDeVista.delete(evento.eventKey),
+      }
+    );
+
+    if (aceptado) sesionDeVista.add(evento.eventKey);
+  }
+
   function abrirVistaRapida(
     producto: ProductoSupabase,
     variante: VarianteProducto | undefined
   ) {
-    const precio = variante?.precio ?? producto.precio;
-    const esGrupo = !variante && (variantes[producto.id]?.length ?? 0) > 0;
-    const contentId = getMetaContentId({
-      id: producto.id,
-      varianteId: variante?.id,
-      sku: variante?.sku ?? producto.sku,
-    });
-
-    trackMetaEvent("ViewContent", {
-      content_ids: [contentId],
-      content_type: esGrupo ? "product_group" : "product",
-      contents: [{ id: contentId, quantity: 1, item_price: precio }],
-      currency: "COP",
-      value: precio,
-      content_name: producto.nombre,
-      num_items: 1,
-    });
+    viewContentEnVista.current = new Set();
+    registrarViewContent(producto, variante);
 
     setProductoEnVista(producto.id);
+  }
+
+  function seleccionarVarianteEnVista(
+    producto: ProductoSupabase,
+    variante: VarianteProducto
+  ) {
+    setVarianteSeleccionada((actual) => ({
+      ...actual,
+      [producto.id]: variante.id,
+    }));
+    registrarViewContent(producto, variante);
   }
 
   function abrirImagenAmpliada(url: string, nombre: string) {
@@ -1236,10 +1261,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
                               aria-label={`${etiquetaOpcion}${agotada ? ", agotado" : ""}`}
                               title={`${etiquetaOpcion}${agotada ? " · Agotado" : ""}`}
                               onClick={() =>
-                                setVarianteSeleccionada((actual) => ({
-                                  ...actual,
-                                  [productoVista.id]: opcion.id,
-                                }))
+                                seleccionarVarianteEnVista(productoVista, opcion)
                               }
                               className={
                                 "relative h-11 w-11 rounded-full border-2 p-1 transition " +
@@ -1270,10 +1292,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
                             type="button"
                             disabled={agotada}
                             onClick={() =>
-                              setVarianteSeleccionada((actual) => ({
-                                ...actual,
-                                [productoVista.id]: opcion.id,
-                              }))
+                              seleccionarVarianteEnVista(productoVista, opcion)
                             }
                             className={
                               "rounded-lg border px-3 py-2 text-xs font-semibold transition " +
