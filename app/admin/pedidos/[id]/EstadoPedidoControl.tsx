@@ -56,7 +56,7 @@ export default function EstadoPedidoControl({
 
   async function ejecutarContraentrega(accion: "confirmar_entrega" | "cancelar") {
     const confirmacion = accion === "confirmar_entrega"
-      ? "¿Confirmas que el cliente recibió el pedido y entregó el efectivo completo? Esta acción registrará el pago."
+      ? "¿Confirmas que el cliente recibió el pedido y pagó el valor de los productos? Esta acción registra el pago de la mercancía; el domicilio se controla por separado."
       : "¿Confirmas que deseas cancelar este pedido? Las unidades reservadas volverán al inventario.";
     if (!window.confirm(confirmacion)) return;
 
@@ -71,7 +71,7 @@ export default function EstadoPedidoControl({
       });
       const resultado = (await respuesta.json().catch(() => null)) as { error?: string } | null;
       if (!respuesta.ok) throw new Error(resultado?.error || "No fue posible actualizar la contraentrega.");
-      setMensaje(accion === "confirmar_entrega" ? "Efectivo recibido y entrega confirmada." : "Pedido cancelado; inventario restaurado.");
+      setMensaje(accion === "confirmar_entrega" ? "Pago de los productos recibido y entrega confirmada." : "Pedido cancelado; inventario restaurado.");
       router.refresh();
     } catch (errorActual) {
       setError(errorActual instanceof Error ? errorActual.message : "No fue posible actualizar la contraentrega.");
@@ -83,10 +83,10 @@ export default function EstadoPedidoControl({
   if (esContraentregaCali && estadoActual === "enviado") {
     return (
       <div>
-        <p className="mb-4 text-sm text-amber-200">El pago sigue pendiente. Confírmalo únicamente cuando el domiciliario entregue el pedido y reciba el efectivo.</p>
+        <p className="mb-4 text-sm text-amber-200">El pago de los productos sigue pendiente. Confírmalo cuando el domiciliario entregue el pedido y reciba ese efectivo. El domicilio se registra por separado.</p>
         <div className="flex flex-wrap gap-3">
           <button type="button" onClick={() => ejecutarContraentrega("confirmar_entrega")} disabled={cargando} className="rounded-xl bg-lime-400 px-5 py-3 text-sm font-black text-black transition hover:bg-lime-300 disabled:cursor-wait disabled:opacity-60">
-            {cargando ? "Actualizando…" : "Confirmar efectivo y entrega"}
+            {cargando ? "Actualizando…" : "Confirmar productos y entrega"}
           </button>
           <button type="button" onClick={() => ejecutarContraentrega("cancelar")} disabled={cargando} className="rounded-xl border border-red-400/50 px-5 py-3 text-sm font-black text-red-300 transition hover:bg-red-500/10 disabled:cursor-wait disabled:opacity-60">Cancelar pedido</button>
         </div>

@@ -23,13 +23,45 @@ export function nombreArchivoRemision(numero: unknown, extension: string) {
 
 const pesos = (valor: unknown) => `$ ${Math.round(Number(valor) || 0).toLocaleString("es-CO")}`;
 
-export function costoEnvioRemision(pedido: { costo_envio?: unknown; envio_zona?: unknown; envio_mensaje?: unknown }) {
-  const mensaje = typeof pedido.envio_mensaje === "string" ? pedido.envio_mensaje.toLowerCase() : "";
-  const pagoAlRecibir = mensaje.includes("recibir") && (mensaje.includes("paga") || mensaje.includes("pagas"));
+type PedidoEnvioRemision = {
+  costo_envio?: unknown;
+  envio_zona?: unknown;
+  envio_mensaje?: unknown;
+  envio_valor_confirmado?: unknown;
+  envio_pago_recibido?: unknown;
+};
 
-  return pagoAlRecibir || (Number(pedido.costo_envio) === 0 && pedido.envio_zona !== "CALI")
-    ? "Por pagar al recibir"
-    : pesos(pedido.costo_envio);
+export function esEnvioPorPagarRemision(pedido: PedidoEnvioRemision) {
+  const zona = String(pedido.envio_zona || "").trim().toUpperCase();
+  const mensaje = typeof pedido.envio_mensaje === "string"
+    ? pedido.envio_mensaje.toLocaleLowerCase("es-CO")
+    : "";
+  const pagoAlRecibir = mensaje.includes("recib")
+    && (mensaje.includes("paga") || mensaje.includes("pago"));
+
+  return pagoAlRecibir || (Number(pedido.costo_envio) === 0 && zona !== "CALI");
+}
+
+export function valorEnvioConfirmadoRemision(pedido: PedidoEnvioRemision) {
+  if (
+    String(pedido.envio_zona || "").trim().toUpperCase() !== "CALI"
+    || pedido.envio_valor_confirmado == null
+    || pedido.envio_valor_confirmado === ""
+  ) {
+    return null;
+  }
+
+  const valor = Number(pedido.envio_valor_confirmado);
+  return Number.isFinite(valor) && valor > 0 ? Math.round(valor) : null;
+}
+
+export function costoEnvioRemision(pedido: PedidoEnvioRemision) {
+  if (!esEnvioPorPagarRemision(pedido)) return pesos(pedido.costo_envio);
+
+  const valorConfirmado = valorEnvioConfirmadoRemision(pedido);
+  if (valorConfirmado === null) return "Por pagar al recibir";
+
+  return `${pesos(valorConfirmado)} · ${pedido.envio_pago_recibido === true ? "Cobrado" : "Por cobrar"}`;
 }
 
 export async function generarPdfRemision(id: string) {
@@ -85,6 +117,7 @@ export async function generarPdfRemision(id: string) {
 
   const totalY = Math.max(185, y - 115);
   pagina.drawRectangle({ x: 345, y: totalY, width: 206, height: 102, color: rgb(0.97, 0.98, 0.96), borderColor: borde, borderWidth: 1 });
+  const envioPorPagar = esEnvioPorPagarRemision(pedido);
   const resumen: Array<[string, string]> = [
     ["Subtotal", pesos(pedido.subtotal)],
     ["Envio", costoEnvioRemision(pedido)],
@@ -92,10 +125,10 @@ export async function generarPdfRemision(id: string) {
   ];
   resumen.forEach(([etiqueta, valor], i) => {
     pagina.drawText(etiqueta, { x: 358, y: totalY + 81 - i * 19, size: 8, font: normal, color: gris });
-    pagina.drawText(valor, { x: 475, y: totalY + 81 - i * 19, size: 8, font: bold, color: negro });
+    pagina.drawText(valor, { x: envioPorPagar && etiqueta === "Envio" ? 418 : 475, y: totalY + 81 - i * 19, size: envioPorPagar && etiqueta === "Envio" ? 6.5 : 8, font: bold, color: negro });
   });
   pagina.drawLine({ start: { x: 358, y: totalY + 27 }, end: { x: 538, y: totalY + 27 }, thickness: 1.2, color: negro });
-  pagina.drawText("TOTAL", { x: 358, y: totalY + 10, size: 11, font: bold, color: negro });
+  pagina.drawText(envioPorPagar ? "TOTAL PRODUCTOS" : "TOTAL", { x: 358, y: totalY + 10, size: envioPorPagar ? 7.5 : 11, font: bold, color: negro });
   pagina.drawText(pesos(pedido.total), { x: 472, y: totalY + 10, size: 12, font: bold, color: verde });
   pagina.drawText(`${IDENTIDAD_COMERCIAL.nombreComercial} - ${IDENTIDAD_COMERCIAL.propietario} - NIT ${IDENTIDAD_COMERCIAL.nitCompleto}`, { x: 150, y: 70, size: 7, font: bold, color: gris });
   pagina.drawText(`${IDENTIDAD_COMERCIAL.direccionCompleta} - Tel. ${IDENTIDAD_COMERCIAL.telefono}`, { x: 142, y: 55, size: 7, font: normal, color: gris });

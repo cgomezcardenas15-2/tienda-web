@@ -6,7 +6,8 @@ import EstadoPedidoControl from "./EstadoPedidoControl";
 import EnvioPedidoForm from "./EnvioPedidoForm";
 import NotificacionEnvioControl from "./NotificacionEnvioControl";
 import NuevaDevolucionForm from "./NuevaDevolucionForm";
-import { costoEnvioRemision } from "@/app/lib/remisionPedido";
+import DomicilioPedidoControl from "./DomicilioPedidoControl";
+import { costoEnvioRemision, esEnvioPorPagarRemision } from "@/app/lib/remisionPedido";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,7 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
   const esContraentregaCali = pedido.metodo_pago === "contraentrega" && pedido.envio_zona === "CALI";
   const esEntregaCali = pedido.envio_zona === "CALI";
   const costoEnvio = costoEnvioRemision(pedido);
-  const envioPorPagar = costoEnvio === "Por pagar al recibir";
+  const envioPorPagar = esEnvioPorPagarRemision(pedido);
   const usaEntregaLocalCali = esEntregaCali && (envioPorPagar || esContraentregaCali);
   const etiquetaTotal = envioPorPagar
     ? esContraentregaCali && pedido.estado_pago !== "aprobado"
@@ -114,6 +115,21 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
                 : " La mercancía se paga por Wompi; al entregar, cobra únicamente el domicilio confirmado."
               : " Al finalizar, confirma la entrega."}
           </p>
+          {envioPorPagar ? (
+            <DomicilioPedidoControl
+              pedidoId={pedido.id}
+              estadoPedido={pedido.estado_pedido}
+              inicial={{
+                valorConfirmado:
+                  pedido.envio_valor_confirmado === null || pedido.envio_valor_confirmado === undefined
+                    ? null
+                    : Number(pedido.envio_valor_confirmado),
+                pagoRecibido: pedido.envio_pago_recibido === true,
+                valorConfirmadoEn: pedido.envio_valor_confirmado_en || null,
+                pagoRecibidoEn: pedido.envio_pago_recibido_en || null,
+              }}
+            />
+          ) : null}
         </section>
       ) : (
         <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">

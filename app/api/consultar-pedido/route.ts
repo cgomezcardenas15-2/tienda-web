@@ -5,6 +5,28 @@ const intentos = new Map<string, { cantidad: number; reinicio: number }>();
 const LIMITE = 10;
 const VENTANA = 15 * 60 * 1000;
 const NUMERO_PEDIDO = /^NOVA-\d{6,}$/i;
+const CAMPOS_PEDIDO_BASE = "id,numero_pedido,creado_en,subtotal,costo_envio,total,moneda,estado_pago,estado_pedido,metodo_pago,envio_zona,envio_mensaje,envio_transportadora,envio_servicio,envio_numero_guia,envio_url_seguimiento";
+
+type PedidoConsulta = {
+  id: string;
+  numero_pedido: string;
+  creado_en: string;
+  subtotal: number;
+  costo_envio: number;
+  total: number;
+  moneda: string;
+  estado_pago: string;
+  estado_pedido: string;
+  metodo_pago: string;
+  envio_zona: string | null;
+  envio_mensaje: string | null;
+  envio_valor_confirmado?: number | null;
+  envio_pago_recibido?: boolean | null;
+  envio_transportadora: string | null;
+  envio_servicio: string | null;
+  envio_numero_guia: string | null;
+  envio_url_seguimiento: string | null;
+};
 
 function ipCliente(request: NextRequest) {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "desconocida";
@@ -41,12 +63,28 @@ export async function POST(request: NextRequest) {
   const { error: errorLimpieza } = await supabaseAdmin.rpc("liberar_reservas_vencidas");
   if (errorLimpieza) console.error("Error limpiando reservas vencidas:", errorLimpieza.message);
 
-  const { data: pedido, error } = await supabaseAdmin
+  const consultaPedido = await supabaseAdmin
     .from("pedidos")
-    .select("id,numero_pedido,creado_en,subtotal,costo_envio,total,moneda,estado_pago,estado_pedido,metodo_pago,envio_zona,envio_mensaje,envio_transportadora,envio_servicio,envio_numero_guia,envio_url_seguimiento")
+    .select(`${CAMPOS_PEDIDO_BASE},envio_valor_confirmado,envio_pago_recibido`)
     .eq("numero_pedido", numeroPedido)
     .ilike("comprador_correo", correo)
     .maybeSingle();
+
+  let pedido = consultaPedido.data as PedidoConsulta | null;
+  let error = consultaPedido.error;
+
+  // Permite desplegar la interfaz antes de ejecutar la migración sin dejar
+  // inservible la consulta de pedidos históricos.
+  if (error?.code === "42703") {
+    const consultaCompatible = await supabaseAdmin
+      .from("pedidos")
+      .select(CAMPOS_PEDIDO_BASE)
+      .eq("numero_pedido", numeroPedido)
+      .ilike("comprador_correo", correo)
+      .maybeSingle();
+    pedido = consultaCompatible.data as PedidoConsulta | null;
+    error = consultaCompatible.error;
+  }
 
   if (error) {
     console.error("Error consultando pedido público:", { code: error.code, message: error.message });
@@ -66,6 +104,10 @@ export async function POST(request: NextRequest) {
   const zonaEnvio = typeof pedido.envio_zona === "string" ? pedido.envio_zona.toUpperCase() : "";
   const mensajeEnvio = typeof pedido.envio_mensaje === "string" ? pedido.envio_mensaje.trim() : "";
   const mensajeNormalizado = mensajeEnvio.toLocaleLowerCase("es-CO");
+  const valorConfirmadoNumero = Number(pedido.envio_valor_confirmado);
+  const valorConfirmado = zonaEnvio === "CALI" && Number.isFinite(valorConfirmadoNumero) && valorConfirmadoNumero > 0
+    ? Math.round(valorConfirmadoNumero)
+    : null;
   const pagoAlRecibir = (
     mensajeNormalizado.includes("recib")
     && (mensajeNormalizado.includes("paga") || mensajeNormalizado.includes("pago"))
@@ -87,6 +129,8 @@ export async function POST(request: NextRequest) {
         zona: pedido.envio_zona || null,
         mensaje: mensajeEnvio || null,
         pagoAlRecibir,
+        valorConfirmado,
+        pagoRecibido: valorConfirmado !== null && pedido.envio_pago_recibido === true,
         transportadora: pedido.envio_transportadora || null,
         servicio: pedido.envio_servicio || null,
         numeroGuia: pedido.envio_numero_guia || null,
