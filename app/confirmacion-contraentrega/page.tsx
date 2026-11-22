@@ -27,7 +27,7 @@ function ConfirmacionContraentrega() {
           <p className="mt-6 text-xs font-black uppercase tracking-[0.24em] text-[#82f000]">Pedido confirmado</p>
           <h1 className="mt-3 text-3xl font-black sm:text-4xl">Paga en efectivo cuando lo recibas</h1>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-white/55 sm:text-base">
-            Tu pedido quedó reservado para entrega en Cali. No se realizó ningún cobro en línea: entrega el total en efectivo al domiciliario cuando recibas los productos.
+            Tu pedido quedó reservado para entrega en Cali. No se realizó ningún cobro en línea: paga en efectivo el valor de los productos. El domicilio se paga por separado al recibir.
           </p>
         </div>
 
@@ -39,11 +39,12 @@ function ConfirmacionContraentrega() {
           <div className="rounded-2xl border border-white/10 bg-black/25 p-5">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/35">Estado del pago</p>
             <p className="mt-2 text-xl font-black">Pendiente en efectivo</p>
-            {total !== null ? <p className="mt-2 text-sm text-white/50">Total a entregar: <strong className="text-white">{dinero.format(total)}</strong></p> : null}
+            {total !== null ? <p className="mt-2 text-sm text-white/50">Valor de los productos: <strong className="text-white">{dinero.format(total)}</strong></p> : null}
+            <p className="mt-2 text-xs text-amber-200/75">El domicilio no está incluido en este valor.</p>
           </div>
 
           <div className="sm:col-span-2 rounded-2xl border border-amber-400/20 bg-amber-400/[0.055] p-5 text-sm leading-6 text-amber-100/80">
-            Ten disponible el valor exacto o confirma el cambio con el domiciliario. NOVA marcará el pago como recibido únicamente después de la entrega.
+            Ten disponible el valor de los productos. El domicilio se cobra por separado al recibir y su valor se confirmará antes del despacho. NOVA marcará el pago como recibido únicamente después de la entrega.
           </div>
 
           <div className="sm:col-span-2 flex flex-col gap-3 sm:flex-row">

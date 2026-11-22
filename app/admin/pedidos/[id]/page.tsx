@@ -57,6 +57,17 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
 
   const catalogoPorId = new Map((catalogo || []).map((producto) => [String(producto.id), producto]));
   const esContraentregaCali = pedido.metodo_pago === "contraentrega" && pedido.envio_zona === "CALI";
+  const esEntregaCali = pedido.envio_zona === "CALI";
+  const costoEnvio = costoEnvioRemision(pedido);
+  const envioPorPagar = costoEnvio === "Por pagar al recibir";
+  const usaEntregaLocalCali = esEntregaCali && (envioPorPagar || esContraentregaCali);
+  const etiquetaTotal = envioPorPagar
+    ? esContraentregaCali && pedido.estado_pago !== "aprobado"
+      ? "Productos a cobrar en efectivo"
+      : "Total cobrado por productos"
+    : esContraentregaCali && pedido.estado_pago !== "aprobado"
+      ? "Total a cobrar en efectivo"
+      : "Total cobrado";
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-8">
@@ -65,6 +76,7 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
         <div><p className="text-xs font-black uppercase tracking-[0.24em] text-lime-400">DETALLE DEL PEDIDO</p><h1 className="mt-2 text-3xl font-black">{pedido.comprador_nombre}</h1><p className="mt-2 text-sm font-bold text-lime-400">{pedido.numero_pedido}</p></div>
         <div className="text-right">
           <p className="text-3xl font-black text-lime-400">{dinero.format(Number(pedido.total))}</p>
+          {envioPorPagar ? <p className="mt-1 text-xs font-bold text-amber-300">Total de productos · domicilio no incluido</p> : null}
           <Link href={`/admin/remisiones/${pedido.id}`} className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-lime-500 px-5 text-sm font-black text-lime-400 transition hover:bg-lime-400 hover:text-black">
             Generar remisión
           </Link>
@@ -84,11 +96,24 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
         <div className="mt-4"><EstadoPedidoControl pedidoId={pedido.id} estadoActual={pedido.estado_pedido} pagoAprobado={pedido.estado_pago === "aprobado"} metodoPago={pedido.metodo_pago || "wompi"} envioZona={pedido.envio_zona || ""} /></div>
       </section>
 
-      {esContraentregaCali ? (
+      {usaEntregaLocalCali ? (
         <section className="mt-5 rounded-2xl border border-lime-500/25 bg-lime-500/[0.055] p-6">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-lime-400">Entrega local en Cali</p>
-          <h2 className="mt-2 text-xl font-black">Domiciliario NOVA · cobro en efectivo</h2>
-          <p className="mt-2 text-sm leading-6 text-zinc-300">Este pedido no necesita guía de transportadora. Cuando salga, márcalo como <strong>en reparto</strong>; al finalizar confirma conjuntamente la entrega y el efectivo recibido.</p>
+          <h2 className="mt-2 text-xl font-black">
+            {envioPorPagar
+              ? esContraentregaCali
+                ? "Domiciliario NOVA · cobro de productos y domicilio"
+                : "Domiciliario NOVA · domicilio por cobrar"
+              : "Domiciliario NOVA · entrega local"}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-zinc-300">
+            Este pedido no necesita guía de transportadora. Cuando salga, márcalo como <strong>en reparto</strong>.
+            {envioPorPagar
+              ? esContraentregaCali
+                ? " Al entregar, cobra el total de los productos y el domicilio como valores separados."
+                : " La mercancía se paga por Wompi; al entregar, cobra únicamente el domicilio confirmado."
+              : " Al finalizar, confirma la entrega."}
+          </p>
         </section>
       ) : (
         <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
@@ -125,7 +150,20 @@ export default async function PedidoDetallePage({ params }: { params: Promise<{ 
         </div>
       </section>
 
-      <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6"><h2 className="font-black">Resumen</h2><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between"><dt className="text-zinc-500">Subtotal</dt><dd>{dinero.format(Number(pedido.subtotal))}</dd></div><div className="flex justify-between gap-4"><dt className="text-zinc-500">Envío</dt><dd className="text-right">{costoEnvioRemision(pedido)}</dd></div><div className="flex justify-between"><dt className="text-zinc-500">Descuento</dt><dd>{dinero.format(Number(pedido.descuento))}</dd></div><div className="flex justify-between border-t border-zinc-700 pt-3 text-lg font-black"><dt>{esContraentregaCali && pedido.estado_pago !== "aprobado" ? "Total a cobrar en efectivo" : "Total cobrado"}</dt><dd>{dinero.format(Number(pedido.total))}</dd></div></dl></section>
+      <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+        <h2 className="font-black">Resumen</h2>
+        <dl className="mt-4 space-y-3 text-sm">
+          <div className="flex justify-between"><dt className="text-zinc-500">Subtotal</dt><dd>{dinero.format(Number(pedido.subtotal))}</dd></div>
+          <div className="flex justify-between gap-4"><dt className="text-zinc-500">Envío</dt><dd className="text-right">{costoEnvio}</dd></div>
+          <div className="flex justify-between"><dt className="text-zinc-500">Descuento</dt><dd>{dinero.format(Number(pedido.descuento))}</dd></div>
+          <div className="flex justify-between border-t border-zinc-700 pt-3 text-lg font-black"><dt>{etiquetaTotal}</dt><dd>{dinero.format(Number(pedido.total))}</dd></div>
+        </dl>
+        {envioPorPagar ? (
+          <p className="mt-4 rounded-xl border border-amber-400/25 bg-amber-400/5 p-4 text-sm leading-6 text-amber-200">
+            El domicilio se confirma antes del despacho y se paga al recibir. No está incluido en el total de productos mostrado arriba.
+          </p>
+        ) : null}
+      </section>
 
       <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
         <p className="text-xs font-black uppercase tracking-[0.2em] text-lime-400">Posventa</p><h2 className="mt-2 text-xl font-black">Devoluciones, garantías y reembolsos</h2><p className="mt-2 text-sm text-zinc-400">Registra cada novedad sin perder su historial ni devolver existencias dos veces.</p>

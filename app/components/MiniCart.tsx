@@ -300,7 +300,9 @@ export default function MiniCart() {
               <div className="flex items-end justify-between gap-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.14em] text-white/40">Subtotal</p>
-                  <p className="mt-1 text-xs text-white/35">El envío se calcula después</p>
+                  <p className="mt-1 max-w-52 text-xs leading-5 text-white/35">
+                    El domicilio se confirma antes del despacho y se paga al recibir. No está incluido en este subtotal.
+                  </p>
                 </div>
                 <p className="text-2xl font-black text-white">{formatoPesos.format(subtotal)}</p>
               </div>

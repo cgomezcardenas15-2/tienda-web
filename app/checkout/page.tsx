@@ -2309,8 +2309,8 @@ export default function CheckoutPage() {
 
                   <p className="mt-2 text-sm leading-6 text-white/40">
                     {contraentregaDisponible
-                      ? "Para entregas en Cali puedes pagar en efectivo al domiciliario o pagar en línea con Wompi."
-                      : "El pago se procesa de forma segura mediante Wompi."}
+                      ? "Para entregas en Cali puedes pagar los productos en efectivo al domiciliario o en línea con Wompi. El domicilio se paga por separado al recibir."
+                      : "El pago de los productos se procesa de forma segura mediante Wompi. El transporte se paga al recibir."}
                   </p>
 
                   <div className="mt-6 grid gap-3">
@@ -2325,7 +2325,7 @@ export default function CheckoutPage() {
                       />
                       <span>
                         <span className="block text-sm font-semibold">Pagar en línea con Wompi</span>
-                        <span className="mt-1 block text-sm leading-6 text-white/40">Pago seguro con tarjeta, PSE u otros medios disponibles en Wompi.</span>
+                        <span className="mt-1 block text-sm leading-6 text-white/40">Pago seguro con tarjeta, PSE u otros medios disponibles en Wompi. El domicilio no se cobra en línea.</span>
                       </span>
                     </label>
 
@@ -2341,7 +2341,7 @@ export default function CheckoutPage() {
                         />
                         <span>
                           <span className="block text-sm font-semibold">Pagar en efectivo contraentrega</span>
-                          <span className="mt-1 block text-sm leading-6 text-white/40">Entrega el total en efectivo al domiciliario cuando recibas tu pedido en Cali.</span>
+                          <span className="mt-1 block text-sm leading-6 text-white/40">Paga en efectivo el valor de los productos. El domicilio se cobra por separado al recibir.</span>
                         </span>
                       </label>
                     ) : null}
@@ -2491,11 +2491,13 @@ export default function CheckoutPage() {
 
                     <div className="mt-6 flex flex-wrap items-end justify-between gap-3">
                       <span className="text-sm text-white/50">
-                        {validacionServidor
-                          ? "Total validado"
-                          : resultadoEnvio.disponible
-                            ? "Total"
-                            : "Total provisional"}
+                        {resultadoEnvio.pagoContraentrega
+                          ? "Total de productos (domicilio no incluido)"
+                          : validacionServidor
+                            ? "Total validado"
+                            : resultadoEnvio.disponible
+                              ? "Total"
+                              : "Total provisional"}
                       </span>
 
                       <span className="break-words text-2xl font-bold text-[#82f000] sm:text-3xl">
@@ -2699,7 +2701,7 @@ export default function CheckoutPage() {
                         )}
 
                         <ResumenCompacto
-                          titulo="Total"
+                          titulo={validacionServidor?.envio?.pagoContraentrega ? "Total de productos" : "Total"}
                           principal={
                             formatoPesos(
                               pedidoPreparado
@@ -2730,8 +2732,8 @@ export default function CheckoutPage() {
 
                         <p className="mt-2 text-xs leading-5 text-white/35">
                           {metodoPago === "contraentrega"
-                            ? "La información ya fue validada. Al confirmar, reservaremos los productos y pagarás el total en efectivo al domiciliario cuando recibas el pedido en Cali."
-                            : "La información ya fue validada. Al continuar, abrirás Wompi para completar el pago seguro y confirmar tu pedido."}
+                            ? "La información ya fue validada. Al confirmar, reservaremos los productos. Pagarás en efectivo los productos y, por separado, el domicilio al recibir el pedido en Cali."
+                            : "La información ya fue validada. Al continuar, Wompi cobrará únicamente los productos. El domicilio se paga al recibir."}
                         </p>
                       </div>
 

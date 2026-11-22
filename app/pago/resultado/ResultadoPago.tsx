@@ -151,6 +151,11 @@ export default function ResultadoPago() {
             <p className="mt-2 text-xs text-white/40">Guárdalo para consultar el estado y la guía de envío.</p>
           </div>
         )}
+        {resultado?.aprobado && (
+          <div className="mt-4 rounded-2xl border border-amber-400/25 bg-amber-400/[0.055] p-5 text-sm leading-6 text-amber-100/80">
+            El pago en línea cubre únicamente los productos. El domicilio se paga al recibir; su valor se confirmará antes del despacho.
+          </div>
+        )}
         <div className="mt-8 grid gap-3 min-[440px]:flex min-[440px]:flex-wrap">
           <Link href="/" className="rounded-xl bg-[#82f000] px-6 py-3 text-center font-bold text-black">
             Volver al inicio

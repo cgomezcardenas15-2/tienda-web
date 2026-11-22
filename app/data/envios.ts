@@ -64,9 +64,14 @@ function normalizarTexto(texto: string) {
 export function calcularEnvio(
   departamento: string,
   ciudad: string,
-  configuracion = CONFIGURACION_ENVIOS_PREDETERMINADA,
-  subtotal = 0,
+  _configuracion = CONFIGURACION_ENVIOS_PREDETERMINADA,
+  _subtotal = 0,
 ): ResultadoEnvio {
+  // Conservamos estos argumentos para no romper a los consumidores actuales;
+  // las antiguas tarifas ya no intervienen porque el transporte se paga al recibir.
+  void _configuracion;
+  void _subtotal;
+
   if (
     departamento.trim() === "" ||
     ciudad.trim() === ""
@@ -88,11 +93,6 @@ export function calcularEnvio(
   const ciudadNormalizada =
     normalizarTexto(ciudad);
 
-  const esEnvioGratis =
-    configuracion.envioGratisActivo &&
-    configuracion.envioGratisDesde > 0 &&
-    subtotal >= configuracion.envioGratisDesde;
-
   /*
   |--------------------------------------------------------------------------
   | CALI
@@ -106,11 +106,11 @@ export function calcularEnvio(
   ) {
     return {
       disponible: true,
-      valor: esEnvioGratis ? 0 : configuracion.tarifaCali,
-      pagoContraentrega: false,
+      valor: 0,
+      pagoContraentrega: true,
       zona: "CALI",
       nombreZona: "Cali",
-      mensaje: esEnvioGratis ? "Envío gratis por el valor de tu compra." : "Envío local en Cali.",
+      mensaje: "El domicilio se paga al momento de recibir el pedido. Su valor se confirmará antes del despacho y no está incluido en el total de esta compra.",
     };
   }
 

@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
   const { data: pedido, error } = await supabaseAdmin
     .from("pedidos")
-    .select("id,numero_pedido,creado_en,total,moneda,estado_pago,estado_pedido,metodo_pago,envio_transportadora,envio_servicio,envio_numero_guia,envio_url_seguimiento")
+    .select("id,numero_pedido,creado_en,subtotal,costo_envio,total,moneda,estado_pago,estado_pedido,metodo_pago,envio_zona,envio_mensaje,envio_transportadora,envio_servicio,envio_numero_guia,envio_url_seguimiento")
     .eq("numero_pedido", numeroPedido)
     .ilike("comprador_correo", correo)
     .maybeSingle();
@@ -62,10 +62,21 @@ export async function POST(request: NextRequest) {
     .eq("pedido_id", pedido.id);
   if (productosError) console.error("Error cargando productos para consulta pública:", productosError.message);
 
+  const costoEnvio = Number(pedido.costo_envio || 0);
+  const zonaEnvio = typeof pedido.envio_zona === "string" ? pedido.envio_zona.toUpperCase() : "";
+  const mensajeEnvio = typeof pedido.envio_mensaje === "string" ? pedido.envio_mensaje.trim() : "";
+  const mensajeNormalizado = mensajeEnvio.toLocaleLowerCase("es-CO");
+  const pagoAlRecibir = (
+    mensajeNormalizado.includes("recib")
+    && (mensajeNormalizado.includes("paga") || mensajeNormalizado.includes("pago"))
+  ) || (costoEnvio === 0 && zonaEnvio !== "CALI");
+
   return NextResponse.json({
     pedido: {
       numeroPedido: pedido.numero_pedido,
       creadoEn: pedido.creado_en,
+      subtotal: Number(pedido.subtotal),
+      costoEnvio,
       total: Number(pedido.total),
       moneda: pedido.moneda,
       estadoPago: pedido.estado_pago,
@@ -73,6 +84,9 @@ export async function POST(request: NextRequest) {
       metodoPago: pedido.metodo_pago,
       puedeRetomarPago: pedido.metodo_pago !== "contraentrega" && pedido.estado_pago !== "aprobado" && pedido.estado_pedido !== "cancelado",
       envio: {
+        zona: pedido.envio_zona || null,
+        mensaje: mensajeEnvio || null,
+        pagoAlRecibir,
         transportadora: pedido.envio_transportadora || null,
         servicio: pedido.envio_servicio || null,
         numeroGuia: pedido.envio_numero_guia || null,

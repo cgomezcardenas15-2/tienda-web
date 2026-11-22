@@ -23,8 +23,11 @@ export function nombreArchivoRemision(numero: unknown, extension: string) {
 
 const pesos = (valor: unknown) => `$ ${Math.round(Number(valor) || 0).toLocaleString("es-CO")}`;
 
-export function costoEnvioRemision(pedido: { costo_envio?: unknown; envio_zona?: unknown }) {
-  return Number(pedido.costo_envio) === 0 && pedido.envio_zona !== "CALI"
+export function costoEnvioRemision(pedido: { costo_envio?: unknown; envio_zona?: unknown; envio_mensaje?: unknown }) {
+  const mensaje = typeof pedido.envio_mensaje === "string" ? pedido.envio_mensaje.toLowerCase() : "";
+  const pagoAlRecibir = mensaje.includes("recibir") && (mensaje.includes("paga") || mensaje.includes("pagas"));
+
+  return pagoAlRecibir || (Number(pedido.costo_envio) === 0 && pedido.envio_zona !== "CALI")
     ? "Por pagar al recibir"
     : pesos(pedido.costo_envio);
 }

@@ -579,14 +579,14 @@ export default function CarritoPage() {
                     </span>
 
                     <span className="text-white/60">
-                      Por calcular
+                      Por pagar al recibir
                     </span>
                   </div>
                 </div>
 
                 <div className="mt-6 flex flex-wrap items-end justify-between gap-3">
                   <span className="text-sm text-white/50">
-                    Total provisional
+                    Total de productos
                   </span>
 
                   <span className="break-words text-2xl font-bold text-[#82f000] sm:text-3xl">
@@ -622,10 +622,7 @@ export default function CarritoPage() {
                 </div>}
 
                 <p className="mt-4 text-center text-xs leading-5 text-white/30">
-                  El valor final del
-                  envío se calculará
-                  antes de confirmar el
-                  pedido.
+                  El domicilio no está incluido. Su valor se confirmará antes del despacho y se paga al recibir.
                 </p>
               </aside>
             </div>
