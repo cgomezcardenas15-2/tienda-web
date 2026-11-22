@@ -1871,10 +1871,10 @@ export default function CheckoutPage() {
 
                   <p className="mt-2 text-sm leading-6 text-white/40">
                     Selecciona departamento y
-                    ciudad. NOVA calculará una
-                    tarifa provisional y el
-                    servidor la verificará antes
-                    de confirmar la revisión.
+                    ciudad. NOVA mostrará cómo se
+                    paga el domicilio y verificará
+                    las condiciones antes de
+                    confirmar la revisión.
                   </p>
 
                   <div className="mt-7 grid gap-5 sm:grid-cols-2">
