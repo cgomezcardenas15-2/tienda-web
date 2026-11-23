@@ -22,8 +22,8 @@ function mensajeRedistribucion(error: { code?: string; message?: string }) {
   if (error.code === "23505" || mensaje.includes("SKU ya está utilizado")) return "Ese SKU ya está utilizado.";
   if (mensaje.includes("Solo quedan")) return `${mensaje}. No se modificó el inventario.`;
   if (mensaje.includes("inventario cambió")) return "El inventario cambió mientras guardabas. Recarga la página e inténtalo nuevamente.";
-  if (error.code === "PGRST202") return "Falta activar la protección de inventario por colores en la base de datos.";
-  return "No fue posible guardar el color. El inventario no fue modificado.";
+  if (error.code === "PGRST202") return "Falta activar la protección de inventario por opciones en la base de datos.";
+  return "No fue posible guardar la opción. El inventario no fue modificado.";
 }
 
 export async function POST(request: NextRequest) {
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     p_imagen_url: datos.imagenUrl, p_activo: datos.activo,
   });
   if (error) {
-    console.error("Error redistribuyendo stock al crear color:", { code: error.code, message: error.message });
+    console.error("Error redistribuyendo stock al crear opción:", { code: error.code, message: error.message });
     const conflicto = error.code === "23505" || error.message.includes("Solo quedan") || error.message.includes("inventario cambió");
     return NextResponse.json({ error: mensajeRedistribucion(error) }, { status: conflicto ? 409 : 500 });
   }

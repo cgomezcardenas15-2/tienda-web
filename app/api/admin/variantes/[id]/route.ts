@@ -26,7 +26,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
   const { data: varianteActual, error: errorVariante } = await supabaseAdmin
     .from("variantes_producto").select("id,producto_id,stock").eq("id", id).maybeSingle();
-  if (errorVariante || !varianteActual) return NextResponse.json({ error: "La opción de color no existe." }, { status: 404 });
+  if (errorVariante || !varianteActual) return NextResponse.json({ error: "La opción del producto no existe." }, { status: 404 });
 
   const { data, error } = await supabaseAdmin.rpc("guardar_variante_redistribuyendo_stock", {
     p_producto_id: varianteActual.producto_id, p_variante_id: id,
@@ -37,12 +37,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     p_imagen_url: texto(body.imagen_url) || null, p_activo: body.activo !== false,
   });
   if (error) {
-    console.error("Error redistribuyendo stock al editar color:", { code: error.code, message: error.message });
-    let mensaje = "No fue posible guardar el color. El inventario no fue modificado.";
+    console.error("Error redistribuyendo stock al editar opción:", { code: error.code, message: error.message });
+    let mensaje = "No fue posible guardar la opción. El inventario no fue modificado.";
     if (error.code === "23505" || error.message.includes("SKU ya está utilizado")) mensaje = "Ese SKU ya está utilizado.";
     else if (error.message.includes("Solo quedan")) mensaje = `${error.message}. No se modificó el inventario.`;
     else if (error.message.includes("inventario cambió")) mensaje = "El inventario cambió mientras guardabas. Recarga la página e inténtalo nuevamente.";
-    else if (error.code === "PGRST202") mensaje = "Falta activar la protección de inventario por colores en la base de datos.";
+    else if (error.code === "PGRST202") mensaje = "Falta activar la protección de inventario por opciones en la base de datos.";
     const conflicto = error.code === "23505" || error.message.includes("Solo quedan") || error.message.includes("inventario cambió");
     return NextResponse.json({ error: mensaje }, { status: conflicto ? 409 : 500 });
   }
@@ -53,10 +53,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   if (!await autorizado(request)) return NextResponse.json({ error: "Sesión o solicitud no válida." }, { status: 401 });
   const { id } = await params;
   const { data: variante, error: errorConsulta } = await supabaseAdmin.from("variantes_producto").select("id,stock").eq("id", id).maybeSingle();
-  if (errorConsulta || !variante) return NextResponse.json({ error: "La opción de color no existe." }, { status: 404 });
-  if (Number(variante.stock) > 0) return NextResponse.json({ error: "Primero cambia este color a 0. Sus unidades volverán al stock sin color y no se perderán." }, { status: 409 });
+  if (errorConsulta || !variante) return NextResponse.json({ error: "La opción del producto no existe." }, { status: 404 });
+  if (Number(variante.stock) > 0) return NextResponse.json({ error: "Primero cambia esta opción a 0. Sus unidades volverán al stock sin clasificar y no se perderán." }, { status: 409 });
   const { data: eliminada, error } = await supabaseAdmin.from("variantes_producto").delete().eq("id", id).eq("stock", 0).select("id").maybeSingle();
-  if (error) return NextResponse.json({ error: error.code === "23503" ? "Este color ya pertenece a un pedido; ocúltalo en lugar de eliminarlo." : "No fue posible eliminar." }, { status: 409 });
+  if (error) return NextResponse.json({ error: error.code === "23503" ? "Esta opción ya pertenece a un pedido; ocúltala en lugar de eliminarla." : "No fue posible eliminar." }, { status: 409 });
   if (!eliminada) return NextResponse.json({ error: "El stock cambió antes de eliminar. Recarga la página para no perder unidades." }, { status: 409 });
   return NextResponse.json({ ok: true });
 }

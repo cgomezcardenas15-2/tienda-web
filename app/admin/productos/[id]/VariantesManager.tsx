@@ -35,6 +35,7 @@ type Producto = {
 };
 
 type TipoOpcion = "color" | "talla" | "color_talla" | "otra";
+type TallaLote = { id: string; talla: string; stock: string; sku: string; skuManual: boolean };
 
 const vacio = {
   nombre: "",
@@ -60,7 +61,7 @@ const COLORES_NOMBRE: Record<string, string> = {
 const TIPOS: Array<{ id: TipoOpcion; titulo: string; detalle: string }> = [
   { id: "color", titulo: "Solo color", detalle: "Ej. Negro, blanco o rojo" },
   { id: "talla", titulo: "Solo talla", detalle: "Ej. S, M, L o 38" },
-  { id: "color_talla", titulo: "Color + talla", detalle: "Ej. Negro en talla M" },
+  { id: "color_talla", titulo: "Color + varias tallas", detalle: "Ej. Negro en S, M, L y XL" },
   { id: "otra", titulo: "Otra opción", detalle: "Ej. 500 ml o paquete x 3" },
 ];
 
@@ -81,6 +82,12 @@ function codigo(valor: string) {
     .replace(/[^A-Z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 12);
 }
 
+function idTemporal() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function etiquetaOpcion(nombre: string, talla: string | null) {
   const nombreLimpio = nombre.trim();
   const tallaLimpia = talla?.trim() ?? "";
@@ -98,6 +105,8 @@ export default function VariantesManager({ producto, iniciales }: { producto: Pr
   const [editando, setEditando] = useState<string | null>(null);
   const [tipoOpcion, setTipoOpcion] = useState<TipoOpcion>("color");
   const [skuAutomatico, setSkuAutomatico] = useState(true);
+  const [tallasLote, setTallasLote] = useState<TallaLote[]>([]);
+  const [tallaPersonalizada, setTallaPersonalizada] = useState("");
   const [form, setForm] = useState(vacio);
   const [mensaje, setMensaje] = useState("");
   const [esError, setEsError] = useState(false);
@@ -143,6 +152,65 @@ export default function VariantesManager({ producto, iniciales }: { producto: Pr
     }));
   }
 
+  function skuParaCombinacion(talla: string, nombreColor = form.nombre, color = form.color) {
+    const codigoColor = codigo(nombreColor) || codigo(color.replace("#", "")) || "COLOR";
+    return [codigo(producto.sku ?? producto.nombre), codigoColor, codigo(talla)].filter(Boolean).join("-");
+  }
+
+  function cambiarNombreOpcion(nombre: string) {
+    setForm((actual) => ({ ...actual, nombre }));
+    if (tipoOpcion === "color_talla" && !editando) {
+      setTallasLote((actual) => actual.map((item) => item.skuManual ? item : {
+        ...item,
+        sku: skuParaCombinacion(item.talla, nombre, form.color),
+      }));
+    }
+  }
+
+  function seleccionarColorOpcion(color: string) {
+    setForm((actual) => ({ ...actual, color }));
+    if (tipoOpcion === "color_talla" && !editando && !form.nombre.trim()) {
+      setTallasLote((actual) => actual.map((item) => item.skuManual ? item : {
+        ...item,
+        sku: skuParaCombinacion(item.talla, form.nombre, color),
+      }));
+    }
+  }
+
+  function agregarTallaLote(valor: string) {
+    const talla = valor.trim();
+    if (!talla) return;
+    const normalizada = talla.toLocaleLowerCase("es");
+    if (tallasLote.some((item) => item.talla.toLocaleLowerCase("es") === normalizada)) {
+      setEsError(true);
+      setMensaje(`La talla ${talla} ya está seleccionada.`);
+      return;
+    }
+    if (form.color && variantes.some((item) => item.talla?.trim().toLocaleLowerCase("es") === normalizada && item.color && colorHex(item.color) === colorHex(form.color))) {
+      setEsError(true);
+      setMensaje(`La combinación de este color con talla ${talla} ya existe.`);
+      return;
+    }
+    setTallasLote((actual) => [...actual, {
+      id: idTemporal(),
+      talla,
+      stock: "0",
+      sku: skuParaCombinacion(talla),
+      skuManual: false,
+    }]);
+    setTallaPersonalizada("");
+    setEsError(false);
+    setMensaje("");
+  }
+
+  function actualizarTallaLote(id: string, cambios: Partial<TallaLote>) {
+    setTallasLote((actual) => actual.map((item) => item.id === id ? { ...item, ...cambios } : item));
+  }
+
+  function quitarTallaLote(id: string) {
+    setTallasLote((actual) => actual.filter((item) => item.id !== id));
+  }
+
   function seleccionarTalla(talla: string) {
     setForm((actual) => {
       const nombreAutomatico = tipoOpcion === "talla" && (!actual.nombre || /^Talla\s+/i.test(actual.nombre));
@@ -157,8 +225,73 @@ export default function VariantesManager({ producto, iniciales }: { producto: Pr
     });
   }
 
+  async function guardarLoteColorTalla() {
+    setGuardando(true);
+    setMensaje("");
+    setEsError(false);
+    const totalSolicitado = tallasLote.reduce((total, item) => total + (Number(item.stock) || 0), 0);
+    const skus = tallasLote.map((item) => item.sku.trim().toUpperCase());
+    const tallasNormalizadas = tallasLote.map((item) => item.talla.trim().toLocaleLowerCase("es"));
+    const skusExistentes = new Set([
+      producto.sku?.trim().toUpperCase(),
+      ...variantes.map((item) => item.sku.trim().toUpperCase()),
+    ].filter(Boolean));
+    const invalida = !form.nombre.trim() || !form.color || tallasLote.length === 0
+      || tallasLote.some((item) => !item.talla.trim() || !item.sku.trim() || !Number.isSafeInteger(Number(item.stock)) || Number(item.stock) < 0)
+      || new Set(tallasNormalizadas).size !== tallasNormalizadas.length
+      || new Set(skus).size !== skus.length
+      || skus.some((sku) => skusExistentes.has(sku))
+      || totalSolicitado > stockSinAsignar;
+    if (invalida) {
+      setGuardando(false);
+      setEsError(true);
+      setMensaje(totalSolicitado > stockSinAsignar
+        ? `Solo puedes repartir ${stockSinAsignar} unidades. La suma de las tallas es ${totalSolicitado}.`
+        : "Revisa el color, las tallas, sus cantidades y los SKU. No deben repetirse.");
+      return;
+    }
+
+    const respuesta = await fetch("/api/admin/variantes/lote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...form,
+        productoId: producto.id,
+        stock_base_esperado: stockSinAsignar,
+        tallas: tallasLote.map((item) => ({ talla: item.talla, stock: item.stock, sku: item.sku })),
+      }),
+    }).catch(() => null);
+    if (!respuesta) {
+      setGuardando(false);
+      setEsError(true);
+      setMensaje("No fue posible comunicarse con la tienda. Inténtalo nuevamente.");
+      return;
+    }
+    const data = await respuesta.json().catch(() => ({}));
+    setGuardando(false);
+    if (!respuesta.ok) {
+      setEsError(true);
+      setMensaje(data.error ?? "No fue posible guardar las tallas. El inventario no fue modificado.");
+      return;
+    }
+    const creadas = Array.isArray(data.variantes) ? data.variantes as Variante[] : [];
+    setVariantes((actual) => [...actual, ...creadas]);
+    if (Number.isInteger(data.stock_base)) setStockSinAsignar(Number(data.stock_base));
+    setForm(vacio);
+    setTallasLote([]);
+    setTallaPersonalizada("");
+    setSkuAutomatico(true);
+    setEsError(false);
+    setMensaje(`${creadas.length} combinaciones guardadas juntas sin cambiar el total del inventario.`);
+    router.refresh();
+  }
+
   async function guardar(event: FormEvent) {
     event.preventDefault();
+    if (tipoOpcion === "color_talla" && !editando) {
+      await guardarLoteColorTalla();
+      return;
+    }
     setGuardando(true);
     setMensaje("");
     setEsError(false);
@@ -243,7 +376,11 @@ export default function VariantesManager({ producto, iniciales }: { producto: Pr
   const stockMaximo = stockSinAsignar + stockActualEditado;
   const necesitaColor = tipoOpcion === "color" || tipoOpcion === "color_talla";
   const necesitaTalla = tipoOpcion === "talla" || tipoOpcion === "color_talla";
-  const vistaPrevia = etiquetaOpcion(form.nombre.trim() || "Nombre de la opción", form.talla);
+  const creandoLote = tipoOpcion === "color_talla" && !editando;
+  const totalLote = tallasLote.reduce((total, item) => total + (Number(item.stock) || 0), 0);
+  const vistaPrevia = creandoLote
+    ? `${form.nombre.trim() || "Nombre del color"} · ${tallasLote.length || "sin"} talla${tallasLote.length === 1 ? "" : "s"}`
+    : etiquetaOpcion(form.nombre.trim() || "Nombre de la opción", form.talla);
   const campo = "w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-lime-400";
 
   return (
@@ -286,8 +423,8 @@ export default function VariantesManager({ producto, iniciales }: { producto: Pr
 
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <label className="sm:col-span-2 text-sm text-zinc-400">
-              {tipoOpcion === "color" ? "Nombre del color" : tipoOpcion === "talla" ? "Nombre de la talla" : "Nombre que verá el cliente"}
-              <input required maxLength={50} className={`${campo} mt-2`} placeholder={tipoOpcion === "talla" ? "Ej: Talla M" : tipoOpcion === "color_talla" ? "Ej: Negro" : tipoOpcion === "otra" ? "Ej: Paquete x 3" : "Ej: Negro"} value={form.nombre} onChange={(event) => setForm({ ...form, nombre: event.target.value })} />
+              {tipoOpcion === "color" || creandoLote ? "Nombre del color" : tipoOpcion === "talla" ? "Nombre de la talla" : "Nombre que verá el cliente"}
+              <input required maxLength={50} className={`${campo} mt-2`} placeholder={tipoOpcion === "talla" ? "Ej: Talla M" : tipoOpcion === "color_talla" ? "Ej: Negro" : tipoOpcion === "otra" ? "Ej: Paquete x 3" : "Ej: Negro"} value={form.nombre} onChange={(event) => cambiarNombreOpcion(event.target.value)} />
               <span className="mt-2 block text-xs leading-5 text-zinc-500">Este texto aparece junto al selector en la tienda.</span>
             </label>
 
@@ -296,15 +433,55 @@ export default function VariantesManager({ producto, iniciales }: { producto: Pr
                 <p className="text-sm text-zinc-400">Color</p>
                 <div className="mt-2 rounded-xl border border-zinc-700 bg-black p-4">
                   <div className="flex flex-wrap items-center gap-3">
-                    {PALETA.map((tono) => <button key={tono} type="button" aria-label={`Elegir color ${tono}`} title={tono} onClick={() => setForm({ ...form, color: tono })} className={`h-10 w-10 rounded-full border-2 p-1 transition hover:scale-105 ${form.color && colorHex(form.color) === tono ? "border-lime-400 shadow-[0_0_0_3px_rgba(163,230,53,0.18)]" : "border-zinc-600"}`}><span className="block h-full w-full rounded-full border border-black/20" style={{ backgroundColor: tono }} /></button>)}
-                    <label className="ml-1 flex cursor-pointer items-center gap-2 rounded-xl border border-zinc-700 px-3 py-2 text-xs font-bold text-zinc-300 hover:border-lime-400"><input type="color" value={colorHex(form.color)} onChange={(event) => setForm({ ...form, color: event.target.value })} className="h-8 w-8 cursor-pointer rounded border-0 bg-transparent" /> Otro tono</label>
+                    {PALETA.map((tono) => <button key={tono} type="button" aria-label={`Elegir color ${tono}`} title={tono} onClick={() => seleccionarColorOpcion(tono)} className={`h-10 w-10 rounded-full border-2 p-1 transition hover:scale-105 ${form.color && colorHex(form.color) === tono ? "border-lime-400 shadow-[0_0_0_3px_rgba(163,230,53,0.18)]" : "border-zinc-600"}`}><span className="block h-full w-full rounded-full border border-black/20" style={{ backgroundColor: tono }} /></button>)}
+                    <label className="ml-1 flex cursor-pointer items-center gap-2 rounded-xl border border-zinc-700 px-3 py-2 text-xs font-bold text-zinc-300 hover:border-lime-400"><input type="color" value={colorHex(form.color)} onChange={(event) => seleccionarColorOpcion(event.target.value)} className="h-8 w-8 cursor-pointer rounded border-0 bg-transparent" /> Otro tono</label>
                   </div>
                   <p className="mt-3 text-xs text-zinc-500">El círculo que elijas será el tono que verá el cliente.</p>
                 </div>
               </div>
             ) : null}
 
-            {necesitaTalla ? (
+            {creandoLote ? (
+              <div className="sm:col-span-2 rounded-2xl border border-lime-400/25 bg-lime-400/[0.04] p-4">
+                <p className="font-black text-white">Tallas disponibles en este color</p>
+                <p className="mt-1 text-xs leading-5 text-zinc-400">Selecciona todas las tallas y escribe cuántas unidades hay de cada una.</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {TALLAS_RAPIDAS.map((talla) => {
+                    const seleccionada = tallasLote.some((item) => item.talla.toLocaleLowerCase("es") === talla.toLocaleLowerCase("es"));
+                    return <button key={talla} type="button" onClick={() => seleccionada ? undefined : agregarTallaLote(talla)} disabled={seleccionada} className={`min-h-10 rounded-lg border px-3 py-2 text-xs font-black ${seleccionada ? "cursor-not-allowed border-lime-400 bg-lime-400/10 text-lime-300" : "border-zinc-700 text-zinc-300 hover:border-lime-400"}`}>{seleccionada ? "✓ " : "+ "}{talla}</button>;
+                  })}
+                </div>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <input maxLength={30} className={campo} placeholder="Otra talla: 38, 10 cm..." value={tallaPersonalizada} onChange={(event) => setTallaPersonalizada(event.target.value)} />
+                  <button type="button" onClick={() => agregarTallaLote(tallaPersonalizada)} className="min-h-12 shrink-0 rounded-xl border border-lime-400 px-4 font-black text-lime-300">Agregar talla</button>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  {tallasLote.length === 0 ? <p className="rounded-xl border border-dashed border-zinc-700 p-4 text-sm text-zinc-500">Todavía no has seleccionado tallas para este color.</p> : tallasLote.map((item) => (
+                    <div key={item.id} className="rounded-xl border border-zinc-700 bg-black/40 p-4">
+                      <div className="grid gap-3 sm:grid-cols-[0.7fr_0.7fr_1.4fr_auto] sm:items-end">
+                        <label className="text-xs text-zinc-400">Talla
+                          <input required maxLength={30} className={`${campo} mt-1`} value={item.talla} onChange={(event) => {
+                            const talla = event.target.value;
+                            actualizarTallaLote(item.id, { talla, sku: item.skuManual ? item.sku : skuParaCombinacion(talla) });
+                          }} />
+                        </label>
+                        <label className="text-xs text-zinc-400">Cantidad
+                          <input required min="0" max={stockSinAsignar} type="number" className={`${campo} mt-1`} value={item.stock} onChange={(event) => actualizarTallaLote(item.id, { stock: event.target.value })} />
+                        </label>
+                        <label className="text-xs text-zinc-400">SKU único
+                          <input required className={`${campo} mt-1`} value={item.sku} onChange={(event) => actualizarTallaLote(item.id, { sku: event.target.value.toUpperCase(), skuManual: true })} />
+                        </label>
+                        <button type="button" onClick={() => quitarTallaLote(item.id)} className="min-h-12 rounded-xl border border-red-900 px-3 text-xs font-bold text-red-300">Quitar</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className={`mt-4 rounded-xl border p-4 text-sm ${totalLote > stockSinAsignar ? "border-red-500/40 bg-red-500/[0.06] text-red-200" : "border-zinc-700 bg-black/30 text-zinc-300"}`}>
+                  Total para estas tallas: <strong>{totalLote}</strong> · Quedarán <strong>{Math.max(stockSinAsignar - totalLote, 0)}</strong> sin clasificar.
+                </div>
+              </div>
+            ) : necesitaTalla ? (
               <label className="sm:col-span-2 text-sm text-zinc-400">
                 Talla o tamaño
                 <div className="mt-2 flex flex-wrap gap-2">{TALLAS_RAPIDAS.map((talla) => <button key={talla} type="button" onClick={() => seleccionarTalla(talla)} className={`min-h-10 rounded-lg border px-3 py-2 text-xs font-black ${form.talla === talla ? "border-lime-400 bg-lime-400/10 text-lime-300" : "border-zinc-700 text-zinc-300"}`}>{talla}</button>)}</div>
@@ -312,26 +489,28 @@ export default function VariantesManager({ producto, iniciales }: { producto: Pr
               </label>
             ) : null}
 
-            <label className="text-sm text-zinc-400">SKU único
-              <input required className={`${campo} mt-2`} placeholder="CAM-NEG-M" value={form.sku} onChange={(event) => { setSkuAutomatico(false); setForm({ ...form, sku: event.target.value.toUpperCase() }); }} />
-              <span className="mt-2 block text-xs leading-5 text-zinc-500">Cada combinación debe tener un SKU diferente.</span>
-            </label>
-            <label className="text-sm text-zinc-400">Cantidad de esta opción
-              <input required min="0" max={stockMaximo} type="number" className={`${campo} mt-2`} value={form.stock} onChange={(event) => setForm({ ...form, stock: event.target.value })} />
-              <span className="mt-2 block text-xs leading-5 text-zinc-500">Puedes asignar hasta {stockMaximo}. Quedarán <strong className={stockSinAsignarDespues < 0 ? "text-red-300" : "text-amber-300"}>{Math.max(stockSinAsignarDespues, 0)} sin clasificar</strong>.</span>
-            </label>
+            {!creandoLote ? <>
+              <label className="text-sm text-zinc-400">SKU único
+                <input required className={`${campo} mt-2`} placeholder="CAM-NEG-M" value={form.sku} onChange={(event) => { setSkuAutomatico(false); setForm({ ...form, sku: event.target.value.toUpperCase() }); }} />
+                <span className="mt-2 block text-xs leading-5 text-zinc-500">Cada combinación debe tener un SKU diferente.</span>
+              </label>
+              <label className="text-sm text-zinc-400">Cantidad de esta opción
+                <input required min="0" max={stockMaximo} type="number" className={`${campo} mt-2`} value={form.stock} onChange={(event) => setForm({ ...form, stock: event.target.value })} />
+                <span className="mt-2 block text-xs leading-5 text-zinc-500">Puedes asignar hasta {stockMaximo}. Quedarán <strong className={stockSinAsignarDespues < 0 ? "text-red-300" : "text-amber-300"}>{Math.max(stockSinAsignarDespues, 0)} sin clasificar</strong>.</span>
+              </label>
+            </> : null}
             <label className="text-sm text-zinc-400">Precio especial (opcional)<input min="0" type="number" className={`${campo} mt-2`} placeholder={`Usar precio base: ${producto.precio}`} value={form.precio} onChange={(event) => setForm({ ...form, precio: event.target.value })} /></label>
             {producto.venta_mayorista ? <>
               <label className="text-sm text-zinc-400">Precio mayorista propio (opcional)<input min="0" type="number" className={`${campo} mt-2`} placeholder={producto.precio_mayorista ? `Base: ${producto.precio_mayorista}` : "Usar precio del producto"} value={form.precio_mayorista} onChange={(event) => setForm({ ...form, precio_mayorista: event.target.value })} /></label>
               <label className="text-sm text-zinc-400">Mínimo mayorista propio (opcional)<input min="2" type="number" className={`${campo} mt-2`} placeholder={producto.cantidad_minima_mayorista ? `Base: ${producto.cantidad_minima_mayorista}` : "Usar mínimo del producto"} value={form.cantidad_minima_mayorista} onChange={(event) => setForm({ ...form, cantidad_minima_mayorista: event.target.value })} /></label>
             </> : null}
-            <ImageUploader label="Fotografía de esta opción (opcional)" value={form.imagen_url} onChange={(imagen_url) => setForm({ ...form, imagen_url })} />
-            <label className="sm:col-span-2 flex items-center gap-3 text-sm"><input type="checkbox" checked={form.activo} onChange={(event) => setForm({ ...form, activo: event.target.checked })} /> Mostrar esta opción en la tienda</label>
+            <ImageUploader label={creandoLote ? "Fotografía para este color (opcional)" : "Fotografía de esta opción (opcional)"} value={form.imagen_url} onChange={(imagen_url) => setForm({ ...form, imagen_url })} />
+            <label className="sm:col-span-2 flex items-center gap-3 text-sm"><input type="checkbox" checked={form.activo} onChange={(event) => setForm({ ...form, activo: event.target.checked })} /> {creandoLote ? "Mostrar estas combinaciones en la tienda" : "Mostrar esta opción en la tienda"}</label>
           </div>
 
           {mensaje ? <p className={`mt-4 text-sm ${esError ? "text-red-300" : "text-lime-300"}`}>{mensaje}</p> : null}
           <div className="mt-5 grid gap-3 min-[400px]:flex min-[400px]:flex-wrap">
-            <button disabled={guardando} className="min-h-12 rounded-xl bg-lime-400 px-5 py-3 font-black text-black disabled:opacity-50">{guardando ? "Guardando..." : editando ? "Guardar cambios" : "Agregar opción"}</button>
+            <button disabled={guardando} className="min-h-12 rounded-xl bg-lime-400 px-5 py-3 font-black text-black disabled:opacity-50">{guardando ? "Guardando..." : editando ? "Guardar cambios" : creandoLote ? `Agregar ${tallasLote.length} combinaciones` : "Agregar opción"}</button>
             {editando ? <button type="button" onClick={cancelar} className="min-h-12 rounded-xl border border-zinc-700 px-5 py-3 font-bold">Cancelar</button> : null}
           </div>
         </form>
