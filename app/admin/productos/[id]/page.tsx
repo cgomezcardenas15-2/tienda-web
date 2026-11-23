@@ -34,7 +34,7 @@ export default async function ProductoVariantesPage({ params }: { params: Promis
   return <main className="mx-auto max-w-5xl px-5 py-8">
     <Link href="/admin/productos" className="text-sm font-bold text-lime-400">← Volver a productos</Link>
     <h1 className="mt-5 text-3xl font-black">{producto.nombre}</h1>
-    <p className="mt-2 text-sm text-zinc-400">Configura los colores, tallas u otras opciones. Cada una puede manejar su propia foto, precio y existencias.</p>
+    <p className="mt-2 text-sm text-zinc-400">Primero elige si manejarás color, talla o ambos. Cada combinación puede tener su propio SKU, foto, precio y existencias.</p>
     <div className="mt-7"><ProductoForm key={`${producto.id}-${producto.stock}-${producto.subcategoria_id ?? "sin-subcategoria"}-${cantidadVariantes}`} producto={producto} categorias={opcionesCategorias} subcategorias={opcionesSubcategorias} tieneVariantes={cantidadVariantes > 0} /></div>
     {error ? <p className="mt-6 text-red-300">No fue posible cargar las variantes.</p> : <VariantesManager producto={producto} iniciales={variantes ?? []} />}
   </main>;

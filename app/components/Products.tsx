@@ -153,6 +153,23 @@ function muestraColor(valor: string | null) {
   return COLORES_VISUALES[normalizarCategoria(valor)] ?? valor;
 }
 
+function nombreSelectorOpcion(tieneColores: boolean, tieneTallas: boolean) {
+  if (tieneColores && tieneTallas) return "color y talla";
+  if (tieneColores) return "color";
+  if (tieneTallas) return "talla";
+  return "opción";
+}
+
+function etiquetaSelectorOpcion(nombre: string, talla: string | null) {
+  const nombreLimpio = nombre.trim();
+  const tallaLimpia = talla?.trim() ?? "";
+  if (!tallaLimpia) return nombreLimpio;
+  const nombreNormalizado = nombreLimpio.toLocaleLowerCase("es");
+  const tallaNormalizada = tallaLimpia.toLocaleLowerCase("es");
+  if (nombreNormalizado === tallaNormalizada || nombreNormalizado.includes(`talla ${tallaNormalizada}`)) return nombreLimpio;
+  return `${nombreLimpio} · Talla ${tallaLimpia}`;
+}
+
 /*
 |--------------------------------------------------------------------------
 | ICONO TEMPORAL POR CATEGORÍA
@@ -463,6 +480,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
     : undefined;
   const requiereSeleccionVista = opcionesVista.length > 0 && !varianteVista;
   const tieneColoresVista = opcionesVista.some((opcion) => Boolean(opcion.color));
+  const tieneTallasVista = opcionesVista.some((opcion) => Boolean(opcion.talla));
   const sinStockVista = productoVista
     ? varianteVista
       ? varianteVista.controla_stock && varianteVista.stock <= 0
@@ -811,6 +829,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
                   );
                   const requiereSeleccion = opciones.length > 0 && !variante;
                   const tieneColores = opciones.some((opcion) => Boolean(opcion.color));
+                  const tieneTallas = opciones.some((opcion) => Boolean(opcion.talla));
                   const etiqueta =
                     obtenerEtiqueta(
                       producto
@@ -958,15 +977,15 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
                         {opciones.length > 0 && (
                           <div className="mt-4">
                             <p className="mb-2 text-xs font-semibold text-white/55">
-                              {tieneColores ? "Elige un color" : "Elige una opción"}
+                              Elige {nombreSelectorOpcion(tieneColores, tieneTallas)}
                             </p>
                             <div className="flex flex-wrap gap-2">
                               {opciones.map((opcion) => {
                                 const agotada = opcion.controla_stock && opcion.stock <= 0;
                                 const activa = opcion.id === variante?.id;
-                                const etiquetaOpcion = opcion.color ? opcion.nombre : `${opcion.nombre}${opcion.talla ? ` · ${opcion.talla}` : ""}`;
+                                const etiquetaOpcion = etiquetaSelectorOpcion(opcion.nombre, opcion.talla);
 
-                                if (opcion.color) {
+                                if (opcion.color && !opcion.talla) {
                                   return (
                                     <button
                                       key={opcion.id}
@@ -1007,6 +1026,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
                                     }
                                   >
                                     <span className="flex items-center gap-2">
+                                      {opcion.color ? <span className="h-4 w-4 shrink-0 rounded-full border border-white/25" style={{ backgroundColor: muestraColor(opcion.color) }} /> : null}
                                       <span>{etiquetaOpcion}</span>
                                       {agotada && <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-black uppercase text-red-300 no-underline">Agotado</span>}
                                     </span>
@@ -1021,7 +1041,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
 
                         {requiereSeleccion ? (
                           <p className="mt-3 text-xs font-semibold text-[#9cff35]">
-                            Selecciona {tieneColores ? "un color" : "una opción"} para continuar.
+                            Selecciona {nombreSelectorOpcion(tieneColores, tieneTallas)} para continuar.
                           </p>
                         ) : controlaStockVisible && (
                           <p
@@ -1068,7 +1088,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
                           {sinStock
                             ? "Sin disponibilidad"
                             : requiereSeleccion
-                              ? `Elige ${tieneColores ? "un color" : "una opción"}`
+                              ? `Elige ${nombreSelectorOpcion(tieneColores, tieneTallas)}`
                               : "Agregar al carrito"}
                         </button>
 
@@ -1242,17 +1262,15 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
                 {opcionesVista.length > 0 && (
                   <div className="mt-5">
                     <p className="mb-2 text-xs font-semibold text-white/55">
-                      {tieneColoresVista ? "Elige un color" : "Elige una opción"}
+                      Elige {nombreSelectorOpcion(tieneColoresVista, tieneTallasVista)}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {opcionesVista.map((opcion) => {
                         const agotada = opcion.controla_stock && opcion.stock <= 0;
                         const activa = opcion.id === varianteVista?.id;
-                        const etiquetaOpcion = opcion.color
-                          ? opcion.nombre
-                          : `${opcion.nombre}${opcion.talla ? ` · ${opcion.talla}` : ""}`;
+                        const etiquetaOpcion = etiquetaSelectorOpcion(opcion.nombre, opcion.talla);
 
-                        if (opcion.color) {
+                        if (opcion.color && !opcion.talla) {
                           return (
                             <button
                               key={opcion.id}
@@ -1303,7 +1321,10 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
                                   : "cursor-pointer border-white/15 text-white/65 hover:border-[#82f000]/50")
                             }
                           >
-                            {etiquetaOpcion}
+                            <span className="flex items-center gap-2">
+                              {opcion.color ? <span className="h-4 w-4 shrink-0 rounded-full border border-white/25" style={{ backgroundColor: muestraColor(opcion.color) }} /> : null}
+                              <span>{etiquetaOpcion}</span>
+                            </span>
                             {agotada && " · Agotado"}
                           </button>
                         );
@@ -1314,7 +1335,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
 
                 {requiereSeleccionVista ? (
                   <p className="mt-4 text-xs font-semibold text-[#9cff35]">
-                    Selecciona {tieneColoresVista ? "un color" : "una opción"} para continuar.
+                    Selecciona {nombreSelectorOpcion(tieneColoresVista, tieneTallasVista)} para continuar.
                   </p>
                 ) : controlaStockVista ? (
                   <p
@@ -1353,7 +1374,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
                   {sinStockVista
                     ? "Sin disponibilidad"
                     : requiereSeleccionVista
-                      ? `Elige ${tieneColoresVista ? "un color" : "una opción"}`
+                      ? `Elige ${nombreSelectorOpcion(tieneColoresVista, tieneTallasVista)}`
                       : "Agregar al carrito"}
                 </button>
               </div>
