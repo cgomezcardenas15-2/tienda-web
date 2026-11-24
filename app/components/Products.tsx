@@ -170,6 +170,224 @@ function etiquetaSelectorOpcion(nombre: string, talla: string | null) {
   return `${nombreLimpio} · Talla ${tallaLimpia}`;
 }
 
+function claveColorOpcion(color: string | null) {
+  return color ? muestraColor(color).trim().toLowerCase() : "";
+}
+
+function opcionAgotada(opcion: VarianteProducto) {
+  return opcion.controla_stock && opcion.stock <= 0;
+}
+
+type GrupoColor = {
+  clave: string;
+  nombre: string;
+  muestra: string;
+  opciones: VarianteProducto[];
+};
+
+function agruparOpcionesPorColor(opciones: VarianteProducto[]) {
+  const grupos = new Map<string, GrupoColor>();
+
+  opciones.forEach((opcion) => {
+    if (!opcion.color) return;
+    const clave = claveColorOpcion(opcion.color);
+    const existente = grupos.get(clave);
+    if (existente) {
+      existente.opciones.push(opcion);
+      return;
+    }
+    grupos.set(clave, {
+      clave,
+      nombre: opcion.color.trim(),
+      muestra: muestraColor(opcion.color),
+      opciones: [opcion],
+    });
+  });
+
+  return Array.from(grupos.values());
+}
+
+type SelectorVariantesProps = {
+  opciones: VarianteProducto[];
+  variante?: VarianteProducto;
+  colorSeleccionado?: string;
+  onSelectColor: (clave: string) => void;
+  onSelectVariant: (opcion: VarianteProducto) => void;
+};
+
+function SelectorVariantes({
+  opciones,
+  variante,
+  colorSeleccionado,
+  onSelectColor,
+  onSelectVariant,
+}: SelectorVariantesProps) {
+  const tieneColores = opciones.some((opcion) => Boolean(opcion.color));
+  const tieneTallas = opciones.some((opcion) => Boolean(opcion.talla));
+  const usaSelectorColorTalla =
+    tieneColores &&
+    tieneTallas &&
+    opciones.every((opcion) => Boolean(opcion.color) && Boolean(opcion.talla));
+  const gruposColor = agruparOpcionesPorColor(opciones);
+  const claveColorActiva =
+    colorSeleccionado ||
+    claveColorOpcion(variante?.color ?? null) ||
+    (tieneTallas && gruposColor.length === 1 ? gruposColor[0].clave : "");
+  const grupoColorActivo = gruposColor.find(
+    (grupo) => grupo.clave === claveColorActiva
+  );
+
+  function renderSelectorTalla(
+    opcionesTalla: VarianteProducto[],
+    deshabilitado = false
+  ) {
+    const valorSeleccionado =
+      variante?.talla &&
+      (!tieneColores || claveColorOpcion(variante.color) === claveColorActiva)
+        ? variante.id
+        : "";
+
+    return (
+      <label className="block min-w-0">
+        <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.12em] text-white/45">
+          Talla
+        </span>
+        <span className="relative block">
+          <select
+            aria-label="Seleccionar talla"
+            disabled={deshabilitado}
+            value={valorSeleccionado}
+            onChange={(evento) => {
+              const opcion = opcionesTalla.find(
+                (item) => item.id === evento.target.value
+              );
+              if (opcion) onSelectVariant(opcion);
+            }}
+            className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-white/15 bg-[#101310] px-3 pr-9 text-sm font-bold text-white outline-none transition hover:border-[#82f000]/55 focus:border-[#82f000] focus:ring-2 focus:ring-[#82f000]/15 disabled:cursor-not-allowed disabled:text-white/25"
+          >
+            <option value="">Tallas</option>
+            {opcionesTalla.map((opcion) => {
+              const agotada = opcionAgotada(opcion);
+              return (
+                <option key={opcion.id} value={opcion.id} disabled={agotada}>
+                  {opcion.talla?.trim() || opcion.nombre}
+                  {agotada ? " · Agotada" : ""}
+                </option>
+              );
+            })}
+          </select>
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#82f000]"
+          >
+            <path
+              fillRule="evenodd"
+              d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </span>
+      </label>
+    );
+  }
+
+  function renderSelectorColores(soloColor: boolean) {
+    return (
+      <div className="min-w-0">
+        <span className="mb-1.5 block truncate text-[11px] font-bold uppercase tracking-[0.12em] text-white/45">
+          Color{grupoColorActivo ? ` · ${grupoColorActivo.nombre}` : ""}
+        </span>
+        <div className="flex min-h-11 flex-wrap items-center gap-2">
+          {gruposColor.map((grupo) => {
+            const agotado = grupo.opciones.every(opcionAgotada);
+            const activo = grupo.clave === claveColorActiva;
+            const opcionDisponible =
+              grupo.opciones.find((opcion) => !opcionAgotada(opcion)) ??
+              grupo.opciones[0];
+
+            return (
+              <button
+                key={grupo.clave}
+                type="button"
+                disabled={agotado}
+                aria-label={`${grupo.nombre}${agotado ? ", agotado" : ""}`}
+                title={`${grupo.nombre}${agotado ? " · Agotado" : ""}`}
+                onClick={() => {
+                  onSelectColor(grupo.clave);
+                  if (soloColor && opcionDisponible) {
+                    onSelectVariant(opcionDisponible);
+                  }
+                }}
+                className={
+                  "relative h-10 w-10 shrink-0 rounded-full border-2 p-1 transition " +
+                  (agotado
+                    ? "cursor-not-allowed border-white/10 opacity-35"
+                    : activo
+                      ? "scale-105 border-[#82f000] shadow-[0_0_0_3px_rgba(130,240,0,0.16)]"
+                      : "cursor-pointer border-white/30 hover:scale-105 hover:border-white/70")
+                }
+              >
+                <span
+                  className="block h-full w-full rounded-full border border-black/25"
+                  style={{ backgroundColor: grupo.muestra }}
+                />
+                {agotado && (
+                  <span className="absolute left-1/2 top-1/2 h-0.5 w-9 -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-red-400" />
+                )}
+                {activo && !agotado && (
+                  <span className="absolute -bottom-2 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#82f000]" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (usaSelectorColorTalla) {
+    return (
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(112px,0.9fr)] items-end gap-3">
+        {renderSelectorColores(false)}
+        {renderSelectorTalla(grupoColorActivo?.opciones ?? [], !grupoColorActivo)}
+      </div>
+    );
+  }
+
+  if (tieneTallas && !tieneColores) return renderSelectorTalla(opciones);
+  if (tieneColores && !tieneTallas) return renderSelectorColores(true);
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {opciones.map((opcion) => {
+        const agotada = opcionAgotada(opcion);
+        const activa = opcion.id === variante?.id;
+        return (
+          <button
+            key={opcion.id}
+            type="button"
+            disabled={agotada}
+            onClick={() => onSelectVariant(opcion)}
+            className={
+              "rounded-lg border px-3 py-2 text-xs font-semibold transition " +
+              (agotada
+                ? "cursor-not-allowed border-white/5 text-white/20 line-through"
+                : activa
+                  ? "border-[#82f000] bg-[#82f000]/10 text-[#9cff35]"
+                  : "cursor-pointer border-white/15 text-white/65 hover:border-[#82f000]/50")
+            }
+          >
+            {etiquetaSelectorOpcion(opcion.nombre, opcion.talla)}
+            {agotada ? " · Agotado" : ""}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /*
 |--------------------------------------------------------------------------
 | ICONO TEMPORAL POR CATEGORÍA
@@ -309,6 +527,9 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
   const [varianteSeleccionada, setVarianteSeleccionada] =
     useState<Record<string, string>>({});
 
+  const [colorSeleccionado, setColorSeleccionado] =
+    useState<Record<string, string>>({});
+
   const viewContentEnVista = useRef<Set<string>>(new Set());
 
   const [cargando, setCargando] =
@@ -431,6 +652,7 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
         setTotalProductos(total);
         setVariantes(agrupadas);
         setVarianteSeleccionada({});
+        setColorSeleccionado({});
       } catch (error) {
         if (!componenteActivo) return;
         console.error("Error cargando productos:", error);
@@ -674,6 +896,48 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
     setProductoEnVista(producto.id);
   }
 
+  function seleccionarColorDeProducto(
+    productoId: string,
+    opciones: VarianteProducto[],
+    claveColor: string
+  ) {
+    setColorSeleccionado((actual) => ({
+      ...actual,
+      [productoId]: claveColor,
+    }));
+    setVarianteSeleccionada((actual) => {
+      const seleccionActual = opciones.find(
+        (opcion) => opcion.id === actual[productoId]
+      );
+      if (
+        seleccionActual &&
+        claveColorOpcion(seleccionActual.color) === claveColor
+      ) {
+        return actual;
+      }
+
+      const siguiente = { ...actual };
+      delete siguiente[productoId];
+      return siguiente;
+    });
+  }
+
+  function seleccionarVarianteEnTarjeta(
+    producto: ProductoSupabase,
+    variante: VarianteProducto
+  ) {
+    setVarianteSeleccionada((actual) => ({
+      ...actual,
+      [producto.id]: variante.id,
+    }));
+    if (variante.color) {
+      setColorSeleccionado((actual) => ({
+        ...actual,
+        [producto.id]: claveColorOpcion(variante.color),
+      }));
+    }
+  }
+
   function seleccionarVarianteEnVista(
     producto: ProductoSupabase,
     variante: VarianteProducto
@@ -682,6 +946,12 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
       ...actual,
       [producto.id]: variante.id,
     }));
+    if (variante.color) {
+      setColorSeleccionado((actual) => ({
+        ...actual,
+        [producto.id]: claveColorOpcion(variante.color),
+      }));
+    }
     registrarViewContent(producto, variante);
   }
 
@@ -976,64 +1246,21 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
 
                         {opciones.length > 0 && (
                           <div className="mt-4">
-                            <p className="mb-2 text-xs font-semibold text-white/55">
-                              Elige {nombreSelectorOpcion(tieneColores, tieneTallas)}
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {opciones.map((opcion) => {
-                                const agotada = opcion.controla_stock && opcion.stock <= 0;
-                                const activa = opcion.id === variante?.id;
-                                const etiquetaOpcion = etiquetaSelectorOpcion(opcion.nombre, opcion.talla);
-
-                                if (opcion.color && !opcion.talla) {
-                                  return (
-                                    <button
-                                      key={opcion.id}
-                                      type="button"
-                                      disabled={agotada}
-                                      aria-label={`${etiquetaOpcion}${agotada ? ", agotado" : ""}`}
-                                      title={`${etiquetaOpcion}${agotada ? " · Agotado" : ""}`}
-                                      onClick={() => setVarianteSeleccionada((actual) => ({ ...actual, [producto.id]: opcion.id }))}
-                                      className={
-                                        "relative h-11 w-11 rounded-full border-2 p-1 transition " +
-                                        (agotada
-                                          ? "cursor-not-allowed border-white/10 opacity-35"
-                                          : activa
-                                            ? "scale-110 border-[#82f000] shadow-[0_0_0_3px_rgba(130,240,0,0.2)]"
-                                            : "cursor-pointer border-white/30 hover:scale-105 hover:border-white/70")
-                                      }
-                                    >
-                                      <span className="block h-full w-full rounded-full border border-black/20" style={{ backgroundColor: muestraColor(opcion.color) }} />
-                                      {agotada && <span className="absolute left-1/2 top-1/2 h-0.5 w-10 -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-red-400" />}
-                                      {activa && !agotada && <span className="absolute -bottom-2 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#82f000]" />}
-                                    </button>
-                                  );
-                                }
-
-                                return (
-                                  <button
-                                    key={opcion.id}
-                                    type="button"
-                                    disabled={agotada}
-                                    onClick={() => setVarianteSeleccionada((actual) => ({ ...actual, [producto.id]: opcion.id }))}
-                                    className={
-                                      "rounded-lg border px-3 py-2 text-xs font-semibold transition " +
-                                      (agotada
-                                        ? "cursor-not-allowed border-white/5 text-white/20 line-through"
-                                        : activa
-                                          ? "border-[#82f000] bg-[#82f000]/10 text-[#9cff35]"
-                                          : "cursor-pointer border-white/15 text-white/65 hover:border-[#82f000]/50")
-                                    }
-                                  >
-                                    <span className="flex items-center gap-2">
-                                      {opcion.color ? <span className="h-4 w-4 shrink-0 rounded-full border border-white/25" style={{ backgroundColor: muestraColor(opcion.color) }} /> : null}
-                                      <span>{etiquetaOpcion}</span>
-                                      {agotada && <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-black uppercase text-red-300 no-underline">Agotado</span>}
-                                    </span>
-                                  </button>
-                                );
-                              })}
-                            </div>
+                            <SelectorVariantes
+                              opciones={opciones}
+                              variante={variante}
+                              colorSeleccionado={colorSeleccionado[producto.id]}
+                              onSelectColor={(clave) =>
+                                seleccionarColorDeProducto(
+                                  producto.id,
+                                  opciones,
+                                  clave
+                                )
+                              }
+                              onSelectVariant={(opcion) =>
+                                seleccionarVarianteEnTarjeta(producto, opcion)
+                              }
+                            />
                           </div>
                         )}
 
@@ -1261,75 +1488,21 @@ export default function Products({ categoria, subcategoriaId, subcategoriaNombre
 
                 {opcionesVista.length > 0 && (
                   <div className="mt-5">
-                    <p className="mb-2 text-xs font-semibold text-white/55">
-                      Elige {nombreSelectorOpcion(tieneColoresVista, tieneTallasVista)}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {opcionesVista.map((opcion) => {
-                        const agotada = opcion.controla_stock && opcion.stock <= 0;
-                        const activa = opcion.id === varianteVista?.id;
-                        const etiquetaOpcion = etiquetaSelectorOpcion(opcion.nombre, opcion.talla);
-
-                        if (opcion.color && !opcion.talla) {
-                          return (
-                            <button
-                              key={opcion.id}
-                              type="button"
-                              disabled={agotada}
-                              aria-label={`${etiquetaOpcion}${agotada ? ", agotado" : ""}`}
-                              title={`${etiquetaOpcion}${agotada ? " · Agotado" : ""}`}
-                              onClick={() =>
-                                seleccionarVarianteEnVista(productoVista, opcion)
-                              }
-                              className={
-                                "relative h-11 w-11 rounded-full border-2 p-1 transition " +
-                                (agotada
-                                  ? "cursor-not-allowed border-white/10 opacity-35"
-                                  : activa
-                                    ? "scale-110 border-[#82f000] shadow-[0_0_0_3px_rgba(130,240,0,0.2)]"
-                                    : "cursor-pointer border-white/30 hover:scale-105 hover:border-white/70")
-                              }
-                            >
-                              <span
-                                className="block h-full w-full rounded-full border border-black/20"
-                                style={{ backgroundColor: muestraColor(opcion.color) }}
-                              />
-                              {agotada && (
-                                <span className="absolute left-1/2 top-1/2 h-0.5 w-10 -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-red-400" />
-                              )}
-                              {activa && !agotada && (
-                                <span className="absolute -bottom-2 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#82f000]" />
-                              )}
-                            </button>
-                          );
-                        }
-
-                        return (
-                          <button
-                            key={opcion.id}
-                            type="button"
-                            disabled={agotada}
-                            onClick={() =>
-                              seleccionarVarianteEnVista(productoVista, opcion)
-                            }
-                            className={
-                              "rounded-lg border px-3 py-2 text-xs font-semibold transition " +
-                              (agotada
-                                ? "cursor-not-allowed border-white/5 text-white/20 line-through"
-                                : activa
-                                  ? "border-[#82f000] bg-[#82f000]/10 text-[#9cff35]"
-                                  : "cursor-pointer border-white/15 text-white/65 hover:border-[#82f000]/50")
-                            }
-                          >
-                            <span className="flex items-center gap-2">
-                              {opcion.color ? <span className="h-4 w-4 shrink-0 rounded-full border border-white/25" style={{ backgroundColor: muestraColor(opcion.color) }} /> : null}
-                              <span>{etiquetaOpcion}</span>
-                            </span>
-                            {agotada && " · Agotado"}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <SelectorVariantes
+                      opciones={opcionesVista}
+                      variante={varianteVista}
+                      colorSeleccionado={colorSeleccionado[productoVista.id]}
+                      onSelectColor={(clave) =>
+                        seleccionarColorDeProducto(
+                          productoVista.id,
+                          opcionesVista,
+                          clave
+                        )
+                      }
+                      onSelectVariant={(opcion) =>
+                        seleccionarVarianteEnVista(productoVista, opcion)
+                      }
+                    />
                   </div>
                 )}
 
