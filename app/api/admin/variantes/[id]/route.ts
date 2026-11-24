@@ -54,9 +54,21 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const { id } = await params;
   const { data: variante, error: errorConsulta } = await supabaseAdmin.from("variantes_producto").select("id,stock").eq("id", id).maybeSingle();
   if (errorConsulta || !variante) return NextResponse.json({ error: "La opción del producto no existe." }, { status: 404 });
-  if (Number(variante.stock) > 0) return NextResponse.json({ error: "Primero cambia esta opción a 0. Sus unidades volverán al stock sin clasificar y no se perderán." }, { status: 409 });
-  const { data: eliminada, error } = await supabaseAdmin.from("variantes_producto").delete().eq("id", id).eq("stock", 0).select("id").maybeSingle();
-  if (error) return NextResponse.json({ error: error.code === "23503" ? "Esta opción ya pertenece a un pedido; ocúltala en lugar de eliminarla." : "No fue posible eliminar." }, { status: 409 });
-  if (!eliminada) return NextResponse.json({ error: "El stock cambió antes de eliminar. Recarga la página para no perder unidades." }, { status: 409 });
-  return NextResponse.json({ ok: true });
+  const { data, error } = await supabaseAdmin.rpc("eliminar_variante_redistribuyendo_stock", {
+    p_variante_id: id,
+    p_stock_esperado: Number(variante.stock),
+  });
+  if (error) {
+    console.error("Error eliminando opción y redistribuyendo stock:", { code: error.code, message: error.message });
+    let mensaje = "No fue posible eliminar la opción. El inventario no fue modificado.";
+    if (error.code === "23503" || error.message.includes("tiene historial")) {
+      mensaje = "Esta opción tiene historial. Edítala y desactiva “Mostrar esta opción en la tienda” para retirarla sin alterar pedidos anteriores.";
+    } else if (error.message.includes("inventario cambió")) {
+      mensaje = "El inventario cambió mientras eliminabas. Recarga la página e inténtalo nuevamente.";
+    } else if (error.code === "PGRST202") {
+      mensaje = "Falta activar la eliminación segura de opciones en la base de datos.";
+    }
+    return NextResponse.json({ error: mensaje }, { status: 409 });
+  }
+  return NextResponse.json(data);
 }

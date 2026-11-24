@@ -111,6 +111,9 @@ export default function VariantesManager({ producto, iniciales }: { producto: Pr
   const [mensaje, setMensaje] = useState("");
   const [esError, setEsError] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [eliminando, setEliminando] = useState<string | null>(null);
+  const [mensajeEliminar, setMensajeEliminar] = useState("");
+  const [errorEliminar, setErrorEliminar] = useState(false);
 
   function editar(variante: Variante) {
     setEditando(variante.id);
@@ -344,23 +347,42 @@ export default function VariantesManager({ producto, iniciales }: { producto: Pr
 
   async function eliminar(id: string) {
     const variante = variantes.find((item) => item.id === id);
-    if (variante && Number(variante.stock) > 0) {
-      setEsError(true);
-      setMensaje("Primero edita esta opción y deja su stock en 0. Esas unidades regresarán al stock sin clasificar.");
-      return;
+    if (!variante || eliminando) return;
+    const unidades = Number(variante.stock);
+    const avisoStock = unidades > 0
+      ? ` Sus ${unidades} unidades volverán al inventario sin clasificar.`
+      : "";
+    if (!window.confirm(`¿Eliminar ${etiquetaOpcion(variante.nombre, variante.talla)}?${avisoStock} Los pedidos anteriores conservarán su información.`)) return;
+
+    setEliminando(id);
+    setMensajeEliminar("");
+    try {
+      const respuesta = await fetch(`/api/admin/variantes/${id}`, { method: "DELETE" });
+      const data = await respuesta.json().catch(() => ({}));
+      if (!respuesta.ok) {
+        setErrorEliminar(true);
+        setMensajeEliminar(data.error ?? "No fue posible eliminar.");
+        return;
+      }
+      setVariantes((actual) => actual.filter((item) => item.id !== id));
+      if (Number.isInteger(data.stock_base)) setStockSinAsignar(Number(data.stock_base));
+      if (editando === id) {
+        setEditando(null);
+        setTipoOpcion("color");
+        setSkuAutomatico(true);
+        setForm(vacio);
+      }
+      setErrorEliminar(false);
+      setMensajeEliminar(unidades > 0
+        ? `Opción eliminada. ${unidades} unidades regresaron al inventario sin clasificar.`
+        : "Opción eliminada correctamente.");
+      router.refresh();
+    } catch {
+      setErrorEliminar(true);
+      setMensajeEliminar("No fue posible comunicarse con la tienda. Inténtalo nuevamente.");
+    } finally {
+      setEliminando(null);
     }
-    if (!window.confirm("¿Eliminar esta opción? Los pedidos anteriores conservarán su información.")) return;
-    const respuesta = await fetch(`/api/admin/variantes/${id}`, { method: "DELETE" });
-    const data = await respuesta.json().catch(() => ({}));
-    if (!respuesta.ok) {
-      setEsError(true);
-      setMensaje(data.error ?? "No fue posible eliminar.");
-      return;
-    }
-    setVariantes((actual) => actual.filter((item) => item.id !== id));
-    setEsError(false);
-    setMensaje("Opción eliminada sin perder unidades.");
-    router.refresh();
   }
 
   const varianteEditada = editando ? variantes.find((item) => item.id === editando) : null;
@@ -517,6 +539,18 @@ export default function VariantesManager({ producto, iniciales }: { producto: Pr
 
         <section className="min-w-0 space-y-3">
           <h2 className="break-words text-xl font-black">Opciones creadas ({variantes.length})</h2>
+          {mensajeEliminar ? (
+            <p
+              role={errorEliminar ? "alert" : "status"}
+              className={`rounded-xl border px-4 py-3 text-sm font-semibold ${
+                errorEliminar
+                  ? "border-red-900/70 bg-red-950/35 text-red-200"
+                  : "border-lime-700/50 bg-lime-950/25 text-lime-300"
+              }`}
+            >
+              {mensajeEliminar}
+            </p>
+          ) : null}
           {variantes.length === 0 ? <p className="rounded-2xl border border-zinc-800 p-6 text-zinc-400">Este producto todavía no tiene colores, tallas ni otras opciones.</p> : variantes.map((variante) => (
             <article key={variante.id} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
               <div className="flex flex-col gap-4 min-[460px]:flex-row min-[460px]:justify-between">
@@ -529,7 +563,24 @@ export default function VariantesManager({ producto, iniciales }: { producto: Pr
                     {producto.venta_mayorista ? <p className="mt-1 break-words text-xs text-lime-300">Mayorista: ${Number(variante.precio_mayorista ?? producto.precio_mayorista).toLocaleString("es-CO")} desde {variante.cantidad_minima_mayorista ?? producto.cantidad_minima_mayorista} unidades</p> : null}
                   </div>
                 </div>
-                <div className="grid shrink-0 grid-cols-2 gap-2 min-[460px]:flex"><button onClick={() => editar(variante)} className="min-h-11 rounded-lg border border-zinc-700 px-3 py-2 text-xs font-bold hover:border-lime-400">Editar</button><button onClick={() => eliminar(variante.id)} className="min-h-11 rounded-lg border border-red-900 px-3 py-2 text-xs font-bold text-red-300">Eliminar</button></div>
+                <div className="grid shrink-0 grid-cols-2 gap-2 min-[460px]:flex">
+                  <button
+                    type="button"
+                    disabled={Boolean(eliminando)}
+                    onClick={() => editar(variante)}
+                    className="min-h-11 rounded-lg border border-zinc-700 px-3 py-2 text-xs font-bold hover:border-lime-400 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={Boolean(eliminando)}
+                    onClick={() => eliminar(variante.id)}
+                    className="min-h-11 rounded-lg border border-red-900 px-3 py-2 text-xs font-bold text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {eliminando === variante.id ? "Eliminando..." : "Eliminar"}
+                  </button>
+                </div>
               </div>
             </article>
           ))}
