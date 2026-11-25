@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useCart } from "../context/CartContext";
+import { nombreColorProducto } from "../lib/coloresProducto";
 import { trackMetaEvent } from "../lib/metaPixel";
 import { buildMetaViewContent } from "../lib/metaViewContent";
 import { supabase } from "../lib/supabase";
@@ -198,7 +199,7 @@ function agruparOpcionesPorColor(opciones: VarianteProducto[]) {
     }
     grupos.set(clave, {
       clave,
-      nombre: opcion.color.trim(),
+      nombre: nombreColorProducto(opcion.color, opcion.nombre),
       muestra: muestraColor(opcion.color),
       opciones: [opcion],
     });

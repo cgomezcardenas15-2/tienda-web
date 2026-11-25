@@ -29,6 +29,18 @@ export const PALETA_COLORES_PRODUCTO = [
   { nombre: "Beige", color: "#d6c7a1", codigo: "BEI" },
 ] as const;
 
+export function nombreColorProducto(color: string | null, nombreOpcion: string) {
+  const valor = color?.trim() ?? "";
+  if (!valor) return nombreOpcion.trim() || "Color";
+  if (!/^#[0-9a-f]{6}$/i.test(valor)) return valor;
+
+  const colorDePaleta = PALETA_COLORES_PRODUCTO.find(
+    (opcion) => opcion.color.toLowerCase() === valor.toLowerCase(),
+  );
+
+  return colorDePaleta?.nombre ?? (nombreOpcion.trim() || "Color personalizado");
+}
+
 function limpiarCodigo(valor: string) {
   return valor
     .normalize("NFD")
