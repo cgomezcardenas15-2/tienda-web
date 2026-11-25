@@ -2,8 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ColorStockNuevo } from "@/app/lib/coloresProducto";
+import { ColorStockNuevo, CombinacionStockNueva } from "@/app/lib/coloresProducto";
 import ColorStockFields from "./ColorStockFields";
+import CombinacionesStockFields, { ColorCombinacionNuevo } from "./CombinacionesStockFields";
 import ImageUploader from "./ImageUploader";
 
 type ProductoEditable = {
@@ -41,10 +42,14 @@ export default function ProductoForm({
   tieneVariantes?: boolean;
 }) {
   const router = useRouter();
-  const [modoNuevo, setModoNuevo] = useState<"simple" | "colores" | "tallas">("simple");
+  const [modoNuevo, setModoNuevo] = useState<"simple" | "colores" | "tallas" | "color_tallas">("simple");
   const tieneColores = modoNuevo === "colores";
-  const tendraOpciones = modoNuevo === "colores" || modoNuevo === "tallas";
+  const tieneTallas = modoNuevo === "tallas";
+  const tieneColorTallas = modoNuevo === "color_tallas";
+  const tendraOpciones = modoNuevo !== "simple";
   const [colores, setColores] = useState<ColorStockNuevo[]>([]);
+  const [coloresCombinacion, setColoresCombinacion] = useState<ColorCombinacionNuevo[]>([]);
+  const [combinaciones, setCombinaciones] = useState<CombinacionStockNueva[]>([]);
   const [form, setForm] = useState({
     nombre: producto?.nombre ?? "",
     sku: producto?.sku ?? "",
@@ -78,10 +83,20 @@ export default function ProductoForm({
     setMensaje("");
     setEsError(false);
 
-    if (!producto && tieneColores && colores.length === 0) {
+    const variantesNuevas = tieneColores
+      ? colores.map(({ nombre, color, stock }) => ({ nombre, color, talla: null, stock }))
+      : (tieneTallas || tieneColorTallas)
+        ? combinaciones.map(({ nombre, color, talla, stock }) => ({ nombre, color, talla, stock }))
+        : [];
+
+    if (!producto && tendraOpciones && variantesNuevas.length === 0) {
       setGuardando(false);
       setEsError(true);
-      setMensaje("Selecciona al menos un color y asigna sus existencias.");
+      setMensaje(tieneColores
+        ? "Selecciona al menos un color y asigna sus existencias."
+        : tieneColorTallas
+          ? "Selecciona al menos un color, una talla y asigna sus existencias."
+          : "Selecciona al menos una talla y asigna sus existencias.");
       return;
     }
     if (!producto && tieneColores) {
@@ -94,6 +109,45 @@ export default function ProductoForm({
         return;
       }
     }
+    if (!producto && tieneColorTallas) {
+      const nombres = coloresCombinacion.map((item) => item.nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase());
+      const tonos = coloresCombinacion.map((item) => item.color.toLowerCase());
+      if (new Set(nombres).size !== nombres.length || new Set(tonos).size !== tonos.length) {
+        setGuardando(false);
+        setEsError(true);
+        setMensaje("No repitas nombres ni tonos dentro del mismo producto.");
+        return;
+      }
+      const colorSinTallas = coloresCombinacion.find((color) => !combinaciones.some((item) => item.colorId === color.id));
+      if (colorSinTallas) {
+        setGuardando(false);
+        setEsError(true);
+        setMensaje(`Selecciona al menos una talla para el color ${colorSinTallas.nombre || "sin nombre"}.`);
+        return;
+      }
+    }
+    if (!producto && (tieneTallas || tieneColorTallas)) {
+      const opcionesUsadas = new Set<string>();
+      for (const item of combinaciones) {
+        const talla = item.talla.trim();
+        const nombre = item.nombre.trim();
+        const stock = item.stock.trim() === "" ? Number.NaN : Number(item.stock);
+        const clave = `${item.color?.toLowerCase() ?? ""}|${talla.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()}`;
+        if (!talla || !nombre || !Number.isSafeInteger(stock) || stock < 0) {
+          setGuardando(false);
+          setEsError(true);
+          setMensaje("Revisa que cada talla tenga nombre y una cantidad válida de cero o más unidades.");
+          return;
+        }
+        if (opcionesUsadas.has(clave)) {
+          setGuardando(false);
+          setEsError(true);
+          setMensaje("No repitas la misma talla dentro de un mismo color.");
+          return;
+        }
+        opcionesUsadas.add(clave);
+      }
+    }
 
     const respuesta = await fetch(
       producto ? `/api/admin/productos/${producto.id}` : "/api/admin/productos",
@@ -103,9 +157,9 @@ export default function ProductoForm({
         body: JSON.stringify({
           ...form,
           controla_stock: tendraOpciones ? true : form.controla_stock,
-          stock: tieneColores ? "0" : form.stock,
-          usa_variantes: !producto && tieneColores,
-          variantes: !producto && tieneColores ? colores : [],
+          stock: tendraOpciones ? "0" : form.stock,
+          usa_variantes: !producto && tendraOpciones,
+          variantes: !producto && tendraOpciones ? variantesNuevas : [],
         }),
       },
     );
@@ -124,6 +178,17 @@ export default function ProductoForm({
       return;
     }
     router.refresh();
+  }
+
+  function cambiarModo(nuevoModo: typeof modoNuevo) {
+    if (nuevoModo === modoNuevo) return;
+    const hayOpcionesCargadas = colores.length > 0 || coloresCombinacion.length > 0 || combinaciones.length > 0;
+    if (hayOpcionesCargadas && !window.confirm("¿Quitar las opciones agregadas y cambiar el tipo de producto?")) return;
+    setColores([]);
+    setColoresCombinacion([]);
+    setCombinaciones([]);
+    setModoNuevo(nuevoModo);
+    if (nuevoModo !== "simple") setForm((actual) => ({ ...actual, controla_stock: true }));
   }
 
   const campo = "mt-2 w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-lime-400";
@@ -177,22 +242,18 @@ export default function ProductoForm({
         {!producto && <section className="sm:col-span-2 rounded-2xl border border-zinc-700 bg-black/30 p-4 sm:p-5">
           <h3 className="font-black text-white">¿Cómo manejas este producto?</h3>
           <p className="mt-1 text-sm leading-6 text-zinc-500">Elige una sola opción. Esto organiza el stock sin cambiar la cantidad total.</p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {[
               { id: "simple" as const, titulo: "Sin opciones", detalle: "Un solo stock para todo el producto" },
               { id: "colores" as const, titulo: "Varios colores", detalle: "Configura tonos y cantidades ahora" },
-              { id: "tallas" as const, titulo: "Tallas o combinaciones", detalle: "Crea la ficha y configúralas en el siguiente paso" },
+              { id: "tallas" as const, titulo: "Solo tallas", detalle: "Define tallas y unidades desde aquí" },
+              { id: "color_tallas" as const, titulo: "Color + tallas", detalle: "Combina cada color con sus tallas y existencias" },
             ].map((opcion) => (
               <button
                 key={opcion.id}
                 type="button"
                 aria-pressed={modoNuevo === opcion.id}
-                onClick={() => {
-                  if (opcion.id !== "colores" && colores.length > 0 && !window.confirm("¿Quitar los colores agregados y cambiar el tipo de producto?")) return;
-                  setModoNuevo(opcion.id);
-                  if (opcion.id === "colores" || opcion.id === "tallas") setForm((actual) => ({ ...actual, controla_stock: true }));
-                  else setColores([]);
-                }}
+                onClick={() => cambiarModo(opcion.id)}
                 className={`min-h-24 rounded-xl border p-4 text-left transition ${modoNuevo === opcion.id ? "border-lime-400 bg-lime-400/10" : "border-zinc-700 bg-zinc-950 hover:border-zinc-500"}`}
               >
                 <strong className="block text-sm text-white">{opcion.titulo}</strong>
@@ -200,14 +261,23 @@ export default function ProductoForm({
               </button>
             ))}
           </div>
-          {modoNuevo === "tallas" ? <p className="mt-4 rounded-xl border border-sky-400/20 bg-sky-400/[0.06] p-3 text-xs leading-5 text-sky-200">Al crear el producto pasarás a una pantalla clara para elegir “Solo talla” o “Color + talla” y repartir las existencias.</p> : null}
         </section>}
-        {(!tieneColores || producto) && <label className="text-sm text-zinc-400">{tieneVariantes ? "Stock sin clasificar" : "Stock base"}
+        {(!tendraOpciones || producto) && <label className="text-sm text-zinc-400">{tieneVariantes ? "Stock sin clasificar" : "Stock base"}
           <input required min="0" step="1" type="number" disabled={!form.controla_stock || tieneVariantes} className={`${campo} disabled:cursor-not-allowed disabled:opacity-60`} value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
           {tieneVariantes && <span className="mt-2 block text-xs leading-5 text-amber-200">Estas unidades todavía no están asignadas a una opción. Distribúyelas por color, talla o combinación en la sección de abajo; el total no cambia.</span>}
         </label>}
         {!producto && tieneColores && (
           <ColorStockFields skuBase={form.sku} colores={colores} onChange={setColores} />
+        )}
+        {!producto && (tieneTallas || tieneColorTallas) && (
+          <CombinacionesStockFields
+            skuBase={form.sku}
+            conColores={tieneColorTallas}
+            colores={coloresCombinacion}
+            combinaciones={combinaciones}
+            onColoresChange={setColoresCombinacion}
+            onChange={setCombinaciones}
+          />
         )}
         {form.venta_mayorista && <>
           <label className="text-sm text-zinc-400">Precio mayorista por unidad
@@ -244,7 +314,17 @@ export default function ProductoForm({
       {!form.activo && <p className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-200">El producto quedará suspendido: conservará sus datos, pero no aparecerá ni podrá comprarse.</p>}
       {mensaje && <p className={`mt-4 text-sm ${esError ? "text-red-300" : "text-lime-300"}`}>{mensaje}</p>}
       <button disabled={guardando} className="mt-6 cursor-pointer rounded-xl bg-lime-400 px-6 py-3 font-black text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-50">
-        {guardando ? "Guardando..." : producto ? "Guardar cambios" : tieneColores ? "Crear producto con colores" : modoNuevo === "tallas" ? "Crear y configurar tallas" : "Crear producto"}
+        {guardando
+          ? "Guardando..."
+          : producto
+            ? "Guardar cambios"
+            : tieneColores
+              ? "Crear producto con colores"
+              : tieneTallas
+                ? "Crear producto con tallas"
+                : tieneColorTallas
+                  ? "Crear producto con colores y tallas"
+                  : "Crear producto"}
       </button>
     </form>
   );

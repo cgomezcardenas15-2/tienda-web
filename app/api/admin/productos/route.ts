@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/app/lib/adminAuth";
-import { crearSkuColor } from "@/app/lib/coloresProducto";
+import { crearSkuColor, crearSkuColorTalla, crearSkuTalla } from "@/app/lib/coloresProducto";
 import { errorValidacionProducto, limpiarProducto } from "@/app/lib/productoAdmin";
 import { supabaseAdmin } from "@/app/lib/supabaseAdmin";
 
 type VarianteNueva = {
   nombre: string;
-  color: string;
+  color: string | null;
+  talla: string | null;
   sku: string;
   stock: number;
   orden: number;
@@ -14,35 +15,46 @@ type VarianteNueva = {
 
 function limpiarVariantes(body: Record<string, unknown>, skuBase: string) {
   if (body.variantes === undefined) return { variantes: [] as VarianteNueva[], error: null };
-  if (!Array.isArray(body.variantes)) return { variantes: [] as VarianteNueva[], error: "Los colores enviados no son válidos." };
-  if (body.variantes.length > 30) return { variantes: [] as VarianteNueva[], error: "Puedes crear hasta 30 colores por producto." };
+  if (!Array.isArray(body.variantes)) return { variantes: [] as VarianteNueva[], error: "Las opciones enviadas no son válidas." };
+  if (body.variantes.length > 100) return { variantes: [] as VarianteNueva[], error: "Puedes crear hasta 100 combinaciones por producto." };
 
   const variantes: VarianteNueva[] = [];
-  const coloresUsados = new Set<string>();
-  const nombresUsados = new Set<string>();
+  const opcionesUsadas = new Set<string>();
   const skusUsados = new Set<string>();
 
   for (const [orden, valor] of body.variantes.entries()) {
-    if (!valor || typeof valor !== "object") return { variantes: [], error: "Revisa la información de los colores." };
+    if (!valor || typeof valor !== "object") return { variantes: [], error: "Revisa la información de las opciones." };
     const item = valor as Record<string, unknown>;
     const nombre = typeof item.nombre === "string" ? item.nombre.trim() : "";
-    const color = typeof item.color === "string" ? item.color.trim().toLowerCase() : "";
+    const colorTexto = typeof item.color === "string" ? item.color.trim().toLowerCase() : "";
+    const tallaTexto = typeof item.talla === "string" ? item.talla.trim() : "";
+    const color = colorTexto || null;
+    const talla = tallaTexto || null;
     const stock = typeof item.stock === "string" && item.stock.trim() === "" ? Number.NaN : Number(item.stock);
 
-    if (!nombre || nombre.length > 50) return { variantes: [], error: "Cada color debe tener un nombre de hasta 50 caracteres." };
-    if (!/^#[0-9a-f]{6}$/i.test(color)) return { variantes: [], error: `El tono de ${nombre} no es válido.` };
-    if (!Number.isInteger(stock) || stock < 0 || stock > 2_147_483_647) return { variantes: [], error: `El stock de ${nombre} no es válido.` };
+    if (!nombre || nombre.length > 50) return { variantes: [], error: "Cada opción debe tener un nombre de hasta 50 caracteres." };
+    if (!color && !talla) return { variantes: [], error: `La opción ${nombre} debe tener color o talla.` };
+    if (color && !/^#[0-9a-f]{6}$/i.test(color)) return { variantes: [], error: `El tono de ${nombre} no es válido.` };
+    if (talla && talla.length > 30) return { variantes: [], error: `La talla de ${nombre} supera los 30 caracteres.` };
+    if (!Number.isSafeInteger(stock) || stock < 0 || stock > 2_147_483_647) return { variantes: [], error: `El stock de ${nombre}${talla ? ` talla ${talla}` : ""} no es válido.` };
 
-    const nombreNormalizado = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    const sku = crearSkuColor(skuBase, nombre, color);
-    if (coloresUsados.has(color) || nombresUsados.has(nombreNormalizado) || skusUsados.has(sku)) {
-      return { variantes: [], error: "No repitas colores ni nombres dentro del mismo producto." };
+    const tallaNormalizada = talla?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() ?? "";
+    const claveOpcion = `${color ?? ""}|${tallaNormalizada}`;
+    const sku = color && talla
+      ? crearSkuColorTalla(skuBase, nombre, color, talla)
+      : color
+        ? crearSkuColor(skuBase, nombre, color)
+        : crearSkuTalla(skuBase, talla ?? "");
+    if (opcionesUsadas.has(claveOpcion)) {
+      return { variantes: [], error: "No repitas la misma talla dentro de un color ni la misma opción en el producto." };
+    }
+    if (!sku || skusUsados.has(sku)) {
+      return { variantes: [], error: "Dos opciones generan el mismo SKU. Revisa los colores, tallas o el SKU principal." };
     }
 
-    coloresUsados.add(color);
-    nombresUsados.add(nombreNormalizado);
+    opcionesUsadas.add(claveOpcion);
     skusUsados.add(sku);
-    variantes.push({ nombre, color, sku, stock, orden });
+    variantes.push({ nombre, color, talla, sku, stock, orden });
   }
 
   return { variantes, error: null };
@@ -61,7 +73,7 @@ export async function POST(request: NextRequest) {
     : { variantes: [] as VarianteNueva[], error: null };
   if (resultadoVariantes.error) return NextResponse.json({ error: resultadoVariantes.error }, { status: 400 });
   if (body.usa_variantes === true && resultadoVariantes.variantes.length === 0) {
-    return NextResponse.json({ error: "Selecciona al menos un color para el producto." }, { status: 400 });
+    return NextResponse.json({ error: "Configura al menos una opción para el producto." }, { status: 400 });
   }
   if (resultadoVariantes.variantes.length > 0) {
     datos.controla_stock = true;
@@ -98,7 +110,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No fue posible validar los SKU. Intenta nuevamente." }, { status: 500 });
   }
   if ((productosConSku?.length ?? 0) > 0 || (variantesConSku?.length ?? 0) > 0) {
-    return NextResponse.json({ error: "El SKU principal o el de uno de los colores ya está utilizado." }, { status: 409 });
+    return NextResponse.json({ error: "El SKU principal o el de una de las opciones ya está utilizado." }, { status: 409 });
   }
 
   const activoSolicitado = datos.activo;
@@ -122,21 +134,21 @@ export async function POST(request: NextRequest) {
 
     if (errorVariantes) {
       const { error: errorLimpieza } = await supabaseAdmin.from("productos").delete().eq("id", data.id);
-      console.error("Error creando colores del producto:", {
+      console.error("Error creando opciones del producto:", {
         code: errorVariantes.code,
         message: errorVariantes.message,
         rollback: errorLimpieza?.message,
       });
       if (errorLimpieza) {
         return NextResponse.json({
-          error: "No fue posible completar los colores. El producto quedó suspendido para evitar ventas; revisa el catálogo.",
+          error: "No fue posible completar las opciones. El producto quedó suspendido para evitar ventas; revisa el catálogo.",
           productoId: data.id,
         }, { status: 500 });
       }
       return NextResponse.json({
         error: errorVariantes.code === "23505"
-          ? "El SKU de uno de los colores ya está utilizado. Cambia el SKU principal o el nombre del color."
-          : "No fue posible guardar los colores. El producto no fue creado.",
+          ? "El SKU de una de las opciones ya está utilizado. Cambia el SKU principal, el color o la talla."
+          : "No fue posible guardar las opciones. El producto no fue creado.",
       }, { status: 409 });
     }
 
@@ -148,12 +160,12 @@ export async function POST(request: NextRequest) {
         .select("*")
         .single();
       if (errorActivacion) {
-        console.error("Producto con colores creado pero no activado:", { productoId: data.id, message: errorActivacion.message });
+        console.error("Producto con opciones creado pero no activado:", { productoId: data.id, message: errorActivacion.message });
         return NextResponse.json({
           ok: true,
           producto: data,
           variantes,
-          advertencia: "El producto y sus colores se guardaron, pero quedó suspendido. Actívalo desde su ficha.",
+          advertencia: "El producto y sus opciones se guardaron, pero quedó suspendido. Actívalo desde su ficha.",
         }, { status: 201 });
       }
       return NextResponse.json({ ok: true, producto: productoActivo, variantes }, { status: 201 });

@@ -5,6 +5,15 @@ export type ColorStockNuevo = {
   stock: string;
 };
 
+export type CombinacionStockNueva = {
+  id: string;
+  colorId: string;
+  nombre: string;
+  color: string | null;
+  talla: string;
+  stock: string;
+};
+
 export const PALETA_COLORES_PRODUCTO = [
   { nombre: "Negro", color: "#111111", codigo: "NEG" },
   { nombre: "Blanco", color: "#ffffff", codigo: "BLA" },
@@ -29,6 +38,12 @@ function limpiarCodigo(valor: string) {
     .replace(/(^-|-$)/g, "");
 }
 
+export function crearSkuTalla(skuBase: string, talla: string) {
+  return [limpiarCodigo(skuBase), limpiarCodigo(talla).slice(0, 12)]
+    .filter(Boolean)
+    .join("-");
+}
+
 export function codigoSkuColor(nombre: string, color: string) {
   const opcion = PALETA_COLORES_PRODUCTO.find(
     (item) => item.color.toLowerCase() === color.toLowerCase(),
@@ -42,4 +57,15 @@ export function crearSkuColor(skuBase: string, nombre: string, color: string) {
   const base = limpiarCodigo(skuBase);
   const codigo = codigoSkuColor(nombre, color);
   return [base, codigo].filter(Boolean).join("-");
+}
+
+export function crearSkuColorTalla(
+  skuBase: string,
+  nombre: string,
+  color: string,
+  talla: string,
+) {
+  return [crearSkuColor(skuBase, nombre, color), limpiarCodigo(talla).slice(0, 12)]
+    .filter(Boolean)
+    .join("-");
 }
